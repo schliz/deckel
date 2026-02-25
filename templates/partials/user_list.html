@@ -1,0 +1,58 @@
+{{define "user-list"}}
+<div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th class="text-right">Guthaben</th>
+                <th>Status</th>
+                <th>Aktiv</th>
+                <th>Limit-Override</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Users}}
+            <tr id="user-row-{{.ID}}">
+                <td>{{.FullName}}</td>
+                <td>{{.Email}}</td>
+                <td class="text-right {{if lt .Balance 0}}text-error{{else}}text-success{{end}}">
+                    {{formatCents .Balance}}
+                </td>
+                <td>
+                    {{if .IsBarteamer}}Barteamer{{else}}Helfer{{end}}
+                </td>
+                <td>
+                    {{if .IsActive}}Ja{{else}}Nein{{end}}
+                </td>
+                <td>
+                    {{if .SpendingLimitDisabled}}Ja{{else}}Nein{{end}}
+                </td>
+                <td>-</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+
+    {{if gt .TotalPages 1}}
+    <div class="flex justify-center mt-4">
+        <div class="join">
+            {{if gt .Page 1}}
+            <a href="?page={{sub .Page 1}}" class="join-item btn btn-sm"
+                hx-get="/admin/users?page={{sub .Page 1}}"
+                hx-target="#user-list"
+                hx-swap="innerHTML">«</a>
+            {{end}}
+            <span class="join-item btn btn-sm btn-disabled">Seite {{.Page}} von {{.TotalPages}}</span>
+            {{if lt .Page .TotalPages}}
+            <a href="?page={{add .Page 1}}" class="join-item btn btn-sm"
+                hx-get="/admin/users?page={{add .Page 1}}"
+                hx-target="#user-list"
+                hx-swap="innerHTML">»</a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}
