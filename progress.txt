@@ -1182,3 +1182,19 @@
   - All existing ID parsing was already solid (strconv.ParseInt base 10, 64-bit)
   - All SQL was already parameterized via pgx - no raw user input in queries
 ---
+
+## 2026-02-25 - US-090
+- Security audit covering XSS, CSRF, SQL injection, role enforcement, deactivated users, and secrets
+- **XSS**: No usage of template.HTML/template.JS/template.CSS/template.URL anywhere; all templates use html/template auto-escaping
+- **CSRF**: All POST/PUT/DELETE/PATCH routes use withCSRF or adminOnly middleware; CSRF middleware validates X-CSRF-Token header
+- **SQL injection**: Eliminated fmt.Sprintf SQL construction in store/user.go toggleUserBool helper; replaced with inline parameterized queries for ToggleBarteamer, ToggleActive, ToggleSpendingLimit
+- **Admin routes**: All /admin/* routes wrapped with adminOnly (withCSRF + RequireAdmin)
+- **Admin UI**: Nav uses {{if and .User .User.IsAdmin}} conditional rendering (not CSS hiding); admin pages only served from protected routes
+- **Deactivated users**: Blocked at auth middleware level (auth/middleware.go:116-122) before any handler runs
+- **Secrets**: No secrets in HTML comments, client-side code, or static JS files
+- Files changed: internal/store/user.go
+- **Learnings for future iterations:**
+  - Never use fmt.Sprintf for SQL column names even with hardcoded values - inline the queries instead
+  - All security checks are structural (middleware-based) rather than per-handler, which makes auditing straightforward
+  - The deactivated user check is in the auth middleware, so it applies to ALL authenticated routes automatically
+---
