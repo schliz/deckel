@@ -73,6 +73,7 @@ func (h *Handler) Wrap(fn AppHandler) http.HandlerFunc {
 func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	code := http.StatusInternalServerError
 	msg := "Interner Serverfehler"
+	title := "Interner Fehler"
 
 	var notFound *NotFoundError
 	var forbidden *ForbiddenError
@@ -82,12 +83,15 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error)
 	case errors.As(err, &notFound):
 		code = http.StatusNotFound
 		msg = notFound.Error()
+		title = "Seite nicht gefunden"
 	case errors.As(err, &forbidden):
 		code = http.StatusForbidden
 		msg = forbidden.Error()
+		title = "Zugriff verweigert"
 	case errors.As(err, &validation):
 		code = http.StatusBadRequest
 		msg = validation.Error()
+		title = "Ungültige Eingabe"
 	default:
 		log.Printf("ERROR: %v", err)
 	}
@@ -101,7 +105,34 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error)
 		return
 	}
 
-	http.Error(w, msg, code)
+	w.WriteHeader(code)
+	h.RenderErrorPage(w, r, code, title, msg)
+}
+
+// RenderErrorPage renders a styled error page for non-HTMX requests.
+func (h *Handler) RenderErrorPage(w http.ResponseWriter, r *http.Request, code int, title, message string) {
+	data := map[string]any{
+		"ErrorCode":    code,
+		"ErrorTitle":   title,
+		"ErrorMessage": message,
+	}
+	h.Renderer.Page(w, r, "error", data)
+}
+
+// NotFoundHandler returns a handler for unmatched routes.
+func (h *Handler) NotFoundHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if isHTMX(r) {
+			w.WriteHeader(http.StatusNotFound)
+			h.Renderer.Fragment(w, r, "toast", map[string]string{
+				"Type":    "error",
+				"Message": "Seite nicht gefunden",
+			})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+		h.RenderErrorPage(w, r, http.StatusNotFound, "Seite nicht gefunden", "Die angeforderte Seite wurde nicht gefunden.")
+	}
 }
 
 // isHTMX checks if the request was made by HTMX.

@@ -135,6 +135,9 @@ func main() {
 	mux.Handle("POST /admin/settings", adminOnly(h.Wrap(h.SaveSettings)))
 	mux.Handle("POST /admin/settings/send-reminders", adminOnly(h.Wrap(h.SendReminders)))
 
+	// Catch-all: styled 404 for unmatched routes.
+	mux.Handle("/", base(h.NotFoundHandler()))
+
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,
 		Handler: mux,
