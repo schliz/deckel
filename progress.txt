@@ -842,3 +842,13 @@
 - **Learnings for future iterations:**
   - The toggleUserBool helper + store.ToggleX functions were pre-created, so toggle handlers only need the HTTP handler + route registration
 ---
+
+## 2026-02-25 - US-064
+- Implemented ToggleSpendingLimit handler in internal/handler/admin_users.go
+- Registered route POST /admin/users/{id}/toggle-spending-limit in cmd/server/main.go
+- Store function store.ToggleSpendingLimit and model field SpendingLimitDisabled already existed
+- Files changed: internal/handler/admin_users.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - store.ToggleSpendingLimit was already implemented in a prior story — always check store layer first
+  - Toast message uses "Ausgabelimit" (German) for spending limit context
+---
