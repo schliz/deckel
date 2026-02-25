@@ -1146,3 +1146,17 @@
   - oauth2-proxy is left as commented placeholder since it requires provider-specific secrets
   - docker compose config validates compose file syntax (works with podman-compose too)
 ---
+
+## 2026-02-25 - US-088
+- Implemented content-hashed CSS filename for cache busting
+- Created internal/render/csshash.go: CSSHashedPath() reads styles.css, computes SHA-256 hash, creates hard link with hashed name (e.g., styles.a3f8b2c1deadbeef.css), cleans up old hashed files
+- Updated cmd/server/main.go: calls CSSHashedPath at startup, injects `cssFile` template function returning the hashed URL path
+- Updated templates/layouts/base.html: uses `{{cssFile}}` instead of hardcoded `/static/css/styles.css`
+- Updated .gitignore: added `static/css/styles.*.css` pattern for hashed CSS files
+- Static file server already sets immutable cache headers for .css files (from existing staticCacheHandler)
+- Files changed: internal/render/csshash.go (new), cmd/server/main.go, templates/layouts/base.html, .gitignore
+- **Learnings for future iterations:**
+  - Hard link is preferred over copy (same inode, no extra disk space); falls back to copy if link fails
+  - cssFile is a zero-arg template function, called as `{{cssFile}}` not `{{.CSSFile}}`
+  - Old hashed files are cleaned up on startup via glob matching `styles.*.css`
+---
