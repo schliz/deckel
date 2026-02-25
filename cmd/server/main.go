@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -46,6 +47,10 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
+	// Static file server with cache headers.
+	staticFS := http.FileServer(http.Dir(cfg.StaticDir))
+	mux.Handle("/static/", http.StripPrefix("/static/", staticCacheHandler(staticFS, cfg.DevMode)))
+
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,
 		Handler: mux,
@@ -74,6 +79,25 @@ func main() {
 	}
 
 	log.Println("Server stopped gracefully")
+}
+
+// staticCacheHandler wraps a file server handler to add cache headers based on file type.
+// In dev mode, cache headers are set to no-cache.
+func staticCacheHandler(next http.Handler, devMode bool) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if devMode {
+			w.Header().Set("Cache-Control", "no-cache")
+		} else {
+			path := r.URL.Path
+			switch {
+			case strings.HasSuffix(path, ".css"):
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			case strings.HasSuffix(path, ".js"):
+				w.Header().Set("Cache-Control", "public, max-age=86400")
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func runMigrations(databaseURL string) error {
