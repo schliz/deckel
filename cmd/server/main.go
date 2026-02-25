@@ -97,6 +97,9 @@ func main() {
 	// Place order (POST /menu/order).
 	mux.Handle("POST /menu/order", withCSRF(h.Wrap(h.PlaceOrder)))
 
+	// Header stats (lazy-loaded on page init).
+	mux.Handle("GET /header-stats", base(h.Wrap(h.HeaderStats)))
+
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
 	mux.Handle("GET /profile", withCSRF(h.Wrap(h.ProfilePage)))
 	mux.Handle("POST /profile/export", withCSRF(h.Wrap(h.ExportData)))

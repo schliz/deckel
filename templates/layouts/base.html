@@ -24,7 +24,7 @@
     </div>
     {{end}}
 
-    <div id="header-stats"></div>
+    <div id="header-stats" hx-get="/header-stats" hx-trigger="load" hx-swap="outerHTML"></div>
 
     <main class="container mx-auto px-4 py-6">
         {{block "content" .}}{{end}}

@@ -1,10 +1,10 @@
 {{define "header-stats"}}
-<div id="header-stats" hx-swap-oob="true" class="bg-base-200 border-b border-base-300">
+<div id="header-stats"{{if .OOB}} hx-swap-oob="true"{{end}} class="bg-base-200 border-b border-base-300">
     <div class="container mx-auto px-4 py-2">
         <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm">
             <div class="flex items-center gap-1">
                 <span class="opacity-70">Guthaben:</span>
-                <span class="font-bold {{if lt .UserBalance 0}}{{if and .Settings (lt .UserBalance .Settings.WarningLimit)}}text-error font-extrabold{{else}}text-error{{end}}{{else}}text-success{{end}}">
+                <span class="font-bold{{if gt .UserBalance 0}} text-success{{else if lt .UserBalance 0}}{{if and .Settings (lt .UserBalance .Settings.WarningLimit)}} text-error font-extrabold{{else}} text-error{{end}}{{end}}">
                     {{formatCents .UserBalance}}
                 </span>
             </div>

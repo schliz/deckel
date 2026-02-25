@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -114,4 +115,29 @@ func isLowBalance(user *auth.RequestUser, settings *model.Settings) bool {
 		return false
 	}
 	return user.Balance < settings.WarningLimit
+}
+
+// HeaderStats renders the header-stats component for initial page load.
+func (h *Handler) HeaderStats(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	user := auth.UserFromContext(ctx)
+	db := h.Store.DB()
+
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("header stats: get settings: %w", err)
+	}
+
+	balance, _ := store.GetUserBalance(ctx, db, user.ID)
+	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	rank, total, _ := store.GetUserRank(ctx, db, user.ID)
+
+	h.Renderer.Fragment(w, r, "header-stats", map[string]any{
+		"UserBalance":  balance,
+		"TotalBalance": totalBalance,
+		"UserRank":     rank,
+		"TotalUsers":   total,
+		"Settings":     settings,
+	})
+	return nil
 }

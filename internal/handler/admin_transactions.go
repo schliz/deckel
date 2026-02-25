@@ -183,6 +183,21 @@ func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request)
 		"Message": "Transaktion storniert!",
 	})
 
+	// Render OOB header-stats update (total balance changes on cancel).
+	reqUser := auth.UserFromContext(ctx)
+	newBalance, _ := store.GetUserBalance(ctx, db, reqUser.ID)
+	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	rank, total, _ := store.GetUserRank(ctx, db, reqUser.ID)
+
+	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
+		"UserBalance":  newBalance,
+		"TotalBalance": totalBalance,
+		"UserRank":     rank,
+		"TotalUsers":   total,
+		"Settings":     settings,
+		"OOB":          true,
+	})
+
 	// Re-render the admin transaction list for the current page.
 	page := 1
 	if p := r.URL.Query().Get("page"); p != "" {

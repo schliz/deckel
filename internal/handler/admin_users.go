@@ -254,6 +254,7 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 		"UserRank":     rank,
 		"TotalUsers":   total,
 		"Settings":     settings,
+		"OOB":          true,
 	})
 
 	// Render OOB user row swap.

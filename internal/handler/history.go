@@ -244,6 +244,7 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 		"UserRank":     rank,
 		"TotalUsers":   total,
 		"Settings":     settings,
+		"OOB":          true,
 	})
 
 	// Close modal.
@@ -332,6 +333,7 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 		"UserRank":     rank,
 		"TotalUsers":   total,
 		"Settings":     settings,
+		"OOB":          true,
 	})
 
 	// Re-render the transaction list for the current page.

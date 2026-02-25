@@ -190,6 +190,7 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 		"UserRank":     rank,
 		"TotalUsers":   total,
 		"Settings":     settings,
+		"OOB":          true,
 	})
 
 	// Close modal by rendering empty content into #modal.
