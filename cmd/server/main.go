@@ -128,6 +128,7 @@ func main() {
 	mux.Handle("GET /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelModal)))
 	mux.Handle("POST /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelTransaction)))
 	mux.Handle("GET /admin/stats", adminOnly(h.Wrap(h.AdminStatsPage)))
+	mux.Handle("GET /admin/settings", adminOnly(h.Wrap(h.AdminSettingsPage)))
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,
