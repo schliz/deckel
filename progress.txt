@@ -599,3 +599,16 @@
   - Transaction list OOB swap reuses TransactionHistoryData struct to pass all needed fields to the partial
   - pgx.Tx import needed in handler when using Store.WithTx callback
 ---
+
+## 2026-02-24 - US-044
+- Created CustomTransactionModal handler at GET /transactions/custom
+- Handler fetches settings (custom_tx_min, custom_tx_max) and renders "custom-transaction-modal" fragment
+- CustomTransactionModalData view model: Settings, CSRFToken
+- Created templates/partials/custom_transaction_modal.html placeholder (US-045 will build full template)
+- Registered route in main.go with withCSRF middleware
+- Files changed: internal/handler/history.go, cmd/server/main.go, templates/partials/custom_transaction_modal.html
+- **Learnings for future iterations:**
+  - CustomTransactionModal is simpler than CancelModal - no entity fetch/validation needed, just settings
+  - Template placeholder uses formatCents for min/max display hints
+  - Route registered before the `{id}` parameterized routes to avoid pattern conflicts
+---

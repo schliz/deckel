@@ -1,0 +1,16 @@
+{{define "custom-transaction-modal"}}
+<div id="modal" hx-swap-oob="innerHTML" style="display:">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Eigene Buchung</h3>
+    <p class="py-4">Min: {{formatCents .Settings.CustomTxMin}} / Max: {{formatCents .Settings.CustomTxMax}}</p>
+    <div class="modal-action">
+      <button class="btn" onclick="document.getElementById('modal').style.display='none'; document.getElementById('modal').innerHTML='';">Abbrechen</button>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  document.getElementById('modal').style.display = '';
+})();
+</script>
+{{end}}

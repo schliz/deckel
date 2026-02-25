@@ -81,6 +81,31 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 	return nil
 }
 
+// CustomTransactionModalData is the view model for the custom transaction modal.
+type CustomTransactionModalData struct {
+	Settings  *model.Settings
+	CSRFToken string
+}
+
+// CustomTransactionModal renders the custom transaction modal.
+func (h *Handler) CustomTransactionModal(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("custom transaction modal: get settings: %w", err)
+	}
+
+	data := CustomTransactionModalData{
+		Settings:  settings,
+		CSRFToken: middleware.CSRFTokenFromContext(ctx),
+	}
+
+	h.Renderer.Fragment(w, r, "custom-transaction-modal", data)
+	return nil
+}
+
 // CancelModalData is the view model for the cancel confirmation modal.
 type CancelModalData struct {
 	Transaction *model.Transaction
