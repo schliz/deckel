@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -127,6 +128,33 @@ func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) er
 		"Type":    "success",
 		"Message": fmt.Sprintf("Ausgabelimit für %s geändert.", ub.FullName),
 	})
+	return nil
+}
+
+// DepositModal handles GET /admin/users/{id}/deposit.
+func (h *Handler) DepositModal(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	user, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+		}
+		return fmt.Errorf("deposit modal: get user: %w", err)
+	}
+
+	data := map[string]any{
+		"User":      user,
+		"CSRFToken": middleware.CSRFTokenFromContext(ctx),
+	}
+
+	h.Renderer.Fragment(w, r, "payment-modal", data)
 	return nil
 }
 

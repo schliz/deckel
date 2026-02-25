@@ -1,0 +1,46 @@
+{{define "payment-modal"}}
+<div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Einzahlung für {{.User.FullName}}</h3>
+
+        <div class="py-4">
+            <p class="text-sm opacity-70 mb-4">
+                Aktuelles Guthaben: {{formatCents .User.Balance}}
+            </p>
+
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Betrag (EUR) *</span>
+                </label>
+                <input type="number" id="deposit-amount" step="0.01" min="0.01"
+                    placeholder="0,00" class="input input-bordered w-full">
+            </div>
+
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Notiz (optional)</span>
+                </label>
+                <input type="text" id="deposit-note" placeholder="z.B. Barzahlung"
+                    class="input input-bordered w-full">
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-primary" id="deposit-confirm-btn"
+                hx-post="/admin/users/{{.User.ID}}/deposit"
+                hx-vals='js:{"amount": document.getElementById("deposit-amount").value, "note": document.getElementById("deposit-note").value}'
+                hx-target="#modal"
+                hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+                Einzahlen
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    document.getElementById('modal').style.display = '';
+})();
+</script>
+{{end}}
