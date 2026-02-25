@@ -886,3 +886,13 @@
   - Admin deposit targets another user (id from path), not the requesting user
   - Header-stats OOB uses requesting user's balance/rank, not the target user's
 ---
+
+## 2026-02-25 - US-068
+- Implemented ListAllTransactions(ctx, dbtx, limit, offset) in internal/store/transaction.go
+- Added TransactionWithUser struct to internal/model/models.go (embeds Transaction + UserName, UserEmail)
+- Query joins transactions with users table, orders newest first, supports pagination with total count
+- Files changed: internal/model/models.go, internal/store/transaction.go
+- **Learnings for future iterations:**
+  - TransactionWithUser embeds Transaction and adds UserName/UserEmail for admin views
+  - Follow the same paginated query pattern: COUNT first, then SELECT with LIMIT/OFFSET
+---
