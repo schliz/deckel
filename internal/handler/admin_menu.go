@@ -295,6 +295,48 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// SoftDeleteItem handles POST /admin/items/{id}/delete to soft-delete a drink item.
+func (h *Handler) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Artikel nicht gefunden"}
+	}
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	// Fetch item name for toast before deleting.
+	item, err := store.GetItem(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Artikel nicht gefunden"}
+		}
+		return fmt.Errorf("soft delete item: get: %w", err)
+	}
+	if item.DeletedAt != nil {
+		return &NotFoundError{Message: "Artikel nicht gefunden"}
+	}
+
+	if err := store.SoftDeleteItem(ctx, db, id); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Artikel nicht gefunden"}
+		}
+		return fmt.Errorf("soft delete item: %w", err)
+	}
+
+	if err := h.renderAdminCategoryList(w, r); err != nil {
+		return err
+	}
+
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Artikel '%s' gelöscht", item.Name),
+	})
+
+	return nil
+}
+
 // renderAdminCategoryList re-fetches all categories with items and renders
 // the admin-category-list partial as the main response content.
 func (h *Handler) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) error {
