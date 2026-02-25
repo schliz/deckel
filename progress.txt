@@ -701,3 +701,53 @@
   - Price inputs use step="0.01" for Euro cents; handlers must convert Euro to cents (multiply by 100)
   - All HTMX actions target `#admin-category-list` for consistent partial replacement
 ---
+
+## 2026-02-25 - US-052
+- Implemented CreateCategory handler at POST /admin/categories
+- Parses name from form, validates non-empty, calls store.CreateCategory
+- Response: renders admin-category-list as main content (hx-target swap) + toast as OOB
+- Created reusable renderAdminCategoryList helper on Handler for future admin CRUD handlers
+- Registered route with adminOnly middleware in main.go
+- Files changed: internal/handler/admin_menu.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - Admin category list responses: Fragment() for main content (hx-target swap) + AppendOOB() for toast
+  - renderAdminCategoryList helper re-fetches all categories+items and renders the partial - reuse for reorder/delete handlers
+  - Form hx-target="#admin-category-list" with hx-swap="innerHTML" means category list is the primary response, toast is OOB
+---
+
+## 2026-02-25 - US-053
+- Implemented ReorderCategory handler in internal/handler/admin_menu.go
+- Registered POST /admin/categories/{id}/reorder route with adminOnly middleware in cmd/server/main.go
+- Handler extracts id from path, direction from query param, calls store.ReorderCategory, re-renders category list
+- Store layer (ReorderCategory with up/down/top/bottom) and template buttons were already implemented
+- Files changed: internal/handler/admin_menu.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - Store reorder functions already existed - always check store layer before implementing
+  - Template HTMX buttons were pre-wired with correct endpoints - just needed handler + route
+  - Direction param sent as query string (?direction=up) from HTMX buttons, not form value
+---
+
+## 2026-02-25 - US-054
+- Implemented DeleteCategory handler in internal/handler/admin_menu.go
+- Registered DELETE /admin/categories/{id} route in cmd/server/main.go
+- Handler validates category has zero active items before deletion
+- Returns updated category list + success toast OOB
+- Files changed: internal/handler/admin_menu.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - Template already had delete button with hx-delete method (not POST), so route uses DELETE method
+  - store.DeleteCategory already existed - always check store layer before creating new functions
+  - Pattern: fetch entity first for name (toast message), validate constraints, then delete
+---
+
+## 2026-02-25 - US-055
+- Implemented CreateItem handler in internal/handler/admin_menu.go
+- Registered POST /admin/categories/{id}/items route in cmd/server/main.go
+- Parses name, price_barteamer, price_helfer from form; converts Euro floats to cents with math.Round
+- Validates name non-empty and both prices > 0
+- Creates item via store.CreateItem, renders updated category list + success toast OOB
+- Files changed: internal/handler/admin_menu.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - Euro-to-cents conversion: use math.Round(float * 100) to avoid floating point truncation issues
+  - Template form already exists in admin_category_list.html, posts to /admin/categories/{cat_id}/items
+  - Route path param is {id} not {cat_id} — Go mux uses the name from the route pattern
+---

@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -90,6 +91,56 @@ func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 	h.Renderer.AppendOOB(w, "toast", map[string]string{
 		"Type":    "success",
 		"Message": fmt.Sprintf("Kategorie '%s' erstellt", name),
+	})
+
+	return nil
+}
+
+// CreateItem handles POST /admin/categories/{cat_id}/items to add a new drink item.
+func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) error {
+	catIDStr := r.PathValue("id")
+	catID, err := strconv.ParseInt(catIDStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
+	}
+
+	priceBarteamerF, err := strconv.ParseFloat(r.FormValue("price_barteamer"), 64)
+	if err != nil || priceBarteamerF <= 0 {
+		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
+	}
+	priceHelferF, err := strconv.ParseFloat(r.FormValue("price_helfer"), 64)
+	if err != nil || priceHelferF <= 0 {
+		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
+	}
+
+	priceBarteamer := int64(math.Round(priceBarteamerF * 100))
+	priceHelfer := int64(math.Round(priceHelferF * 100))
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	_, err = store.CreateItem(ctx, db, &model.Item{
+		CategoryID:     catID,
+		Name:           name,
+		PriceBarteamer: priceBarteamer,
+		PriceHelfer:    priceHelfer,
+	})
+	if err != nil {
+		return fmt.Errorf("create item: %w", err)
+	}
+
+	if err := h.renderAdminCategoryList(w, r); err != nil {
+		return err
+	}
+
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Artikel '%s' erstellt", name),
 	})
 
 	return nil
