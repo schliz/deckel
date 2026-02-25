@@ -1,0 +1,57 @@
+{{define "nav"}}
+<div class="navbar bg-base-200">
+    <div class="navbar-start">
+        <div class="dropdown">
+            <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
+                </svg>
+            </div>
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-200 rounded-box w-52">
+                <li><a href="/menu" class="{{if eq .ActivePage "menu"}}active{{end}}">Getränkekarte</a></li>
+                <li><a href="/transactions" class="{{if eq .ActivePage "transactions"}}active{{end}}">Transaktionen</a></li>
+                <li><a href="/profile" class="{{if eq .ActivePage "profile"}}active{{end}}">Profil</a></li>
+                {{if and .User .User.IsAdmin}}
+                <li>
+                    <a>Verwaltung</a>
+                    <ul class="p-2 bg-base-200">
+                        <li><a href="/admin/menu">Getränkekarte</a></li>
+                        <li><a href="/admin/users">Nutzer</a></li>
+                        <li><a href="/admin/transactions">Transaktionen</a></li>
+                        <li><a href="/admin/stats">Statistiken</a></li>
+                        <li><a href="/admin/settings">Einstellungen</a></li>
+                    </ul>
+                </li>
+                {{end}}
+            </ul>
+        </div>
+        <a href="/menu" class="btn btn-ghost text-xl">K4-Bar</a>
+    </div>
+    <div class="navbar-center hidden lg:flex">
+        <ul class="menu menu-horizontal px-1">
+            <li><a href="/menu" class="{{if eq .ActivePage "menu"}}active{{end}}">Getränkekarte</a></li>
+            <li><a href="/transactions" class="{{if eq .ActivePage "transactions"}}active{{end}}">Transaktionen</a></li>
+            <li><a href="/profile" class="{{if eq .ActivePage "profile"}}active{{end}}">Profil</a></li>
+            {{if and .User .User.IsAdmin}}
+            <li>
+                <details>
+                    <summary>Verwaltung</summary>
+                    <ul class="p-2 bg-base-200 z-[1]">
+                        <li><a href="/admin/menu">Getränkekarte</a></li>
+                        <li><a href="/admin/users">Nutzer</a></li>
+                        <li><a href="/admin/transactions">Transaktionen</a></li>
+                        <li><a href="/admin/stats">Statistiken</a></li>
+                        <li><a href="/admin/settings">Einstellungen</a></li>
+                    </ul>
+                </details>
+            </li>
+            {{end}}
+        </ul>
+    </div>
+    <div class="navbar-end">
+        {{if .User}}
+        <span class="text-sm mr-2 hidden sm:inline">{{.User.FirstName}}</span>
+        {{end}}
+    </div>
+</div>
+{{end}}
