@@ -3,8 +3,10 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -162,6 +164,92 @@ func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
 
 	h.Renderer.Fragment(w, r, "cancel-modal", data)
 	return nil
+}
+
+// CreateCustomTransaction processes a custom transaction submission.
+func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	user := auth.UserFromContext(ctx)
+	db := h.Store.DB()
+
+	// Parse form data.
+	description := strings.TrimSpace(r.FormValue("description"))
+	amountStr := r.FormValue("amount")
+
+	if description == "" {
+		return &ValidationError{Message: "Beschreibung ist erforderlich"}
+	}
+
+	// Parse Euro amount string to cents.
+	amountFloat, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil || amountFloat <= 0 {
+		return &ValidationError{Message: "Ungültiger Betrag"}
+	}
+	amountCents := int64(math.Round(amountFloat * 100))
+
+	// Fetch settings for custom_tx_min/max.
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("create custom transaction: get settings: %w", err)
+	}
+
+	// Validate amount within allowed range.
+	if amountCents < settings.CustomTxMin {
+		return &ValidationError{Message: fmt.Sprintf("Mindestbetrag: %s", formatEuroCents(settings.CustomTxMin))}
+	}
+	if amountCents > settings.CustomTxMax {
+		return &ValidationError{Message: fmt.Sprintf("Maximalbetrag: %s", formatEuroCents(settings.CustomTxMax))}
+	}
+
+	// Create transaction (amount is negative = debit).
+	txn := &model.Transaction{
+		UserID:      user.ID,
+		Amount:      -amountCents,
+		Description: &description,
+		Type:        "custom",
+	}
+
+	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
+		_, err := store.CreateTransaction(ctx, tx, txn)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("create custom transaction: %w", err)
+	}
+
+	// Build response: toast + OOB header-stats + close modal.
+	h.Renderer.Fragment(w, r, "toast", map[string]string{
+		"Type":    "success",
+		"Message": "Buchung gespeichert!",
+	})
+
+	// Render OOB header-stats update.
+	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
+	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	rank, total, _ := store.GetUserRank(ctx, db, user.ID)
+
+	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
+		"UserBalance":  newBalance,
+		"TotalBalance": totalBalance,
+		"UserRank":     rank,
+		"TotalUsers":   total,
+		"Settings":     settings,
+	})
+
+	// Close modal.
+	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
+
+	return nil
+}
+
+// formatEuroCents formats cents as Euro string (e.g., 150 -> "1,50 EUR").
+func formatEuroCents(cents int64) string {
+	euros := cents / 100
+	remainder := cents % 100
+	if remainder < 0 {
+		remainder = -remainder
+	}
+	return fmt.Sprintf("%d,%02d EUR", euros, remainder)
 }
 
 // CancelTransaction processes the cancellation of a transaction.

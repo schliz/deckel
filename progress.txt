@@ -625,3 +625,17 @@
   - Amount input uses step="0.01" for Euro cent precision; handler must convert Euro string to cents
   - hx-vals with js: prefix allows reading form input values at click time
 ---
+
+## 2026-02-25 - US-046
+- Implemented CreateCustomTransaction handler at POST /transactions/custom
+- Parses description (required, non-empty) and amount (Euro string to cents via math.Round)
+- Validates amount within custom_tx_min..custom_tx_max from settings
+- Creates transaction with type=custom, amount=-parsedCents, description field set
+- Response: success toast + OOB header-stats update + modal close
+- Registered route in main.go with withCSRF middleware
+- Files changed: internal/handler/history.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - Euro to cents conversion: ParseFloat + math.Round(f*100) avoids floating point truncation issues
+  - Custom transaction follows same response pattern as PlaceOrder: toast + OOB header-stats + modal close
+  - formatEuroCents helper added locally in handler (not in render.FuncMap) since it's only used for error messages
+---
