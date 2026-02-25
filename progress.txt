@@ -1,0 +1,479 @@
+## Codebase Patterns
+- Go module: github.com/k4-bar/deckel
+- Entry point: cmd/server/main.go
+- Empty directories use .gitkeep files for git tracking
+- Go version: 1.24 (from go.mod)
+- Use Go 1.22+ method routing: mux.HandleFunc("GET /healthz", handler)
+- When adding pgx, must `go get github.com/jackc/pgx/v5/pgxpool` (not just pgx/v5) to pull in puddle dependency
+- Migrations: SQL files in `migrations/` dir, embedded via `migrations/embed.go` package, goose uses `database/sql` via pgx stdlib driver
+- Go version upgraded to 1.25 (goose v3.27 requires it)
+- Store pattern: DBTX interface (Exec/Query/QueryRow) abstracts pool vs tx; Store.DB() returns pool as DBTX
+- Renderer: New(templateDir, isDev, funcMap) parses layouts+partials+components+pages; Page() renders layout or content block for HTMX; dev mode re-parses on every request
+- CSS build: `npx tailwindcss -i static/css/input.css -o static/css/styles.css --minify` or `scripts/build-css.sh`
+- Tailwind 3.x + DaisyUI 4.x via npm (devDependencies); standalone CLI doesn't support DaisyUI plugin
+- Fragment() supports both page templates and named sub-templates (components/partials) via Lookup() fallback
+- Store queries are package-level functions: `store.GetUserByEmail(ctx, dbtx, email)` not methods on Store
+- ErrNotFound sentinel error in store package for "not found" cases (wrap with errors.Is)
+
+---
+
+## 2026-02-24 - US-001
+- Initialized Go module as github.com/k4-bar/deckel
+- Created full directory structure: cmd/server/, internal/{config,auth,handler,middleware,model,store,render,mail}/, migrations/, templates/{layouts,pages,partials,components}/, static/{css,js}/
+- Created main.go with "K4-Bar Deckel starting..." message
+- Added .gitignore for binaries, IDE files, OS files
+- `go build ./cmd/server` and `go vet ./...` pass
+- **Learnings for future iterations:**
+  - No git repo existed initially; had to `git init` before branching
+  - German locale on this machine means git output is in German
+---
+
+## 2026-02-24 - US-002
+- Created internal/config/config.go with typed Config struct
+- Config.Load() reads DATABASE_URL, LISTEN_ADDR, DEV_MODE, ADMIN_GROUP, STATIC_DIR, TEMPLATE_DIR from env vars
+- Returns error if DATABASE_URL is empty; all other fields have sensible defaults
+- Files changed: internal/config/config.go
+- **Learnings for future iterations:**
+  - strings.EqualFold used for case-insensitive boolean env var parsing
+  - Config is not yet consumed by main.go (US-003 will wire it up)
+---
+
+## 2026-02-24 - US-003
+- Rewrote cmd/server/main.go with config.Load(), http.Server, graceful shutdown
+- Registered GET /healthz returning 200 "ok"
+- Listens for SIGTERM/SIGINT, shuts down with 30s timeout
+- Files changed: cmd/server/main.go
+- **Learnings for future iterations:**
+  - Go 1.22+ ServeMux supports method routing directly: "GET /healthz"
+  - Server starts in a goroutine; main goroutine blocks on signal channel
+  - DATABASE_URL is still required by config.Load() even though DB isn't used yet
+---
+
+## 2026-02-24 - US-004
+- Added pgx/v5 dependency with pgxpool for connection pooling
+- main.go creates pgxpool.Pool from config.DatabaseURL, deferred Close on shutdown
+- /healthz now pings the database, returns 503 if unreachable
+- Files changed: cmd/server/main.go, go.mod, go.sum
+- **Learnings for future iterations:**
+  - Must `go get github.com/jackc/pgx/v5/pgxpool` explicitly to get the puddle/v2 transitive dep
+  - pgxpool.New() takes context + connection string, returns (*Pool, error)
+  - dbpool.Ping(ctx) is the idiomatic way to check DB connectivity
+---
+
+## 2026-02-24 - US-005
+- Set up goose v3 for embedded SQL migrations
+- Created `migrations/embed.go` package that embeds `*.sql` files via `embed.FS`
+- Created `migrations/000_placeholder.sql` as no-op placeholder for the embed directive
+- `runMigrations()` in main.go opens a `database/sql` connection via pgx stdlib driver, runs `goose.Up()`
+- Migrations run before server starts; app exits with non-zero code on failure (log.Fatalf)
+- Files changed: cmd/server/main.go, migrations/embed.go, migrations/000_placeholder.sql, go.mod, go.sum
+- **Learnings for future iterations:**
+  - `//go:embed *.sql` requires at least one .sql file to exist, hence the placeholder
+  - goose needs `*sql.DB`, not pgxpool; use `_ "github.com/jackc/pgx/v5/stdlib"` driver import + `sql.Open("pgx", url)`
+  - Embed is in `migrations/` package (not cmd/server) since go:embed only works with files in same/child dirs
+  - goose v3.27 bumped Go requirement to 1.25
+---
+
+## 2026-02-24 - US-006
+- Created `migrations/001_initial_schema.sql` with full initial schema
+- Tables: users, categories, items, transactions, settings (singleton with CHECK constraint)
+- Indexes: idx_transactions_user_id, idx_transactions_created_at, idx_transactions_type, idx_items_category_id, idx_items_deleted_at (partial WHERE deleted_at IS NULL)
+- Settings table seeded with `INSERT INTO settings (id) VALUES (1)`
+- Down migration drops all tables in correct FK order
+- Files changed: migrations/001_initial_schema.sql
+- **Learnings for future iterations:**
+  - Drop order matters: transactions first (FK to users and self), then items (FK to categories), then categories/settings/users
+  - Settings singleton enforced via CHECK constraint `id = 1`
+  - All prices/amounts stored as BIGINT (cents) not DECIMAL
+  - Partial index on deleted_at uses `WHERE deleted_at IS NULL` to index only active items
+---
+
+## 2026-02-24 - US-007
+- Created internal/model/models.go with all domain model structs
+- User, Category, Item, Transaction, Settings structs matching DB schema exactly
+- Settings includes all SMTP fields and email_template
+- Nullable DB columns mapped to pointer types (*time.Time, *string, *int64, *int)
+- Files changed: internal/model/models.go
+- **Learnings for future iterations:**
+  - Amounts/prices are int64 (cents), not float
+  - Settings.ID is int (not int64) since it's always 1
+  - Transaction.Type is a plain string (not an enum type)
+---
+
+## 2026-02-24 - US-008
+- Created internal/store/store.go with DBTX interface, Store struct, New constructor, WithTx helper
+- DBTX interface: Exec, Query, QueryRow matching pgx signatures (pgconn.CommandTag, pgx.Rows, pgx.Row)
+- Store holds *pgxpool.Pool; DB() returns pool as DBTX for non-transactional queries
+- WithTx begins tx, calls fn, rolls back on error/panic, commits on success
+- Files changed: internal/store/store.go
+- **Learnings for future iterations:**
+  - pgx.Row is an interface (not *pgx.Row), QueryRow returns pgx.Row directly
+  - DBTX interface is satisfied by both *pgxpool.Pool and pgx.Tx without any adapter
+  - Store methods should accept DBTX as parameter to work with both pool and tx
+---
+
+## 2026-02-24 - US-009
+- Downloaded HTMX 2.0.4 minified source to static/js/htmx.min.js (50KB)
+- Removed .gitkeep from static/js/ since directory now has a real file
+- No CDN references in code/templates (only in docs/spec which is fine)
+- Files changed: static/js/htmx.min.js, static/js/.gitkeep (removed)
+- **Learnings for future iterations:**
+  - HTMX 2.0.4 is the latest 2.x release; downloaded from unpkg.com
+  - File is not yet served by the app (US-011 will add the static file server)
+---
+
+## 2026-02-24 - US-010
+- Created tailwind.config.js with DaisyUI plugin, night theme, content paths scanning templates/**/*.html
+- Created static/css/input.css with @tailwind base/components/utilities directives
+- Set up npm devDependencies (tailwindcss@3, daisyui@4) for CSS generation
+- Created scripts/build-css.sh for convenient CSS rebuilding
+- Generated static/css/styles.css (minified, ~8KB) with DaisyUI night theme styles
+- Removed static/css/.gitkeep, added node_modules/ and styles.css to .gitignore
+- Files changed: tailwind.config.js, static/css/input.css, package.json, package-lock.json, scripts/build-css.sh, .gitignore
+- **Learnings for future iterations:**
+  - Tailwind standalone CLI does NOT support DaisyUI plugin (requires `require()`); must use npm/npx instead
+  - styles.css is gitignored (generated artifact); rebuild with `scripts/build-css.sh`
+  - Warning about "no utility classes" is expected until templates use Tailwind classes
+---
+
+## 2026-02-24 - US-011
+- Registered static file server at `/static/` path prefix using `http.FileServer` + `http.StripPrefix`
+- Added `staticCacheHandler` wrapper that sets Cache-Control headers by file extension
+- CSS files: `public, max-age=31536000, immutable` (1 year)
+- JS files: `public, max-age=86400` (1 day)
+- In DEV_MODE: all static files get `Cache-Control: no-cache`
+- Files changed: cmd/server/main.go
+- **Learnings for future iterations:**
+  - `http.StripPrefix` is needed because `http.FileServer` serves from the root of the given directory
+  - Cache headers must be set BEFORE `ServeHTTP` call (response headers are sent with the first write)
+  - `strings.HasSuffix` on `r.URL.Path` is a simple way to detect file type for cache policy
+---
+
+## 2026-02-24 - US-012
+- Created internal/render/render.go with Renderer struct
+- New() parses layouts, partials, components as shared templates; each page gets its own clone
+- Page() renders "layout" for normal requests, "content" block for HTMX (HX-Request: true)
+- Fragment() renders a named template directly
+- AppendOOB() looks up a named template across all cached page templates and renders it
+- isHTMX() helper checks HX-Request header
+- DEV_MODE re-parses all templates on every request via getTemplate()
+- Uses sync.RWMutex for thread-safe template map access
+- Files changed: internal/render/render.go
+- **Learnings for future iterations:**
+  - Templates are keyed by page name (e.g., "dashboard") derived from filename without .html extension
+  - globHTML gracefully returns nil for non-existent directories (empty template dirs with only .gitkeep)
+  - Page templates must define a "content" block for HTMX partial rendering and a "layout" block for full pages
+  - template.New(baseName).Funcs(funcMap).ParseFiles(files...) - base name must match one of the parsed files
+---
+
+## 2026-02-24 - US-013
+- Created internal/render/funcs.go with FuncMap() returning template.FuncMap
+- Functions: formatCents (German locale "1,50 EUR"), formatTime ("DD.MM.YYYY HH:MM"), formatDate ("DD.MM.YYYY"), abs, neg, seq
+- FuncMap() is designed to be passed to render.New() which already accepts funcMap parameter
+- Files changed: internal/render/funcs.go
+- **Learnings for future iterations:**
+  - Go time format uses reference time "02.01.2006 15:04" for German locale (day.month.year)
+  - formatCents handles negatives explicitly to avoid sign issues with integer division
+  - render.New() already accepts funcMap - callers just pass render.FuncMap() when constructing
+---
+
+## 2026-02-24 - US-014
+- Created templates/layouts/base.html as the app shell wrapping all pages
+- HTML tag has data-theme="night" for DaisyUI dark theme
+- Head includes: meta viewport, CSRF meta tag, CSS link, HTMX script, CSRF config script
+- Body contains: nav block placeholder, header-stats div, main content area with container, modal container, toast zone
+- HTMX CSRF config injects X-CSRF-Token header on every HTMX request via htmx:configRequest event
+- All styling uses DaisyUI classes exclusively (no custom CSS)
+- Mobile-first layout with container mx-auto and responsive padding
+- Removed .gitkeep from templates/layouts/
+- Files changed: templates/layouts/base.html, templates/layouts/.gitkeep (removed)
+- **Learnings for future iterations:**
+  - Layout template must be wrapped in `{{define "layout"}}...{{end}}` for the renderer's ExecuteTemplate("layout", data) to work
+  - Page templates define `{{define "content"}}...{{end}}` blocks that get rendered inside the layout
+  - Navigation is a `{{block "nav" .}}{{end}}` placeholder - partials/components can override it
+---
+
+## 2026-02-24 - US-015
+- Created templates/components/nav.html with DaisyUI navbar component
+- Regular items: Getränkekarte (/menu), Transaktionen (/transactions), Profil (/profile)
+- Admin dropdown (conditional on .User.IsAdmin): Getränkekarte, Nutzer, Transaktionen, Statistiken, Einstellungen
+- Active page highlighted via `{{if eq .ActivePage "xxx"}}active{{end}}` pattern
+- Mobile: hamburger dropdown menu (hidden on lg+); desktop: horizontal menu (hidden below lg)
+- Removed .gitkeep from templates/components/
+- Files changed: templates/components/nav.html, templates/components/.gitkeep (removed)
+- **Learnings for future iterations:**
+  - Components in templates/components/ are auto-parsed as shared templates by the renderer
+  - `{{define "nav"}}` in a component overrides `{{block "nav" .}}` in the layout
+  - Template data needs .ActivePage string and .User with .IsAdmin bool for nav to work correctly
+  - DaisyUI navbar uses `lg:hidden`/`hidden lg:flex` pattern for responsive hamburger/desktop toggle
+---
+
+## 2026-02-24 - US-016
+- Created templates/components/toast.html with DaisyUI alert component
+- Toast accepts .Message (string) and .Type (success/error/warning/info) mapping to alert-* classes
+- Uses `hx-swap-oob="beforeend:#toast-zone"` for HTMX OOB insertion into the toast zone
+- Auto-removes after 4 seconds via inline script using `document.currentScript.previousElementSibling`
+- Updated Fragment() in render.go to support looking up named sub-templates (not just page templates)
+- Fragment now searches across all cached page templates for named components/partials
+- Files changed: templates/components/toast.html, internal/render/render.go
+- **Learnings for future iterations:**
+  - Fragment() originally only looked up page templates by key; now falls back to Lookup() across all cached templates
+  - Use `document.currentScript.previousElementSibling` for self-referencing scripts that handle multiple instances
+  - Toast uses wrapper div with hx-swap-oob; the inner alert div is what gets auto-removed
+---
+
+## 2026-02-24 - US-017
+- Created templates/components/header_stats.html with DaisyUI-styled header stats bar
+- Displays: user balance (color-coded green/red/bold-red), total bar balance, rank (Platz X von Y)
+- Has id="header-stats" and hx-swap-oob="true" for OOB updates after mutations
+- Mobile-friendly: uses flex-wrap with gap for responsive stacking on small screens
+- Balance color logic: green if >= 0, red if negative, bold red if below Settings.WarningLimit
+- Files changed: templates/components/header_stats.html
+- **Learnings for future iterations:**
+  - Template data needs .UserBalance (int64), .TotalBalance (int64), .UserRank (int), .TotalUsers (int), .Settings (with WarningLimit)
+  - Component uses `{{define "header-stats"}}` (with hyphen) matching the div id
+  - styles.css is gitignored - only template files need to be committed
+---
+
+## 2026-02-24 - US-018
+- Created internal/handler/handler.go with AppHandler type and error wrapper
+- AppHandler func type returns error for centralized error handling
+- Handler struct holds *store.Store, *render.Renderer, *config.Config
+- Wrap(fn AppHandler) http.HandlerFunc calls handler, delegates errors to handleError
+- Error types: NotFoundError (404), ForbiddenError (403), ValidationError (400), default 500
+- HTMX requests get toast fragment; normal requests get http.Error text
+- Files changed: internal/handler/handler.go
+- **Learnings for future iterations:**
+  - errors.As with switch-case pattern for mapping error types to HTTP status codes
+  - Toast fragment uses map[string]string{"Type": "error", "Message": msg} data shape
+  - Handler has its own isHTMX helper (same logic as render package)
+---
+
+## 2026-02-24 - US-019
+- Created internal/middleware/chain.go with Middleware type and Chain() composer
+- Middleware type: `func(http.Handler) http.Handler`
+- Chain() composes right-to-left so first arg is outermost (executed first)
+- Files changed: internal/middleware/chain.go
+- **Learnings for future iterations:**
+  - Simple pattern: iterate middlewares in reverse, wrapping `next` each time
+  - No external dependencies needed
+---
+
+## 2026-02-24 - US-020
+- Created internal/middleware/logging.go with Logging() middleware
+- Uses log/slog structured logging with method, path, status, duration fields
+- statusWriter wrapper captures response status code by intercepting WriteHeader
+- Default status is 200 (for handlers that write body without explicit WriteHeader)
+- Files changed: internal/middleware/logging.go
+- **Learnings for future iterations:**
+  - statusWriter must embed http.ResponseWriter and default status to 200
+  - slog.Info with key-value pairs is the idiomatic Go structured logging approach
+  - time.Since(start) provides duration as time.Duration which slog formats nicely
+---
+
+## 2026-02-24 - US-021
+- Created internal/middleware/recovery.go with panic recovery middleware
+- Uses defer/recover to catch panics, logs error + stack trace via slog.Error, returns 500
+- Follows same Middleware type pattern as Logging()
+- Files changed: internal/middleware/recovery.go
+- **Learnings for future iterations:**
+  - runtime/debug.Stack() captures the full goroutine stack trace as []byte
+  - Recovery middleware should be outermost (or close to it) in the chain to catch panics from all inner handlers
+---
+
+## 2026-02-24 - US-022
+- Created internal/auth/context.go with RequestUser struct and context helpers
+- RequestUser struct: Email, FullName, GivenName, FamilyName, Groups []string, IsAdmin bool, ID int64, Balance int64, IsBarteamer bool, IsActive bool
+- UserFromContext(ctx) *RequestUser retrieves user from context (returns nil if absent)
+- contextWithUser(ctx, *RequestUser) is unexported (package-internal) for use by auth middleware
+- Uses unexported contextKey struct type for type-safe context keys
+- Files changed: internal/auth/context.go, internal/auth/.gitkeep (removed)
+- **Learnings for future iterations:**
+  - contextWithUser is unexported since only the auth middleware (same package) should set the user
+  - UserFromContext is exported for use by handlers and other packages
+  - contextKey{} struct pattern avoids string key collisions in context
+---
+
+## 2026-02-24 - US-023
+- Created internal/store/user.go with all user-related database queries
+- GetUserByEmail: returns user by email, nil + ErrNotFound if missing
+- CreateUser: inserts user, returns with generated ID and timestamps via RETURNING
+- UpdateUserProfile: updates name fields + is_admin + updated_at
+- GetUserBalance: SUM of non-cancelled transactions for a user
+- GetUserRank: rank query from spec 11.5 (COUNT of users with higher balance) + total active users
+- GetAllBalancesSum: sum of all active users' balances from spec 11.6
+- All queries use parameterized statements ($1, $2, etc.)
+- Files changed: internal/store/user.go
+- **Learnings for future iterations:**
+  - Store functions are package-level functions taking (ctx, DBTX, ...) rather than methods on Store
+  - ErrNotFound is a package-level sentinel error in store package
+  - GetUserRank requires two separate queries (rank + total count)
+  - SQL queries from spec sections 11.5 and 11.6 can be used verbatim
+---
+
+## 2026-02-24 - US-024
+- Created internal/auth/middleware.go with auth middleware
+- Middleware(store, adminGroup) returns func(http.Handler) http.Handler
+- Reads X-Forwarded-Email header; returns 401 if empty (HX-Redirect: / for HTMX requests)
+- Reads X-Forwarded-Groups, splits by comma, checks for adminGroup to set IsAdmin
+- Reads X-Forwarded-Access-Token, base64-decodes JWT payload (no sig verification), extracts name/given_name/family_name claims
+- Looks up user by email; auto-creates with defaults (balance 0, Helfer, active) if not found
+- Updates user profile (name, admin status) on every request (upsert pattern)
+- Populates RequestUser with DB data (balance, barteamer, active) and OIDC data, stores in context
+- Files changed: internal/auth/middleware.go
+- **Learnings for future iterations:**
+  - parseJWTNames uses base64.RawURLEncoding (not StdEncoding) since JWT payloads use URL-safe base64 without padding
+  - Profile update failure is non-fatal (logged but continues with existing data)
+  - Balance fetch failure is also non-fatal (defaults to 0)
+  - contextWithUser is unexported but accessible within the auth package
+---
+
+## 2026-02-24 - US-025
+- Added deactivated user blocking to auth middleware
+- After populating RequestUser, checks `IsActive`; if false, returns a full HTML page with 403 status
+- Block page uses DaisyUI styling with message "Dein Konto ist deaktiviert. Bitte wende dich an einen Admin."
+- No further handlers are called (immediate return)
+- Works for both normal and HTMX requests (returns full HTML page in both cases)
+- Files changed: internal/auth/middleware.go
+- **Learnings for future iterations:**
+  - Inline HTML constant (`deactivatedPageHTML`) avoids dependency on renderer for middleware-level blocking
+  - Block page must include the CSS link since it's a standalone full page, not rendered through the layout system
+---
+
+## 2026-02-24 - US-026
+- Created internal/middleware/csrf.go with CSRF protection middleware
+- CSRF(secret) generates 32-byte random hex token, stored in HMAC-signed HttpOnly cookie (_csrf)
+- On GET: token stored in context via csrfContextKey; CSRFTokenFromContext() exported for templates
+- On POST/PUT/DELETE/PATCH: validates X-CSRF-Token header matches cookie token, returns 403 on mismatch
+- Cookie: HttpOnly, Secure, SameSite=Strict, Path=/
+- Token signing uses HMAC-SHA256 with configurable secret for tamper detection
+- Files changed: internal/middleware/csrf.go
+- **Learnings for future iterations:**
+  - CSRFTokenFromContext() is how templates get the token (via .CSRFToken in template data)
+  - Base layout already has `<meta name="csrf-token" content="{{.CSRFToken}}">` and HTMX configRequest listener
+  - Cookie format is "token.hmac_signature" - validated by recomputing HMAC
+---
+
+## 2026-02-24 - US-027
+- Created internal/auth/require_admin.go with RequireAdmin middleware
+- Reads RequestUser from context; returns 403 if nil or not admin
+- HTMX requests get inline toast error fragment (no renderer dependency)
+- Normal requests get plain text "Zugriff verweigert" via http.Error
+- Files changed: internal/auth/require_admin.go
+- **Learnings for future iterations:**
+  - RequireAdmin is a plain http.Handler wrapper (not using middleware.Middleware type) since it lives in auth package
+  - Inline HTML toast avoids coupling middleware to the renderer (same pattern as deactivated user page)
+  - Must set Content-Type and WriteHeader before Write; http.Error sets its own headers so don't call WriteHeader before it
+---
+
+## 2026-02-24 - US-028
+- Wired up all middleware chains in main.go: base (Logging → Recovery → Auth), withCSRF (base + CSRF), adminOnly (withCSRF + RequireAdmin)
+- Initialized store, renderer, and handler dependencies
+- /healthz and /static/ remain outside auth middleware
+- Registered placeholder routes: GET /menu, GET /profile, GET /transactions (base), GET /admin/users (adminOnly)
+- CSRF secret generated from crypto/rand (32 bytes) at startup
+- Files changed: cmd/server/main.go
+- **Learnings for future iterations:**
+  - middleware.Chain composes middlewares, so withCSRF = Chain(base, CSRF) rather than duplicating all base middlewares
+  - auth.Middleware returns func(http.Handler) http.Handler which is assignable to middleware.Middleware type
+  - render.New returns (*Renderer, error) - must handle the error
+  - `_ = h` placeholder keeps handler import alive until real routes are added
+---
+
+## 2026-02-24 - US-029
+- Created internal/store/settings.go with GetSettings and UpdateSettings functions
+- GetSettings reads the singleton row (id=1) with all 15 fields
+- UpdateSettings updates all fields and sets updated_at = NOW()
+- Follows existing package-level function pattern: `store.GetSettings(ctx, dbtx)`
+- Files changed: internal/store/settings.go
+- **Learnings for future iterations:**
+  - Settings is always id=1 (singleton), no need for ErrNotFound handling
+  - 14 parameters in the UPDATE query ($1-$14), updated_at set via NOW() not a parameter
+---
+
+## 2026-02-24 - US-030
+- Created internal/store/category.go with all category CRUD + reorder queries
+- ListCategories: returns all categories ordered by sort_order, id
+- GetCategory: single category by ID, returns ErrNotFound if missing
+- CreateCategory: inserts with sort_order = MAX + 1 (appends to end)
+- DeleteCategory: removes by ID, returns ErrNotFound if 0 rows affected
+- ReorderCategory: supports up (swap with previous), down (swap with next), top (min - 1), bottom (max + 1)
+- Files changed: internal/store/category.go
+- **Learnings for future iterations:**
+  - Reorder swap finds neighbor by sort_order comparison, not by ID arithmetic
+  - Edge reorder (top/bottom) uses MIN-1 or MAX+1 approach (simple, no renumbering needed)
+  - No-op when already at edge for swap direction (returns nil, not error)
+---
+
+## 2026-02-24 - US-031
+- Created internal/store/item.go with all item CRUD + soft-delete + reorder queries
+- ListItemsByCategory: active items only, filtered by category_id, ordered by sort_order
+- GetItem: returns even soft-deleted items (needed for transaction history)
+- CreateItem: inserts with sort_order = MAX+1 within same category (active items only)
+- UpdateItem: updates name + prices + updated_at, only for active items
+- SoftDeleteItem: sets deleted_at = NOW(), only for active items
+- ReorderItem: swap/edge reorder scoped to same category, active items only
+- CountActiveItemsByCategory: count for delete validation
+- Files changed: internal/store/item.go
+- **Learnings for future iterations:**
+  - Item reorder queries must be scoped to both category_id AND deleted_at IS NULL (unlike categories which have no soft-delete)
+  - GetItem intentionally does NOT filter on deleted_at (needed for historical transaction lookups)
+  - UpdateItem and SoftDeleteItem check rows affected and return ErrNotFound if 0 (handles already-deleted items)
+---
+
+## 2026-02-24 - US-032
+- Created internal/handler/menu.go with MenuPage handler and view models
+- MenuPageData struct: User, Categories []CategoryWithItems, Settings, CSRFToken, IsBlocked, ActivePage
+- CategoryWithItems groups model.Category with its []model.Item
+- Handler fetches settings, categories, items per category (skips empty categories)
+- IsBlocked computed from settings.HardLimitEnabled && user.Balance <= -settings.HardSpendingLimit
+- Registered at GET /{$} (root) and GET /menu in main.go, replacing placeholder
+- Created minimal templates/pages/menu.html placeholder (US-033 will build the full template)
+- Removed templates/pages/.gitkeep
+- Files changed: internal/handler/menu.go, cmd/server/main.go, templates/pages/menu.html, templates/pages/.gitkeep (removed)
+- **Learnings for future iterations:**
+  - Renderer.Page() returns void (not error) - handler must call it and return nil separately
+  - GET /{$} matches only the root path exactly in Go 1.22+ routing (prevents catch-all)
+  - Page templates need at minimum a `{{define "content"}}` block to work with the renderer
+  - Items are filtered to active-only by ListItemsByCategory already (deleted_at IS NULL)
+  - Price tier logic (Barteamer vs Helfer) deferred to template rendering, not handler
+---
+
+## 2026-02-24 - US-033
+- Created full menu page template with category sections and item cards
+- Created templates/partials/menu_categories.html as reusable partial
+- Each category as a section heading with responsive card grid (1/2/3 cols)
+- Item cards show name, price (formatCents, Barteamer vs Helfer based on user role), and Bestellen button
+- IsBlocked: alert banner at top + "Bitte erst einzahlen" badge replacing order buttons
+- Bestellen button uses hx-get="/menu/items/{{.ID}}/order" targeting #modal
+- Removed templates/partials/.gitkeep
+- Files changed: templates/pages/menu.html, templates/partials/menu_categories.html
+- **Learnings for future iterations:**
+  - Use `$blocked := $.IsBlocked` to capture outer scope variables inside nested range loops
+  - Partials in templates/partials/ are auto-parsed by renderer as shared templates
+  - `{{template "menu-categories" .}}` includes the partial; name must match the `{{define}}` in the partial
+---
+
+## 2026-02-24 - US-034
+- Created internal/handler/order.go with OrderModal handler
+- OrderModal extracts item ID via r.PathValue("id"), fetches item + settings, renders "order-modal" fragment
+- Returns 404 if item not found or soft-deleted (GetItem returns soft-deleted items, so must check DeletedAt)
+- Created templates/partials/order_modal.html with DaisyUI modal, quantity picker, JS total calculation
+- Registered GET /menu/items/{id}/order with withCSRF middleware in main.go
+- Files changed: internal/handler/order.go, cmd/server/main.go, templates/partials/order_modal.html
+- **Learnings for future iterations:**
+  - GetItem intentionally returns soft-deleted items; handler must check DeletedAt != nil explicitly
+  - Modal container in base.html is `<div id="modal" style="display:none">` - must set display='' via JS to show
+  - Order modal uses withCSRF middleware (not base) since it needs CSRF token for the POST form
+  - r.PathValue("id") extracts path params from Go 1.22+ pattern routing
+---
+
+## 2026-02-24 - US-035
+- Order modal template already fully implemented in US-034
+- All acceptance criteria already satisfied: DaisyUI modal, quantity picker, total price, Bestellen/Abbrechen buttons, CSRF token, JS price updates
+- No code changes needed; marked as passing
+- Files changed: (none - already complete from US-034)
+- **Learnings for future iterations:**
+  - US-034 and US-035 overlap significantly; the handler story included the full template
+  - `go build` and `go vet` both pass with no changes
+---
