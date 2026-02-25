@@ -45,8 +45,12 @@ services:
   #   - X-Forwarded-Groups: comma-separated list of groups
   #   - X-Forwarded-Preferred-Username: display name
   # Example configuration (adjust for your OAuth provider):
-  oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:latest
+  oauth2_proxy:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM quay.io/oauth2-proxy/oauth2-proxy:latest
+        EXPOSE 4180
     environment:
       OAUTH2_PROXY_PROVIDER: ${OAUTH2_PROXY_PROVIDER:?OAuth2 Proxy must be set up}
       OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID:?OAuth2 Proxy must be set up}
