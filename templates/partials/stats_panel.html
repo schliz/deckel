@@ -1,0 +1,58 @@
+{{define "admin-stats-panel"}}
+<!-- Metric cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="stat bg-base-200 rounded-box shadow-sm">
+        <div class="stat-title">Gesamtumsatz</div>
+        <div class="stat-value text-primary">{{formatCents .TotalRevenue}}</div>
+    </div>
+    <div class="stat bg-base-200 rounded-box shadow-sm">
+        <div class="stat-title">Anzahl Transaktionen</div>
+        <div class="stat-value">{{.TransactionCount}}</div>
+    </div>
+    <div class="stat bg-base-200 rounded-box shadow-sm">
+        <div class="stat-title">Einzahlungen gesamt</div>
+        <div class="stat-value text-success">{{formatCents .TotalDeposits}}</div>
+    </div>
+</div>
+
+<!-- Top items lists -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <!-- Top items by count -->
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body p-4">
+            <h3 class="card-title text-lg">Meistverkaufte Artikel</h3>
+            {{if .TopItemsByCount}}
+            <ol class="list-decimal list-inside space-y-1">
+                {{range .TopItemsByCount}}
+                <li class="flex justify-between items-center">
+                    <span>{{.Name}}</span>
+                    <span class="badge badge-ghost">{{.Count}}x</span>
+                </li>
+                {{end}}
+            </ol>
+            {{else}}
+            <p class="text-base-content/60">Keine Daten vorhanden.</p>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Top items by revenue -->
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body p-4">
+            <h3 class="card-title text-lg">Umsatzstärkste Artikel</h3>
+            {{if .TopItemsByRevenue}}
+            <ol class="list-decimal list-inside space-y-1">
+                {{range .TopItemsByRevenue}}
+                <li class="flex justify-between items-center">
+                    <span>{{.Name}}</span>
+                    <span class="badge badge-ghost">{{formatCents .Revenue}}</span>
+                </li>
+                {{end}}
+            </ol>
+            {{else}}
+            <p class="text-base-content/60">Keine Daten vorhanden.</p>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
