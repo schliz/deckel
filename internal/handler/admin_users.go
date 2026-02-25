@@ -17,13 +17,14 @@ import (
 
 // AdminUsersPageData is the view model for the admin user list page.
 type AdminUsersPageData struct {
-	User       *auth.RequestUser
-	Users      []model.UserWithBalance
-	Settings   *model.Settings
-	CSRFToken  string
-	ActivePage string
-	Page       int
-	TotalPages int
+	User              *auth.RequestUser
+	Users             []model.UserWithBalance
+	Settings          *model.Settings
+	CSRFToken         string
+	ActivePage        string
+	Page              int
+	TotalPages        int
+	LowBalanceWarning bool
 }
 
 // AdminUserList renders the paginated admin user list sorted by balance ascending.
@@ -67,13 +68,14 @@ func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	data := AdminUsersPageData{
-		User:       user,
-		Users:      users,
-		Settings:   settings,
-		CSRFToken:  middleware.CSRFTokenFromContext(ctx),
-		ActivePage: "admin-users",
-		Page:       page,
-		TotalPages: totalPages,
+		User:              user,
+		Users:             users,
+		Settings:          settings,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		ActivePage:        "admin-users",
+		Page:              page,
+		TotalPages:        totalPages,
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin_users", data)

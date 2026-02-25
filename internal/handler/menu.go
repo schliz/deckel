@@ -22,8 +22,9 @@ type MenuPageData struct {
 	Categories []CategoryWithItems
 	Settings   *model.Settings
 	CSRFToken  string
-	IsBlocked  bool
-	ActivePage string
+	IsBlocked         bool
+	ActivePage        string
+	LowBalanceWarning bool
 }
 
 // MenuPage renders the drinks menu organized by category.
@@ -67,12 +68,13 @@ func (h *Handler) MenuPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	data := MenuPageData{
-		User:       user,
-		Categories: categories,
-		Settings:   settings,
-		CSRFToken:  middleware.CSRFTokenFromContext(ctx),
-		IsBlocked:  isBlocked,
-		ActivePage: "menu",
+		User:              user,
+		Categories:        categories,
+		Settings:          settings,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		IsBlocked:         isBlocked,
+		ActivePage:        "menu",
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "menu", data)

@@ -16,13 +16,14 @@ import (
 
 // AdminTransactionsPageData is the view model for the admin transaction list page.
 type AdminTransactionsPageData struct {
-	User         *auth.RequestUser
-	Transactions []model.TransactionWithUser
-	Settings     *model.Settings
-	CSRFToken    string
-	ActivePage   string
-	Page         int
-	TotalPages   int
+	User              *auth.RequestUser
+	Transactions      []model.TransactionWithUser
+	Settings          *model.Settings
+	CSRFToken         string
+	ActivePage        string
+	Page              int
+	TotalPages        int
+	LowBalanceWarning bool
 }
 
 // AdminTransactionList renders the paginated admin transaction list (newest first).
@@ -66,13 +67,14 @@ func (h *Handler) AdminTransactionList(w http.ResponseWriter, r *http.Request) e
 	}
 
 	data := AdminTransactionsPageData{
-		User:         user,
-		Transactions: transactions,
-		Settings:     settings,
-		CSRFToken:    middleware.CSRFTokenFromContext(ctx),
-		ActivePage:   "admin-transactions",
-		Page:         page,
-		TotalPages:   totalPages,
+		User:              user,
+		Transactions:      transactions,
+		Settings:          settings,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		ActivePage:        "admin-transactions",
+		Page:              page,
+		TotalPages:        totalPages,
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin_transactions", data)

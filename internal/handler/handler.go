@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/config"
+	"github.com/k4-bar/deckel/internal/model"
 	"github.com/k4-bar/deckel/internal/render"
 	"github.com/k4-bar/deckel/internal/store"
 )
@@ -104,4 +106,12 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error)
 // isHTMX checks if the request was made by HTMX.
 func isHTMX(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
+}
+
+// isLowBalance returns true if the user's balance is below the warning limit.
+func isLowBalance(user *auth.RequestUser, settings *model.Settings) bool {
+	if user == nil || settings == nil {
+		return false
+	}
+	return user.Balance < settings.WarningLimit
 }

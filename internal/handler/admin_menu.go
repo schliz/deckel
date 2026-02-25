@@ -16,11 +16,12 @@ import (
 
 // AdminMenuPageData is the view model for the admin menu management page.
 type AdminMenuPageData struct {
-	User       *auth.RequestUser
-	Categories []CategoryWithItems
-	Settings   *model.Settings
-	CSRFToken  string
-	ActivePage string
+	User              *auth.RequestUser
+	Categories        []CategoryWithItems
+	Settings          *model.Settings
+	CSRFToken         string
+	ActivePage        string
+	LowBalanceWarning bool
 }
 
 // AdminMenuPage renders the admin menu management page with all categories and items.
@@ -56,11 +57,12 @@ func (h *Handler) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	data := AdminMenuPageData{
-		User:       user,
-		Categories: categories,
-		Settings:   settings,
-		CSRFToken:  middleware.CSRFTokenFromContext(ctx),
-		ActivePage: "admin-menu",
+		User:              user,
+		Categories:        categories,
+		Settings:          settings,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		ActivePage:        "admin-menu",
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin_menu", data)
@@ -367,11 +369,12 @@ func (h *Handler) renderAdminCategoryList(w http.ResponseWriter, r *http.Request
 	}
 
 	data := AdminMenuPageData{
-		User:       user,
-		Categories: categories,
-		Settings:   settings,
-		CSRFToken:  middleware.CSRFTokenFromContext(ctx),
-		ActivePage: "admin-menu",
+		User:              user,
+		Categories:        categories,
+		Settings:          settings,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		ActivePage:        "admin-menu",
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	h.Renderer.Fragment(w, r, "admin-category-list", data)

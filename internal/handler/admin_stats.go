@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/k4-bar/deckel/internal/auth"
+	"github.com/k4-bar/deckel/internal/model"
 	"github.com/k4-bar/deckel/internal/store"
 )
 
@@ -20,6 +21,7 @@ type StatsPageData struct {
 	From              string
 	To                string
 	ActivePage        string
+	LowBalanceWarning bool
 }
 
 // AdminStatsPage renders the admin statistics page for a selected time range.
@@ -75,6 +77,13 @@ func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("admin stats: get top items by revenue: %w", err)
 	}
 
+	// Fetch settings for low balance warning.
+	var settings *model.Settings
+	settings, err = store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("admin stats: get settings: %w", err)
+	}
+
 	data := StatsPageData{
 		User:              user,
 		TotalRevenue:      totalRevenue,
@@ -85,6 +94,7 @@ func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		From:              from.Format("2006-01-02"),
 		To:                to.Format("2006-01-02"),
 		ActivePage:        "admin-stats",
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	if isHTMX(r) {

@@ -26,6 +26,7 @@ type TransactionHistoryData struct {
 	CancellationMinutes int
 	Page                int
 	TotalPages          int
+	LowBalanceWarning   bool
 }
 
 // TransactionHistory renders the paginated transaction history for the current user.
@@ -77,6 +78,7 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 		CancellationMinutes: settings.CancellationMinutes,
 		Page:                page,
 		TotalPages:          totalPages,
+		LowBalanceWarning:   isLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "history", data)

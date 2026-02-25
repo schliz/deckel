@@ -19,10 +19,11 @@ import (
 
 // AdminSettingsPageData is the view model for the admin settings page.
 type AdminSettingsPageData struct {
-	User       *auth.RequestUser
-	Settings   *model.Settings
-	CSRFToken  string
-	ActivePage string
+	User              *auth.RequestUser
+	Settings          *model.Settings
+	CSRFToken         string
+	ActivePage        string
+	LowBalanceWarning bool
 }
 
 // AdminSettingsPage renders the admin settings page.
@@ -37,10 +38,11 @@ func (h *Handler) AdminSettingsPage(w http.ResponseWriter, r *http.Request) erro
 	}
 
 	data := AdminSettingsPageData{
-		User:       user,
-		Settings:   settings,
-		CSRFToken:  middleware.CSRFTokenFromContext(ctx),
-		ActivePage: "admin-settings",
+		User:              user,
+		Settings:          settings,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		ActivePage:        "admin-settings",
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin_settings", data)

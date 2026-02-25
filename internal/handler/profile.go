@@ -13,19 +13,27 @@ import (
 
 // ProfilePageData is the view model for the profile page.
 type ProfilePageData struct {
-	User       *auth.RequestUser
-	CSRFToken  string
-	ActivePage string
+	User              *auth.RequestUser
+	CSRFToken         string
+	ActivePage        string
+	LowBalanceWarning bool
 }
 
 // ProfilePage renders the user profile page.
 func (h *Handler) ProfilePage(w http.ResponseWriter, r *http.Request) error {
-	user := auth.UserFromContext(r.Context())
+	ctx := r.Context()
+	user := auth.UserFromContext(ctx)
+
+	settings, err := store.GetSettings(ctx, h.Store.DB())
+	if err != nil {
+		return fmt.Errorf("profile: get settings: %w", err)
+	}
 
 	data := ProfilePageData{
-		User:       user,
-		CSRFToken:  middleware.CSRFTokenFromContext(r.Context()),
-		ActivePage: "profile",
+		User:              user,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		ActivePage:        "profile",
+		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "profile", data)
