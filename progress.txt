@@ -477,3 +477,18 @@
   - US-034 and US-035 overlap significantly; the handler story included the full template
   - `go build` and `go vet` both pass with no changes
 ---
+
+## 2026-02-24 - US-036
+- Created internal/store/transaction.go with all transaction CRUD + cancel queries
+- CreateTransaction: inserts and returns with generated ID via RETURNING
+- GetTransaction: by ID, returns ErrNotFound if missing
+- ListTransactionsByUser: paginated (limit/offset), newest first, returns total count
+- CountTransactionsByUser: separate count query
+- CancelTransaction: sets cancelled_at on original, inserts counter-transaction (type=cancellation, -amount, cancels_id)
+- Files changed: internal/store/transaction.go
+- **Learnings for future iterations:**
+  - CancelTransaction sets cancelled_at on BOTH original and counter-transaction (counter is born cancelled)
+  - Counter-transaction amount is negated (-original.amount) to reverse the balance effect
+  - ListTransactionsByUser orders by created_at DESC, id DESC for stable pagination
+  - time.Now() used for cancelled_at (not NOW() in SQL) to keep both updates consistent
+---
