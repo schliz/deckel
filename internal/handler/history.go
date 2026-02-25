@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/middleware"
@@ -75,5 +77,63 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 	}
 
 	h.Renderer.Page(w, r, "history", data)
+	return nil
+}
+
+// CancelModalData is the view model for the cancel confirmation modal.
+type CancelModalData struct {
+	Transaction *model.Transaction
+	CSRFToken   string
+}
+
+// CancelModal renders the cancel confirmation modal for a given transaction.
+func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	user := auth.UserFromContext(ctx)
+	db := h.Store.DB()
+
+	// Extract transaction ID from URL path.
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+	}
+
+	// Fetch transaction.
+	txn, err := store.GetTransaction(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		}
+		return fmt.Errorf("cancel modal: get transaction: %w", err)
+	}
+
+	// Verify transaction belongs to current user.
+	if txn.UserID != user.ID {
+		return &ForbiddenError{Message: "Zugriff verweigert"}
+	}
+
+	// Verify not already cancelled.
+	if txn.CancelledAt != nil {
+		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+	}
+
+	// Fetch settings for cancellation window.
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("cancel modal: get settings: %w", err)
+	}
+
+	// Verify within cancellation window.
+	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
+		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+	}
+
+	data := CancelModalData{
+		Transaction: txn,
+		CSRFToken:   middleware.CSRFTokenFromContext(ctx),
+	}
+
+	h.Renderer.Fragment(w, r, "cancel-modal", data)
 	return nil
 }
