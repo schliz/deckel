@@ -907,3 +907,15 @@
   - Admin page handlers follow exact same pagination pattern as AdminUserList
   - ActivePage field used for nav highlighting (e.g., "admin-transactions")
 ---
+
+## 2026-02-25 - US-070
+- Created admin transactions page template with table showing all columns: Datum, Nutzer (name + email), Beschreibung, Betrag, Typ, Status, Aktionen
+- Cancelled transactions have opacity-50, line-through, and Storniert badge
+- Eligible transactions (within cancellation window, not cancelled) show Stornieren button pointing to /admin/transactions/{id}/cancel
+- Pagination using existing pagination component
+- Files changed: templates/pages/admin_transactions.html (new), templates/partials/admin_transaction_list.html (new), templates/components/admin_transaction_row.html (new)
+- **Learnings for future iterations:**
+  - Admin transaction row uses TransactionWithUser model which has UserName and UserEmail fields
+  - Admin cancel button points to /admin/transactions/{id}/cancel (different from user's /transactions/{id}/cancel)
+  - Type field needs German translation mapping in template (order→Bestellung, deposit→Einzahlung, etc.)
+---
