@@ -14,6 +14,8 @@
 - Fragment() supports both page templates and named sub-templates (components/partials) via Lookup() fallback
 - Store queries are package-level functions: `store.GetUserByEmail(ctx, dbtx, email)` not methods on Store
 - ErrNotFound sentinel error in store package for "not found" cases (wrap with errors.Is)
+- FOR UPDATE pattern: lock user row first, then query balance within WithTx
+- Multi-fragment HTMX response: Fragment() + AppendOOB() + raw HTML for multiple OOB swaps
 
 ---
 
@@ -491,4 +493,21 @@
   - Counter-transaction amount is negated (-original.amount) to reverse the balance effect
   - ListTransactionsByUser orders by created_at DESC, id DESC for stable pagination
   - time.Now() used for cancelled_at (not NOW() in SQL) to keep both updates consistent
+---
+
+## 2026-02-24 - US-037
+- Implemented PlaceOrder handler at POST /menu/order
+- Added GetUserBalanceForUpdate to store (SELECT FOR UPDATE row locking pattern)
+- Added SpendingLimitDisabled field to auth.RequestUser (was missing from context)
+- Handler: parses item_id/quantity from form, validates item active + quantity in range
+- Determines price tier (Barteamer vs Helfer), computes negative amount
+- Within DB transaction: locks user row, checks hard spending limit, creates purchase transaction
+- Response: toast (success/warning) + OOB header-stats update + modal close via innerHTML swap
+- Files changed: internal/handler/order.go, internal/store/user.go, internal/auth/context.go, internal/auth/middleware.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - FOR UPDATE locking: lock the user row first (`SELECT id FROM users WHERE id=$1 FOR UPDATE`), then query balance
+  - RequestUser was missing SpendingLimitDisabled - auth middleware must map all relevant User model fields
+  - Multi-fragment HTMX response: Fragment() for toast, AppendOOB() for header-stats, then raw HTML for modal close
+  - ValidationError can be returned from inside WithTx and unwrapped via errors.As in the handler
+  - Modal close done via `<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`
 ---
