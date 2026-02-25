@@ -3,15 +3,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
     environment:
-      DATABASE_URL: "postgres://deckel:deckel@db:5432/deckel?sslmode=disable"
+      DATABASE_URL: "postgres://${POSTGRES_USERNAME:-deckel}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE:-deckel}?sslmode=disable"
       LISTEN_ADDR: ":8080"
       DEV_MODE: "false"
-      ADMIN_GROUP: "role:admin"
+      ADMIN_GROUP: ${APP_ADMIN_GROUP:-"role:admin"}
       STATIC_DIR: "/app/static"
       TEMPLATE_DIR: "/app/templates"
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME:-deckel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE:-deckel}
     depends_on:
       db:
         condition: service_healthy
@@ -23,17 +24,15 @@ services:
       start_period: 10s
 
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
-      POSTGRES_USER: deckel
-      POSTGRES_PASSWORD: deckel
-      POSTGRES_DB: deckel
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USERNAME:-deckel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE:-deckel}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U deckel -d deckel"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME:-deckel} -d ${POSTGRES_DATABASE:-deckel}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -47,15 +46,15 @@ services:
   #   - X-Forwarded-Preferred-Username: display name
   # Example configuration (adjust for your OAuth provider):
   oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+    image: quay.io/oauth2-proxy/oauth2-proxy:latest
     ports:
       - "4180:4180"
     environment:
-      OAUTH2_PROXY_PROVIDER: keycloak-oidc
-      OAUTH2_PROXY_CLIENT_ID: $OIDC_CLIENT_ID
-      OAUTH2_PROXY_CLIENT_SECRET: $OIDC_CLIENT_SECRET
-      OAUTH2_PROXY_OIDC_ISSUER_URL: $OIDC_ISSUER_URL
-      OAUTH2_PROXY_COOKIE_SECRET: $OAUTH2_PROXY_COOKIE_SECRET
+      OAUTH2_PROXY_PROVIDER: ${OAUTH2_PROXY_PROVIDER:?OAuth2 Proxy must be set up}
+      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID:?OAuth2 Proxy must be set up}
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET?OAuth2 Proxy must be set up}
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL:?OAuth2 Proxy must be set up}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET:-super-secret-32-character-string}
       OAUTH2_PROXY_UPSTREAMS: http://app:8080
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
       OAUTH2_PROXY_PASS_USER_HEADERS: "true"

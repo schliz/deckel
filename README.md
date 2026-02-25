@@ -7,12 +7,11 @@ Built with Go, PostgreSQL, HTMX, and DaisyUI. Authentication is handled external
 ## Quick Start
 
 ```sh
+cp .env.example .env
 docker compose up --build
 ```
 
-The app is available at `http://localhost:8080`. PostgreSQL starts automatically.
-
-In production, place an [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) in front of the app (see `docker-compose.yml` for an example config).
+After connecting an OIDC IdP the app is available at `http://localhost:4180`. PostgreSQL starts automatically.
 
 ## Development
 
