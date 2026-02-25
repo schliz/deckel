@@ -137,3 +137,77 @@ func GetAllBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 	}
 	return sum, nil
 }
+
+// ListUsersWithBalance returns a paginated list of users with their computed balance,
+// sorted by balance ascending. It also returns the total count of users.
+func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]model.UserWithBalance, int, error) {
+	var total int
+	err := db.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count users: %w", err)
+	}
+
+	rows, err := db.Query(ctx, `
+		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
+		       u.is_barteamer, u.is_admin, u.is_active, u.spending_limit_disabled,
+		       u.created_at, u.updated_at,
+		       COALESCE(SUM(t.amount), 0) AS balance
+		FROM users u
+		LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+		GROUP BY u.id
+		ORDER BY balance ASC
+		LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list users with balance: %w", err)
+	}
+	defer rows.Close()
+
+	var users []model.UserWithBalance
+	for rows.Next() {
+		var ub model.UserWithBalance
+		if err := rows.Scan(
+			&ub.ID, &ub.Email, &ub.FullName, &ub.GivenName, &ub.FamilyName,
+			&ub.IsBarteamer, &ub.IsAdmin, &ub.IsActive, &ub.SpendingLimitDisabled,
+			&ub.CreatedAt, &ub.UpdatedAt,
+			&ub.Balance,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan user with balance: %w", err)
+		}
+		users = append(users, ub)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate users with balance: %w", err)
+	}
+
+	return users, total, nil
+}
+
+// ToggleBarteamer flips the is_barteamer flag for the given user.
+func ToggleBarteamer(ctx context.Context, db DBTX, id int64) error {
+	return toggleUserBool(ctx, db, id, "is_barteamer", "toggle barteamer")
+}
+
+// ToggleActive flips the is_active flag for the given user.
+func ToggleActive(ctx context.Context, db DBTX, id int64) error {
+	return toggleUserBool(ctx, db, id, "is_active", "toggle active")
+}
+
+// ToggleSpendingLimit flips the spending_limit_disabled flag for the given user.
+func ToggleSpendingLimit(ctx context.Context, db DBTX, id int64) error {
+	return toggleUserBool(ctx, db, id, "spending_limit_disabled", "toggle spending limit")
+}
+
+// toggleUserBool is a helper that flips a boolean column on the users table.
+func toggleUserBool(ctx context.Context, db DBTX, id int64, column, label string) error {
+	ct, err := db.Exec(ctx,
+		fmt.Sprintf(`UPDATE users SET %s = NOT %s, updated_at = NOW() WHERE id = $1`, column, column),
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("%s: %w", label, err)
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

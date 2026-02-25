@@ -16,6 +16,11 @@ type User struct {
 	UpdatedAt            time.Time
 }
 
+type UserWithBalance struct {
+	User
+	Balance int64
+}
+
 type Category struct {
 	ID        int64
 	Name      string
