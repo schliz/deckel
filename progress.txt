@@ -751,3 +751,25 @@
   - Template form already exists in admin_category_list.html, posts to /admin/categories/{cat_id}/items
   - Route path param is {id} not {cat_id} — Go mux uses the name from the route pattern
 ---
+
+## 2026-02-25 - US-056
+- Implemented UpdateItem handler at POST /admin/items/{id}/update
+- Parses name, price_barteamer, price_helfer from form; validates non-empty name and prices > 0
+- Converts EUR float to cents, calls store.UpdateItem, re-renders category list + success toast
+- Files changed: internal/handler/admin_menu.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - store.UpdateItem already existed — always check store package before implementing
+  - Item routes use /admin/items/{id}/... (not nested under categories) for update/delete/reorder
+  - Pattern: handler validates + converts, calls store func, renders list + OOB toast
+---
+
+## 2026-02-25 - US-057
+- Implemented ReorderItem handler in internal/handler/admin_menu.go
+- Registered POST /admin/items/{id}/reorder route with adminOnly middleware in cmd/server/main.go
+- Handler mirrors ReorderCategory pattern: extracts id from path, direction from query param, calls store.ReorderItem, re-renders category list
+- store.ReorderItem and template buttons already existed
+- Files changed: internal/handler/admin_menu.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - ReorderItem is identical pattern to ReorderCategory — just swap store call and error messages
+  - No toast needed for reorder operations (neither category nor item reorder shows toasts)
+---
