@@ -612,3 +612,16 @@
   - Template placeholder uses formatCents for min/max display hints
   - Route registered before the `{id}` parameterized routes to avoid pattern conflicts
 ---
+
+## 2026-02-25 - US-045
+- Built full custom transaction modal template replacing placeholder
+- Description text input (required), amount number input (step 0.01), min/max hints from settings via formatCents
+- Confirm button "Buchen" with hx-post="/transactions/custom", sends description + amount via hx-vals JS
+- Cancel button closes modal (same pattern as order modal)
+- JS IIFE shows modal container on load
+- Files changed: templates/partials/custom_transaction_modal.html
+- **Learnings for future iterations:**
+  - Custom transaction modal follows exact same pattern as order modal for show/close behavior
+  - Amount input uses step="0.01" for Euro cent precision; handler must convert Euro string to cents
+  - hx-vals with js: prefix allows reading form input values at click time
+---
