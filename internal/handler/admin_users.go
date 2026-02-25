@@ -200,9 +200,8 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 		return &ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
-	// Parse Euro amount string to cents.
-	amountStr := r.FormValue("amount")
-	amountFloat, err := strconv.ParseFloat(amountStr, 64)
+	// Parse Euro amount string to cents (accepts both comma and period).
+	amountFloat, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("amount")), 64)
 	if err != nil || amountFloat <= 0 {
 		return &ValidationError{Message: "Ungültiger Betrag"}
 	}
@@ -212,6 +211,9 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 	note := strings.TrimSpace(r.FormValue("note"))
 	if note == "" {
 		note = "Einzahlung"
+	}
+	if err := validateTextLen(note, 500, "Notiz"); err != nil {
+		return err
 	}
 
 	// Create deposit transaction (positive amount = credit).

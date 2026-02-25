@@ -75,6 +75,9 @@ func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 	if name == "" {
 		return &ValidationError{Message: "Kategoriename darf nicht leer sein"}
 	}
+	if err := validateTextLen(name, 255, "Kategoriename"); err != nil {
+		return err
+	}
 
 	ctx := r.Context()
 	db := h.Store.DB()
@@ -111,11 +114,15 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) error {
 		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
 	}
 
-	priceBarteamerF, err := strconv.ParseFloat(r.FormValue("price_barteamer"), 64)
+	if err := validateTextLen(name, 255, "Artikelname"); err != nil {
+		return err
+	}
+
+	priceBarteamerF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_barteamer")), 64)
 	if err != nil || priceBarteamerF <= 0 {
 		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
 	}
-	priceHelferF, err := strconv.ParseFloat(r.FormValue("price_helfer"), 64)
+	priceHelferF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_helfer")), 64)
 	if err != nil || priceHelferF <= 0 {
 		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
 	}
@@ -262,12 +269,15 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 	if name == "" {
 		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
 	}
+	if err := validateTextLen(name, 255, "Artikelname"); err != nil {
+		return err
+	}
 
-	priceBarteamerF, err := strconv.ParseFloat(r.FormValue("price_barteamer"), 64)
+	priceBarteamerF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_barteamer")), 64)
 	if err != nil || priceBarteamerF <= 0 {
 		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
 	}
-	priceHelferF, err := strconv.ParseFloat(r.FormValue("price_helfer"), 64)
+	priceHelferF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_helfer")), 64)
 	if err != nil || priceHelferF <= 0 {
 		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
 	}

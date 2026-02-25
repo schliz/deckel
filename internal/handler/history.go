@@ -184,14 +184,16 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 
 	// Parse form data.
 	description := strings.TrimSpace(r.FormValue("description"))
-	amountStr := r.FormValue("amount")
 
 	if description == "" {
 		return &ValidationError{Message: "Beschreibung ist erforderlich"}
 	}
+	if err := validateTextLen(description, 500, "Beschreibung"); err != nil {
+		return err
+	}
 
-	// Parse Euro amount string to cents.
-	amountFloat, err := strconv.ParseFloat(amountStr, 64)
+	// Parse Euro amount string to cents (accepts both comma and period).
+	amountFloat, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("amount")), 64)
 	if err != nil || amountFloat <= 0 {
 		return &ValidationError{Message: "Ungültiger Betrag"}
 	}

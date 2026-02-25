@@ -49,9 +49,10 @@ func (h *Handler) AdminSettingsPage(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
-// parseEuroToCents parses a Euro string (e.g. "12.50") and returns cents as int64.
+// parseEuroToCents parses a Euro string (e.g. "12.50" or "12,50") and returns cents as int64.
+// Accepts both period and comma as decimal separator.
 func parseEuroToCents(s string) (int64, error) {
-	f, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
+	f, err := strconv.ParseFloat(normalizeDecimal(s), 64)
 	if err != nil {
 		return 0, err
 	}
@@ -80,16 +81,16 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 
 	// Parse integer fields.
 	maxItemQuantity, err := strconv.Atoi(r.FormValue("max_item_quantity"))
-	if err != nil || maxItemQuantity < 1 {
-		return &ValidationError{Message: "Max Anzahl muss mindestens 1 sein"}
+	if err != nil || maxItemQuantity < 1 || maxItemQuantity > 100 {
+		return &ValidationError{Message: "Max Anzahl muss zwischen 1 und 100 liegen"}
 	}
 	cancellationMinutes, err := strconv.Atoi(r.FormValue("cancellation_minutes"))
-	if err != nil || cancellationMinutes < 0 {
-		return &ValidationError{Message: "Stornofrist darf nicht negativ sein"}
+	if err != nil || cancellationMinutes < 0 || cancellationMinutes > 10080 {
+		return &ValidationError{Message: "Stornofrist muss zwischen 0 und 10080 Minuten liegen"}
 	}
 	paginationSize, err := strconv.Atoi(r.FormValue("pagination_size"))
-	if err != nil || paginationSize < 1 {
-		return &ValidationError{Message: "Seitengröße muss mindestens 1 sein"}
+	if err != nil || paginationSize < 1 || paginationSize > 500 {
+		return &ValidationError{Message: "Seitengröße muss zwischen 1 und 500 liegen"}
 	}
 
 	// Parse SMTP fields.
@@ -101,6 +102,24 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 	// Checkbox: present means true, absent means false.
 	hardLimitEnabled := r.FormValue("hard_limit_enabled") == "true"
 
+	// Parse and validate text fields.
+	smtpHost := strings.TrimSpace(r.FormValue("smtp_host"))
+	if err := validateTextLen(smtpHost, 255, "SMTP Host"); err != nil {
+		return err
+	}
+	smtpUser := strings.TrimSpace(r.FormValue("smtp_user"))
+	if err := validateTextLen(smtpUser, 255, "SMTP User"); err != nil {
+		return err
+	}
+	smtpFrom := strings.TrimSpace(r.FormValue("smtp_from"))
+	if err := validateTextLen(smtpFrom, 255, "SMTP From"); err != nil {
+		return err
+	}
+	emailTemplate := strings.TrimSpace(r.FormValue("email_template"))
+	if err := validateTextLen(emailTemplate, 10000, "E-Mail-Template"); err != nil {
+		return err
+	}
+
 	// Store limits as negative values (convention: limits are negative cents).
 	s := &model.Settings{
 		WarningLimit:        warningLimit,
@@ -111,12 +130,12 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 		MaxItemQuantity:     maxItemQuantity,
 		CancellationMinutes: cancellationMinutes,
 		PaginationSize:      paginationSize,
-		SMTPHost:            strings.TrimSpace(r.FormValue("smtp_host")),
+		SMTPHost:            smtpHost,
 		SMTPPort:            smtpPort,
-		SMTPUser:            strings.TrimSpace(r.FormValue("smtp_user")),
+		SMTPUser:            smtpUser,
 		SMTPPassword:        r.FormValue("smtp_password"),
-		SMTPFrom:            strings.TrimSpace(r.FormValue("smtp_from")),
-		EmailTemplate:       r.FormValue("email_template"),
+		SMTPFrom:            smtpFrom,
+		EmailTemplate:       emailTemplate,
 	}
 
 	ctx := r.Context()

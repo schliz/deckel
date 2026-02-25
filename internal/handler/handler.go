@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/config"
@@ -133,6 +134,21 @@ func (h *Handler) NotFoundHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusNotFound)
 		h.RenderErrorPage(w, r, http.StatusNotFound, "Seite nicht gefunden", "Die angeforderte Seite wurde nicht gefunden.")
 	}
+}
+
+// normalizeDecimal replaces comma with period so that German-locale decimal
+// inputs like "1,50" are accepted by strconv.ParseFloat.
+func normalizeDecimal(s string) string {
+	return strings.ReplaceAll(strings.TrimSpace(s), ",", ".")
+}
+
+// maxTextLen validates that s is at most maxLen bytes. Returns a
+// ValidationError with the given message if exceeded.
+func validateTextLen(s string, maxLen int, field string) error {
+	if len(s) > maxLen {
+		return &ValidationError{Message: fmt.Sprintf("%s darf maximal %d Zeichen lang sein", field, maxLen)}
+	}
+	return nil
 }
 
 // isHTMX checks if the request was made by HTMX.
