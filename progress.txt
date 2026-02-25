@@ -833,3 +833,12 @@
   - Toggle handler pattern: parse ID → store.ToggleX → store.GetUserWithBalance → Fragment("user-row") + AppendOOB("toast")
   - Same pattern applies to US-063 (toggle active) and US-064 (toggle spending limit)
 ---
+
+## 2026-02-25 - US-063
+- Implemented ToggleActive handler at POST /admin/users/{id}/toggle-active
+- Store function ToggleActive already existed (from US-062 batch), just needed handler + route
+- Handler follows same pattern as ToggleBarteamer: parse ID → store.ToggleActive → GetUserWithBalance → Fragment("user-row") + AppendOOB("toast")
+- Files changed: internal/handler/admin_users.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - The toggleUserBool helper + store.ToggleX functions were pre-created, so toggle handlers only need the HTTP handler + route registration
+---
