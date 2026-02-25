@@ -1002,3 +1002,17 @@
   - goose v3.27 migration 000_placeholder.sql now errors with "version must be greater than zero" - pre-existing issue, prevents dev server startup
   - Template verification: can parse all templates programmatically to verify without running server
 ---
+
+## 2026-02-25 - US-077
+- Implemented SaveSettings handler (POST /admin/settings)
+- Parses all form fields: Euro inputs converted to cents via parseEuroToCents(), integers via strconv.Atoi, checkbox via FormValue check, strings trimmed
+- Validates: max_item_quantity >= 1, cancellation_minutes >= 0, pagination_size >= 1, smtp_port 1-65535
+- Updates settings via store.UpdateSettings()
+- Returns success toast fragment on success
+- Registered POST /admin/settings route in main.go
+- Files changed: internal/handler/admin_settings.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - parseEuroToCents pattern: ParseFloat + math.Round(f*100) for Euro→cents conversion (same as UpdateItem handler)
+  - Checkbox form values: unchecked checkboxes are absent from form data, check FormValue == "true"
+  - No dev server infrastructure (no docker-compose/Makefile) - manual browser verification not possible without DATABASE_URL setup
+---
