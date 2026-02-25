@@ -1,0 +1,46 @@
+{{define "admin-cancel-modal"}}
+<div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Transaktion stornieren (Admin)</h3>
+
+        <div class="py-4 space-y-2">
+            <p>
+                <span class="opacity-70">Nutzer:</span>
+                {{.UserName}}
+            </p>
+            <p>
+                <span class="opacity-70">Beschreibung:</span>
+                {{if .Transaction.Description}}{{.Transaction.Description}}{{else if .Transaction.ItemTitle}}{{.Transaction.ItemTitle}}{{if .Transaction.Quantity}} × {{.Transaction.Quantity}}{{end}}{{else}}Transaktion{{end}}
+            </p>
+            <p>
+                <span class="opacity-70">Betrag:</span>
+                <span class="font-semibold">{{formatCents .Transaction.Amount}}</span>
+            </p>
+            <p>
+                <span class="opacity-70">Datum:</span>
+                {{formatTime .Transaction.CreatedAt}}
+            </p>
+        </div>
+
+        <div class="alert alert-warning mt-2">
+            <span>Wirklich stornieren?</span>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-error"
+                hx-post="/admin/transactions/{{.Transaction.ID}}/cancel"
+                hx-target="#modal"
+                hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+                Stornieren
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    document.getElementById('modal').style.display = '';
+})();
+</script>
+{{end}}

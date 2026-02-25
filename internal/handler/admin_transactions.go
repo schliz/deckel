@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/middleware"
 	"github.com/k4-bar/deckel/internal/model"
@@ -73,5 +76,142 @@ func (h *Handler) AdminTransactionList(w http.ResponseWriter, r *http.Request) e
 	}
 
 	h.Renderer.Page(w, r, "admin_transactions", data)
+	return nil
+}
+
+// AdminCancelModalData is the view model for the admin cancel confirmation modal.
+type AdminCancelModalData struct {
+	Transaction *model.Transaction
+	UserName    string
+	CSRFToken   string
+}
+
+// AdminCancelModal renders the cancel confirmation modal for an admin cancelling any transaction.
+func (h *Handler) AdminCancelModal(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+	}
+
+	txn, err := store.GetTransaction(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		}
+		return fmt.Errorf("admin cancel modal: get transaction: %w", err)
+	}
+
+	if txn.CancelledAt != nil {
+		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+	}
+
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("admin cancel modal: get settings: %w", err)
+	}
+
+	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
+		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+	}
+
+	// Get user name for display.
+	var userName string
+	err = db.QueryRow(ctx, `SELECT full_name FROM users WHERE id = $1`, txn.UserID).Scan(&userName)
+	if err != nil {
+		return fmt.Errorf("admin cancel modal: get user name: %w", err)
+	}
+
+	data := AdminCancelModalData{
+		Transaction: txn,
+		UserName:    userName,
+		CSRFToken:   middleware.CSRFTokenFromContext(ctx),
+	}
+
+	h.Renderer.Fragment(w, r, "admin-cancel-modal", data)
+	return nil
+}
+
+// AdminCancelTransaction processes the cancellation of any transaction by an admin.
+func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	user := auth.UserFromContext(ctx)
+	db := h.Store.DB()
+
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+	}
+
+	txn, err := store.GetTransaction(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		}
+		return fmt.Errorf("admin cancel transaction: get transaction: %w", err)
+	}
+
+	if txn.CancelledAt != nil {
+		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+	}
+
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("admin cancel transaction: get settings: %w", err)
+	}
+
+	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
+		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+	}
+
+	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
+		return store.CancelTransaction(ctx, tx, id)
+	})
+	if err != nil {
+		return fmt.Errorf("admin cancel transaction: %w", err)
+	}
+
+	// Success toast.
+	h.Renderer.Fragment(w, r, "toast", map[string]string{
+		"Type":    "success",
+		"Message": "Transaktion storniert!",
+	})
+
+	// Re-render the admin transaction list for the current page.
+	page := 1
+	if p := r.URL.Query().Get("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+	limit := settings.PaginationSize
+	offset := (page - 1) * limit
+
+	transactions, totalTxns, err := store.ListAllTransactions(ctx, db, limit, offset)
+	if err != nil {
+		return fmt.Errorf("admin cancel transaction: list transactions: %w", err)
+	}
+	totalPages := 0
+	if totalTxns > 0 {
+		totalPages = (totalTxns + limit - 1) / limit
+	}
+
+	h.Renderer.AppendOOB(w, "admin-transaction-list", AdminTransactionsPageData{
+		User:         user,
+		Transactions: transactions,
+		Settings:     settings,
+		CSRFToken:    middleware.CSRFTokenFromContext(ctx),
+		ActivePage:   "admin-transactions",
+		Page:         page,
+		TotalPages:   totalPages,
+	})
+
+	// Close modal.
+	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
+
 	return nil
 }
