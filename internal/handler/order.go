@@ -166,18 +166,18 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Build response: toast + OOB header-stats + close modal.
-	toastMsg := "Bestellung gebucht!"
-	toastType := "success"
-	if warning {
-		toastMsg = "Bestellung gebucht! Achtung: Ausgabenlimit fast erreicht."
-		toastType = "warning"
-	}
-
-	// Render toast.
 	h.Renderer.Fragment(w, r, "toast", map[string]string{
-		"Type":    toastType,
-		"Message": toastMsg,
+		"Type":    "success",
+		"Message": "Bestellung gebucht!",
 	})
+
+	// Show additional warning toast when this order hits the spending limit.
+	if warning {
+		h.Renderer.AppendOOB(w, "toast", map[string]string{
+			"Type":    "warning",
+			"Message": "Achtung: Du hast dein Limit erreicht. Bitte zahle bald ein!",
+		})
+	}
 
 	// Render OOB header-stats update.
 	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
