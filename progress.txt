@@ -933,3 +933,16 @@
   - db.QueryRow can be called inline in handlers since h.Store.DB() returns DBTX which has QueryRow
   - Admin cancel modal needs user name from users table (not available on model.Transaction)
 ---
+
+## 2026-02-25 - US-072
+- Implemented statistics store queries in internal/store/stats.go
+- Added 5 SQL aggregation functions: GetTotalRevenue, GetTopItemsByCount, GetTopItemsByRevenue, GetTransactionCount, GetTotalDeposits
+- Added ItemStat struct (Name, Count, Revenue)
+- All queries use SQL aggregation (COALESCE, SUM, ABS, COUNT, GROUP BY) - no application-level loops
+- Files changed: internal/store/stats.go (new)
+- **Learnings for future iterations:**
+  - COALESCE in SQL ensures non-null results, so scan directly into int64 (not *int64)
+  - Revenue queries use ABS(amount) since purchases are stored as negative amounts
+  - Non-cancelled filter: `cancelled_at IS NULL`
+  - Deposit filter: `type = 'deposit'`
+---
