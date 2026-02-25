@@ -1045,3 +1045,16 @@
   - text/template used for email body rendering (not html/template) since emails are plain text
   - ListActiveUsersWithBalance has no pagination (fetches all active users for batch email)
 ---
+
+## 2026-02-25 - US-080
+- Implemented persistent warning banner for users with low balance
+- Added `LowBalanceWarning bool` field to all page data structs (8 handlers)
+- Added `isLowBalance(user, settings)` helper in handler.go
+- Banner rendered in base layout template using DaisyUI alert alert-error
+- For handlers without existing Settings fetch (profile, admin_stats), added settings retrieval
+- Files changed: internal/handler/handler.go, internal/handler/menu.go, internal/handler/history.go, internal/handler/profile.go, internal/handler/admin_menu.go, internal/handler/admin_users.go, internal/handler/admin_transactions.go, internal/handler/admin_settings.go, internal/handler/admin_stats.go, templates/layouts/base.html
+- **Learnings for future iterations:**
+  - Layout template accesses page data fields directly; all page data structs must have matching fields for layout-level features
+  - `isLowBalance` checks `user.Balance < settings.WarningLimit` (WarningLimit stored in cents, default 0)
+  - admin_menu.go has two places that construct AdminMenuPageData (initial page + fragment reload after mutations)
+---
