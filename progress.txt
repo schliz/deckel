@@ -896,3 +896,14 @@
   - TransactionWithUser embeds Transaction and adds UserName/UserEmail for admin views
   - Follow the same paginated query pattern: COUNT first, then SELECT with LIMIT/OFFSET
 ---
+
+## 2026-02-25 - US-069
+- Created internal/handler/admin_transactions.go with AdminTransactionList handler
+- Defined AdminTransactionsPageData view model (User, Transactions, Settings, CSRFToken, ActivePage, Page, TotalPages)
+- Registered GET /admin/transactions route with adminOnly middleware in cmd/server/main.go
+- Uses store.ListAllTransactions for paginated transactions with user info
+- Files changed: internal/handler/admin_transactions.go (new), cmd/server/main.go
+- **Learnings for future iterations:**
+  - Admin page handlers follow exact same pagination pattern as AdminUserList
+  - ActivePage field used for nav highlighting (e.g., "admin-transactions")
+---
