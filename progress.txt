@@ -22,6 +22,7 @@
 - static/css/styles.css is .gitignored; build with `scripts/build-css.sh` but don't commit
 - User row partial: `user-row` template takes `model.UserWithBalance` and renders a `<tr>` with toggles; swap individual rows via `hx-target="#user-row-{id}"` + `hx-swap="outerHTML"`
 - Toggle handler pattern: parse ID → store.ToggleX(ctx, db, id) → store.GetUserWithBalance(ctx, db, id) → Fragment("user-row") + AppendOOB("toast")
+- Input validation: use `normalizeDecimal()` for all float form inputs (German comma support); `validateTextLen()` for text length limits
 
 ---
 
@@ -1159,4 +1160,25 @@
   - Hard link is preferred over copy (same inode, no extra disk space); falls back to copy if link fails
   - cssFile is a zero-arg template function, called as `{{cssFile}}` not `{{.CSSFile}}`
   - Old hashed files are cleaned up on startup via glob matching `styles.*.css`
+---
+
+## 2026-02-25 - US-089
+- Comprehensive input validation audit across all handler files
+- Added `normalizeDecimal()` helper in handler.go: replaces comma with period for German locale decimal inputs
+- Added `validateTextLen()` helper in handler.go: reusable text length validation
+- Updated `parseEuroToCents()` to use `normalizeDecimal()` - now accepts both "1.50" and "1,50"
+- Fixed all `strconv.ParseFloat()` calls for price/amount inputs to use `normalizeDecimal()`:
+  - admin_menu.go: CreateItem, UpdateItem
+  - admin_users.go: RegisterDeposit
+  - history.go: CreateCustomTransaction
+- Added text length limits: category name (255), item name (255), description (500), note (500), SMTP fields (255), email template (10000)
+- Added upper bounds for integer settings: maxItemQuantity (100), cancellationMinutes (10080), paginationSize (500)
+- Trimmed email_template input in SaveSettings
+- Verified all SQL is parameterized via pgx (no raw user input in queries)
+- Files changed: internal/handler/handler.go, internal/handler/admin_settings.go, internal/handler/admin_menu.go, internal/handler/admin_users.go, internal/handler/history.go
+- **Learnings for future iterations:**
+  - `normalizeDecimal()` is the canonical way to handle German decimal input - use it for all float parsing from forms
+  - `validateTextLen()` takes field name and returns a ready-to-use ValidationError
+  - All existing ID parsing was already solid (strconv.ParseInt base 10, 64-bit)
+  - All SQL was already parameterized via pgx - no raw user input in queries
 ---
