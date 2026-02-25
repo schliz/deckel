@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: "postgres://${POSTGRES_USERNAME:-deckel}:${POSTGRES_PASSWORD}@${SERVICE_NAME_DB:-db}:5432/${POSTGRES_DATABASE:-deckel}?sslmode=disable"
+      DATABASE_URL: "postgres://${POSTGRES_USERNAME:-deckel}:${POSTGRES_PASSWORD}@${X_SERVICE_NAME_DB}:5432/${POSTGRES_DATABASE:-deckel}?sslmode=disable"
       LISTEN_ADDR: ":8080"
       DEV_MODE: "false"
       ADMIN_GROUP: ${APP_ADMIN_GROUP:-"role:admin"}
@@ -57,7 +57,7 @@ services:
       OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET?OAuth2 Proxy must be set up}
       OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL:?OAuth2 Proxy must be set up}
       OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET:-super-secret-32-character-string}
-      OAUTH2_PROXY_UPSTREAMS: http://${SERVICE_NAME_APP:-app}:8080
+      OAUTH2_PROXY_UPSTREAMS: http://${X_SERVICE_NAME_APP}:8080
       OAUTH2_PROXY_HTTP_ADDRESS: 127.0.0.1:4180
       OAUTH2_PROXY_PASS_USER_HEADERS: "true"
       OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
