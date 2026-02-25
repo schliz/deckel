@@ -946,3 +946,16 @@
   - Non-cancelled filter: `cancelled_at IS NULL`
   - Deposit filter: `type = 'deposit'`
 ---
+
+## 2026-02-25 - US-073
+- Implemented admin statistics handler in internal/handler/admin_stats.go
+- StatsPageData view model with all 5 metrics: TotalRevenue, TotalDeposits, TransactionCount, TopItemsByCount, TopItemsByRevenue
+- AdminStatsPage handler reads from/to query params (date strings), defaults to current month
+- HTMX requests return stats panel partial via Fragment(), full page requests use Page()
+- Registered GET /admin/stats route in main.go with adminOnly middleware
+- Files changed: internal/handler/admin_stats.go (new), cmd/server/main.go
+- **Learnings for future iterations:**
+  - Stats store functions are package-level: store.GetTotalRevenue(ctx, db, from, to) pattern
+  - time.ParseInLocation used for date parsing to respect server locale
+  - HTMX partial vs full page: check isHTMX(r) then Fragment() or Page()
+---
