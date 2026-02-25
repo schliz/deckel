@@ -18,6 +18,7 @@
 - Multi-fragment HTMX response: Fragment() + AppendOOB() + raw HTML for multiple OOB swaps
 - Template helpers: `map` (key-value pairs → map[string]any), `add`/`sub` (int arithmetic), `withinMinutes` (time check), `seq` (0..n-1 slice)
 - Use `map` helper to pass multiple values to sub-templates: `{{template "foo" (map "Key1" val1 "Key2" val2)}}`
+- User row partial: `user-row` template takes `model.UserWithBalance` and renders a `<tr>` with toggles; swap individual rows via `hx-target="#user-row-{id}"` + `hx-swap="outerHTML"`
 
 ---
 
@@ -805,4 +806,17 @@
   - AdminUsersPageData follows same pattern as TransactionHistoryData for pagination (Page, TotalPages)
   - Route replaced placeholder with `adminOnly(h.Wrap(h.AdminUserList))`
   - user_list.html partial uses `{{define "user-list"}}` naming convention (hyphenated)
+---
+
+## 2026-02-25 - US-061
+- Enhanced admin user list with DaisyUI toggle controls and action buttons
+- Created `templates/partials/user_row.html` as separate partial for individual row rendering/swapping
+- Updated `templates/partials/user_list.html` to use user-row partial and pagination component
+- Files changed: templates/partials/user_list.html (updated), templates/partials/user_row.html (new)
+- **Learnings for future iterations:**
+  - User row is its own partial (`user-row`) so toggle handlers can swap individual rows via `hx-target="#user-row-{id}"` + `hx-swap="outerHTML"`
+  - DaisyUI toggle pattern: `<input type="checkbox" class="toggle toggle-sm toggle-primary">` inside a `<label class="label cursor-pointer">`
+  - Toggle POST endpoints use `hx-target="#user-row-{{.ID}}"` + `hx-swap="outerHTML"` to replace just the row
+  - Einzahlung button targets `#modal` div for deposit modal (US-065/066)
+  - Reused pagination component via `{{template "pagination" (map "Page" .Page "TotalPages" .TotalPages "Target" "#user-list" "BaseURL" "/admin/users")}}`
 ---
