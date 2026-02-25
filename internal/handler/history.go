@@ -238,15 +238,18 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 	// Render OOB header-stats update.
 	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
 	rank, total, _ := store.GetUserRank(ctx, db, user.ID)
 
 	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
-		"UserBalance":  newBalance,
-		"TotalBalance": totalBalance,
-		"UserRank":     rank,
-		"TotalUsers":   total,
-		"Settings":     settings,
-		"OOB":          true,
+		"UserBalance":         newBalance,
+		"TotalBalance":        totalBalance,
+		"NegativeBalancesSum": negativeSum,
+		"UserRank":            rank,
+		"TotalUsers":          total,
+		"Settings":            settings,
+		"User":                user,
+		"OOB":                 true,
 	})
 
 	// Close modal.
@@ -327,15 +330,18 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 	// Render OOB header-stats update.
 	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
 	rank, total, _ := store.GetUserRank(ctx, db, user.ID)
 
 	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
-		"UserBalance":  newBalance,
-		"TotalBalance": totalBalance,
-		"UserRank":     rank,
-		"TotalUsers":   total,
-		"Settings":     settings,
-		"OOB":          true,
+		"UserBalance":         newBalance,
+		"TotalBalance":        totalBalance,
+		"NegativeBalancesSum": negativeSum,
+		"UserRank":            rank,
+		"TotalUsers":          total,
+		"Settings":            settings,
+		"User":                user,
+		"OOB":                 true,
 	})
 
 	// Re-render the transaction list for the current page.

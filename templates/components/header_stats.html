@@ -9,9 +9,15 @@
                 </span>
             </div>
             <div class="flex items-center gap-1">
-                <span class="text-base-content/60">Bar-Kasse:</span>
+                <span class="text-base-content/60">Saldo Gesamtliste:</span>
                 <span class="font-bold">{{formatCents .TotalBalance}}</span>
             </div>
+            {{if and .User .User.IsAdmin}}
+            <div class="flex items-center gap-1">
+                <span class="text-base-content/60">Offene Schulden:</span>
+                <span class="font-bold text-error">{{formatCents .NegativeBalancesSum}}</span>
+            </div>
+            {{end}}
             <div class="flex items-center gap-1">
                 <span class="text-base-content/60">Platz {{.UserRank}} von {{.TotalUsers}}</span>
             </div>

@@ -138,6 +138,24 @@ func GetAllBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 	return sum, nil
 }
 
+// GetNegativeBalancesSum returns the sum of balances for active users who have a negative balance.
+func GetNegativeBalancesSum(ctx context.Context, db DBTX) (int64, error) {
+	var sum int64
+	err := db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(sub.balance), 0) FROM (
+			SELECT COALESCE(SUM(t.amount), 0) as balance
+			FROM users u
+			LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+			WHERE u.is_active = TRUE
+			GROUP BY u.id
+			HAVING COALESCE(SUM(t.amount), 0) < 0
+		) sub`).Scan(&sum)
+	if err != nil {
+		return 0, fmt.Errorf("get negative balances sum: %w", err)
+	}
+	return sum, nil
+}
+
 // ListUsersWithBalance returns a paginated list of users with their computed balance,
 // sorted by balance ascending. It also returns the total count of users.
 func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]model.UserWithBalance, int, error) {

@@ -187,15 +187,18 @@ func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request)
 	reqUser := auth.UserFromContext(ctx)
 	newBalance, _ := store.GetUserBalance(ctx, db, reqUser.ID)
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
 	rank, total, _ := store.GetUserRank(ctx, db, reqUser.ID)
 
 	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
-		"UserBalance":  newBalance,
-		"TotalBalance": totalBalance,
-		"UserRank":     rank,
-		"TotalUsers":   total,
-		"Settings":     settings,
-		"OOB":          true,
+		"UserBalance":         newBalance,
+		"TotalBalance":        totalBalance,
+		"NegativeBalancesSum": negativeSum,
+		"UserRank":            rank,
+		"TotalUsers":          total,
+		"Settings":            settings,
+		"User":                reqUser,
+		"OOB":                 true,
 	})
 
 	// Re-render the admin transaction list for the current page.
