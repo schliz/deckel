@@ -101,6 +101,7 @@ func main() {
 	mux.Handle("GET /profile", base(http.HandlerFunc(placeholderHandler("profile"))))
 	mux.Handle("GET /transactions", withCSRF(h.Wrap(h.TransactionHistory)))
 	mux.Handle("GET /transactions/{id}/cancel", withCSRF(h.Wrap(h.CancelModal)))
+	mux.Handle("POST /transactions/{id}/cancel", withCSRF(h.Wrap(h.CancelTransaction)))
 
 	// Admin routes with CSRF + RequireAdmin.
 	adminOnly := func(h http.Handler) http.Handler {
