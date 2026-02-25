@@ -121,6 +121,56 @@ func (h *Handler) ReorderCategory(w http.ResponseWriter, r *http.Request) error 
 	return h.renderAdminCategoryList(w, r)
 }
 
+// DeleteCategory handles DELETE /admin/categories/{id} to remove an empty category.
+func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+	}
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	// Fetch category to get its name for the toast message.
+	cat, err := store.GetCategory(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		}
+		return fmt.Errorf("delete category: get: %w", err)
+	}
+
+	// Validate category has zero active items.
+	items, err := store.ListItemsByCategory(ctx, db, id)
+	if err != nil {
+		return fmt.Errorf("delete category: list items: %w", err)
+	}
+	if len(items) > 0 {
+		return &ValidationError{Message: "Kategorie kann nicht gelöscht werden, da sie noch Artikel enthält"}
+	}
+
+	if err := store.DeleteCategory(ctx, db, id); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		}
+		return fmt.Errorf("delete category: %w", err)
+	}
+
+	// Render updated category list.
+	if err := h.renderAdminCategoryList(w, r); err != nil {
+		return err
+	}
+
+	// Append success toast as OOB.
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Kategorie '%s' gelöscht", cat.Name),
+	})
+
+	return nil
+}
+
 // renderAdminCategoryList re-fetches all categories with items and renders
 // the admin-category-list partial as the main response content.
 func (h *Handler) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) error {
