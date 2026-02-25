@@ -1,0 +1,30 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="de" data-theme="night">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{.CSRFToken}}">
+    <title>K4-Bar Deckel</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/htmx.min.js"></script>
+    <script>
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            var token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            event.detail.headers['X-CSRF-Token'] = token;
+        });
+    </script>
+</head>
+<body class="min-h-screen bg-base-100">
+    {{block "nav" .}}{{end}}
+
+    <div id="header-stats"></div>
+
+    <main class="container mx-auto px-4 py-6">
+        {{block "content" .}}{{end}}
+    </main>
+
+    <div id="modal" class="modal modal-open" style="display:none"></div>
+
+    <div id="toast-zone" class="toast toast-end toast-top z-50"></div>
+</body>
+</html>{{end}}
