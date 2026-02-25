@@ -121,6 +121,7 @@ func main() {
 	mux.Handle("GET /admin/users", adminOnly(h.Wrap(h.AdminUserList)))
 	mux.Handle("POST /admin/users/{id}/toggle-barteamer", adminOnly(h.Wrap(h.ToggleBarteamer)))
 	mux.Handle("POST /admin/users/{id}/toggle-active", adminOnly(h.Wrap(h.ToggleActive)))
+	mux.Handle("POST /admin/users/{id}/toggle-spending-limit", adminOnly(h.Wrap(h.ToggleSpendingLimit)))
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,

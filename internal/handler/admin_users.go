@@ -103,6 +103,33 @@ func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// ToggleSpendingLimit handles POST /admin/users/{id}/toggle-spending-limit.
+func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	if err := store.ToggleSpendingLimit(ctx, db, id); err != nil {
+		return fmt.Errorf("toggle spending limit: %w", err)
+	}
+
+	ub, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		return fmt.Errorf("toggle spending limit: fetch user: %w", err)
+	}
+
+	h.Renderer.Fragment(w, r, "user-row", *ub)
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Ausgabelimit für %s geändert.", ub.FullName),
+	})
+	return nil
+}
+
 // ToggleBarteamer handles POST /admin/users/{id}/toggle-barteamer.
 func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
