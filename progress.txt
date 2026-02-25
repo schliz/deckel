@@ -1058,3 +1058,17 @@
   - `isLowBalance` checks `user.Balance < settings.WarningLimit` (WarningLimit stored in cents, default 0)
   - admin_menu.go has two places that construct AdminMenuPageData (initial page + fragment reload after mutations)
 ---
+
+## 2026-02-25 - US-081
+- Implemented spending limit UX on menu page
+- Fixed isBlocked check in menu handler to include `!user.SpendingLimitDisabled` (was missing)
+- Changed alert from `alert-error` to `alert-info` with correct text: "Du hast dein Ausgabelimit erreicht. Bitte zahle bei einem Admin ein."
+- Changed alert icon from error (X) to info (i) SVG
+- Added `IsBlocked` field to TransactionHistoryData and computed it in TransactionHistory handler
+- Disabled "Eigene Buchung" custom transaction button on history page when user is blocked
+- Files changed: internal/handler/menu.go, internal/handler/history.go, templates/pages/menu.html, templates/pages/history.html
+- **Learnings for future iterations:**
+  - SpendingLimitDisabled exempts individual users from hard limit; must always check `!user.SpendingLimitDisabled` alongside `HardLimitEnabled`
+  - Custom transaction button lives on the history page (not menu page); when implementing spending limit blocks, remember to disable it there too
+  - IsBlocked logic needs to be duplicated across page data structs that need it (MenuPageData, TransactionHistoryData)
+---
