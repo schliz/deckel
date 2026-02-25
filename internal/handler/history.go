@@ -27,6 +27,7 @@ type TransactionHistoryData struct {
 	Page                int
 	TotalPages          int
 	LowBalanceWarning   bool
+	IsBlocked           bool
 }
 
 // TransactionHistory renders the paginated transaction history for the current user.
@@ -69,6 +70,12 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 		page = totalPages
 	}
 
+	// Determine if user is blocked (at or below hard spending limit).
+	isBlocked := false
+	if settings.HardLimitEnabled && user != nil && !user.SpendingLimitDisabled {
+		isBlocked = user.Balance <= -settings.HardSpendingLimit
+	}
+
 	data := TransactionHistoryData{
 		User:                user,
 		Transactions:        txns,
@@ -79,6 +86,7 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 		Page:                page,
 		TotalPages:          totalPages,
 		LowBalanceWarning:   isLowBalance(user, settings),
+		IsBlocked:           isBlocked,
 	}
 
 	h.Renderer.Page(w, r, "history", data)

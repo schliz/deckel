@@ -63,7 +63,7 @@ func (h *Handler) MenuPage(w http.ResponseWriter, r *http.Request) error {
 
 	// Determine if user is blocked (at or below hard spending limit).
 	isBlocked := false
-	if settings.HardLimitEnabled && user != nil {
+	if settings.HardLimitEnabled && user != nil && !user.SpendingLimitDisabled {
 		isBlocked = user.Balance <= -settings.HardSpendingLimit
 	}
 
