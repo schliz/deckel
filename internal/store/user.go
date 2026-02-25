@@ -221,27 +221,42 @@ func ListActiveUsersWithBalance(ctx context.Context, db DBTX) ([]model.UserWithB
 
 // ToggleBarteamer flips the is_barteamer flag for the given user.
 func ToggleBarteamer(ctx context.Context, db DBTX, id int64) error {
-	return toggleUserBool(ctx, db, id, "is_barteamer", "toggle barteamer")
+	ct, err := db.Exec(ctx,
+		`UPDATE users SET is_barteamer = NOT is_barteamer, updated_at = NOW() WHERE id = $1`,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("toggle barteamer: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // ToggleActive flips the is_active flag for the given user.
 func ToggleActive(ctx context.Context, db DBTX, id int64) error {
-	return toggleUserBool(ctx, db, id, "is_active", "toggle active")
+	ct, err := db.Exec(ctx,
+		`UPDATE users SET is_active = NOT is_active, updated_at = NOW() WHERE id = $1`,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("toggle active: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // ToggleSpendingLimit flips the spending_limit_disabled flag for the given user.
 func ToggleSpendingLimit(ctx context.Context, db DBTX, id int64) error {
-	return toggleUserBool(ctx, db, id, "spending_limit_disabled", "toggle spending limit")
-}
-
-// toggleUserBool is a helper that flips a boolean column on the users table.
-func toggleUserBool(ctx context.Context, db DBTX, id int64, column, label string) error {
 	ct, err := db.Exec(ctx,
-		fmt.Sprintf(`UPDATE users SET %s = NOT %s, updated_at = NOW() WHERE id = $1`, column, column),
+		`UPDATE users SET spending_limit_disabled = NOT spending_limit_disabled, updated_at = NOW() WHERE id = $1`,
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", label, err)
+		return fmt.Errorf("toggle spending limit: %w", err)
 	}
 	if ct.RowsAffected() == 0 {
 		return ErrNotFound
