@@ -1,16 +1,46 @@
 {{define "custom-transaction-modal"}}
-<div id="modal" hx-swap-oob="innerHTML" style="display:">
-  <div class="modal-box">
-    <h3 class="font-bold text-lg">Eigene Buchung</h3>
-    <p class="py-4">Min: {{formatCents .Settings.CustomTxMin}} / Max: {{formatCents .Settings.CustomTxMax}}</p>
-    <div class="modal-action">
-      <button class="btn" onclick="document.getElementById('modal').style.display='none'; document.getElementById('modal').innerHTML='';">Abbrechen</button>
+<div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Eigene Buchung</h3>
+
+        <div class="py-4">
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Beschreibung *</span>
+                </label>
+                <input type="text" id="custom-tx-description" placeholder="z.B. Snacks, Einkauf..."
+                    class="input input-bordered w-full" required>
+            </div>
+
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Betrag (EUR)</span>
+                </label>
+                <input type="number" id="custom-tx-amount" step="0.01" min="0.01"
+                    placeholder="0,00" class="input input-bordered w-full">
+                <label class="label">
+                    <span class="label-text-alt">Min: {{formatCents .Settings.CustomTxMin}} / Max: {{formatCents .Settings.CustomTxMax}}</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-primary" id="custom-tx-confirm-btn"
+                hx-post="/transactions/custom"
+                hx-vals='js:{"description": document.getElementById("custom-tx-description").value, "amount": document.getElementById("custom-tx-amount").value}'
+                hx-target="#modal"
+                hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+                Buchen
+            </button>
+        </div>
     </div>
-  </div>
 </div>
+
 <script>
 (function() {
-  document.getElementById('modal').style.display = '';
+    // Show the modal container.
+    document.getElementById('modal').style.display = '';
 })();
 </script>
 {{end}}
