@@ -165,10 +165,11 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("place order: %w", err)
 	}
 
-	// Build response: toast + OOB header-stats + close modal.
-	h.Renderer.Fragment(w, r, "toast", map[string]string{
-		"Type":    "success",
-		"Message": "Bestellung gebucht!",
+	// Build response: success overlay + optional warning toast + OOB header-stats.
+	h.Renderer.Fragment(w, r, "order-success", map[string]any{
+		"Quantity":    quantity,
+		"ItemName":    item.Name,
+		"TotalAmount": -amount,
 	})
 
 	// Show additional warning toast when this order hits the spending limit.
@@ -182,19 +183,19 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	// Render OOB header-stats update.
 	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
 	rank, total, _ := store.GetUserRank(ctx, db, user.ID)
 
 	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
-		"UserBalance":  newBalance,
-		"TotalBalance": totalBalance,
-		"UserRank":     rank,
-		"TotalUsers":   total,
-		"Settings":     settings,
-		"OOB":          true,
+		"UserBalance":         newBalance,
+		"TotalBalance":        totalBalance,
+		"NegativeBalancesSum": negativeSum,
+		"UserRank":            rank,
+		"TotalUsers":          total,
+		"Settings":            settings,
+		"User":                user,
+		"OOB":                 true,
 	})
-
-	// Close modal by rendering empty content into #modal.
-	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
 
 	return nil
 }
