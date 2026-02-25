@@ -6,10 +6,11 @@
         {{$blocked := $.IsBlocked}}
         {{$isBarteamer := $.User.IsBarteamer}}
         {{range .Items}}
-        <li class="list-row cursor-pointer hover:bg-base-300 transition-colors"
+        <li class="list-row cursor-pointer hover:bg-base-300 transition-colors" style="touch-action:manipulation"
             {{if not $blocked}}
             hx-get="/menu/items/{{.ID}}/order"
             hx-target="#modal"
+            onclick=""
             {{end}}>
             <div class="list-col-grow">{{.Name}}</div>
             {{if $blocked}}
