@@ -13,5 +13,11 @@
 .DS_Store
 Thumbs.db
 
+# Node (CSS build tooling only)
+node_modules/
+
+# Generated CSS (rebuilt from input.css)
+static/css/styles.css
+
 # Build output
 /tmp/
