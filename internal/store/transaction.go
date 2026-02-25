@@ -1,0 +1,132 @@
+package store
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/k4-bar/deckel/internal/model"
+)
+
+// CreateTransaction inserts a new transaction and returns it with the generated ID and timestamp.
+func CreateTransaction(ctx context.Context, db DBTX, t *model.Transaction) (*model.Transaction, error) {
+	err := db.QueryRow(ctx, `
+		INSERT INTO transactions (user_id, amount, item_title, unit_price, quantity, description, type, cancels_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, created_at`,
+		t.UserID, t.Amount, t.ItemTitle, t.UnitPrice, t.Quantity, t.Description, t.Type, t.CancelsID,
+	).Scan(&t.ID, &t.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("create transaction: %w", err)
+	}
+	return t, nil
+}
+
+// GetTransaction returns the transaction with the given ID, or ErrNotFound if missing.
+func GetTransaction(ctx context.Context, db DBTX, id int64) (*model.Transaction, error) {
+	var t model.Transaction
+	err := db.QueryRow(ctx, `
+		SELECT id, user_id, amount, item_title, unit_price, quantity, description,
+		       type, cancelled_at, cancels_id, created_at
+		FROM transactions WHERE id = $1`, id).Scan(
+		&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
+		&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get transaction: %w", err)
+	}
+	return &t, nil
+}
+
+// ListTransactionsByUser returns paginated transactions for a user (newest first) and the total count.
+func ListTransactionsByUser(ctx context.Context, db DBTX, userID int64, limit, offset int) ([]model.Transaction, int, error) {
+	var total int
+	err := db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM transactions WHERE user_id = $1`, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count transactions by user: %w", err)
+	}
+
+	rows, err := db.Query(ctx, `
+		SELECT id, user_id, amount, item_title, unit_price, quantity, description,
+		       type, cancelled_at, cancels_id, created_at
+		FROM transactions
+		WHERE user_id = $1
+		ORDER BY created_at DESC, id DESC
+		LIMIT $2 OFFSET $3`, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list transactions by user: %w", err)
+	}
+	defer rows.Close()
+
+	var txns []model.Transaction
+	for rows.Next() {
+		var t model.Transaction
+		if err := rows.Scan(
+			&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
+			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan transaction: %w", err)
+		}
+		txns = append(txns, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate transactions: %w", err)
+	}
+
+	return txns, total, nil
+}
+
+// CountTransactionsByUser returns the total number of transactions for a given user.
+func CountTransactionsByUser(ctx context.Context, db DBTX, userID int64) (int, error) {
+	var count int
+	err := db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM transactions WHERE user_id = $1`, userID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count transactions by user: %w", err)
+	}
+	return count, nil
+}
+
+// CancelTransaction sets cancelled_at on the original transaction and inserts a
+// counter-transaction with type=cancellation, amount=-original.amount, and cancels_id pointing
+// to the original. Both the original and counter-transaction get cancelled_at = NOW().
+func CancelTransaction(ctx context.Context, db DBTX, id int64) error {
+	now := time.Now()
+
+	// Set cancelled_at on original transaction.
+	tag, err := db.Exec(ctx, `
+		UPDATE transactions SET cancelled_at = $2 WHERE id = $1 AND cancelled_at IS NULL`, id, now)
+	if err != nil {
+		return fmt.Errorf("cancel transaction: update original: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	// Fetch original to get amount and user_id for counter-transaction.
+	var userID int64
+	var amount int64
+	err = db.QueryRow(ctx, `
+		SELECT user_id, amount FROM transactions WHERE id = $1`, id).Scan(&userID, &amount)
+	if err != nil {
+		return fmt.Errorf("cancel transaction: get original: %w", err)
+	}
+
+	// Insert counter-transaction.
+	_, err = db.Exec(ctx, `
+		INSERT INTO transactions (user_id, amount, type, cancels_id, cancelled_at)
+		VALUES ($1, $2, 'cancellation', $3, $4)`,
+		userID, -amount, id, now)
+	if err != nil {
+		return fmt.Errorf("cancel transaction: insert counter: %w", err)
+	}
+
+	return nil
+}
