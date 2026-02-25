@@ -1083,3 +1083,17 @@
   - Toast template uses `hx-swap-oob="beforeend:#toast-zone"` so multiple toasts can be appended in a single response
   - Use Fragment() for the first toast (primary response) and AppendOOB() for additional toasts
 ---
+
+## 2026-02-25 - US-083
+- Implemented fully functional header stats with balance coloring and rank display
+- Fixed balance coloring logic: green (text-success) for positive, default for zero, red (text-error) for negative, bold red (text-error font-extrabold) when below warning_limit
+- Made OOB attribute conditional (`{{if .OOB}} hx-swap-oob="true"{{end}}`) so initial load doesn't use OOB swap
+- Added lazy-loading via `hx-get="/header-stats" hx-trigger="load"` in base layout
+- Created HeaderStats handler in handler.go that fetches balance, total, rank, and settings
+- Registered GET /header-stats route in main.go
+- Added `"OOB": true` to all mutation handler OOB swaps: PlaceOrder, CreateCustomTransaction, CancelTransaction, AdminCancelTransaction, RegisterDeposit
+- Files changed: cmd/server/main.go, internal/handler/handler.go, internal/handler/order.go, internal/handler/history.go, internal/handler/admin_transactions.go, internal/handler/admin_users.go, templates/components/header_stats.html, templates/layouts/base.html
+- **Learnings for future iterations:**
+  - Header stats uses conditional OOB: initial load via Fragment() (no OOB), mutations use AppendOOB() with OOB=true
+  - Server can't start locally due to 000_placeholder.sql migration issue - manual browser verification requires fixing this
+---
