@@ -1016,3 +1016,17 @@
   - Checkbox form values: unchecked checkboxes are absent from form data, check FormValue == "true"
   - No dev server infrastructure (no docker-compose/Makefile) - manual browser verification not possible without DATABASE_URL setup
 ---
+
+## 2026-02-25 - US-078
+- Implemented SMTP email sending service in internal/mail/mail.go
+- Mailer struct with Host, Port, Username, Password, From fields
+- Send(to, subject, body) sends email via net/smtp with proper MIME headers
+- Supports optional authentication (skips auth when Username is empty)
+- Handles connection errors by wrapping with fmt.Errorf
+- Removed internal/mail/.gitkeep (replaced by real file)
+- Files changed: internal/mail/mail.go (new), internal/mail/.gitkeep (deleted)
+- **Learnings for future iterations:**
+  - net/smtp.SendMail handles dial+auth+send in one call
+  - smtp.PlainAuth requires the host for TLS verification
+  - When Username is empty, pass nil auth to SendMail for unauthenticated relay
+---
