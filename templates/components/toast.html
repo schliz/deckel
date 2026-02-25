@@ -1,0 +1,14 @@
+{{define "toast"}}
+<div hx-swap-oob="beforeend:#toast-zone">
+    <div class="alert alert-{{.Type}} shadow-lg">
+        <span>{{.Message}}</span>
+    </div>
+    <script>
+        (function() {
+            var el = document.currentScript.previousElementSibling;
+            setTimeout(function() { el.remove(); }, 4000);
+            document.currentScript.remove();
+        })();
+    </script>
+</div>
+{{end}}

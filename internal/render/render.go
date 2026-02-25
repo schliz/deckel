@@ -110,11 +110,33 @@ func (r *Renderer) Page(w http.ResponseWriter, req *http.Request, name string, d
 	}
 }
 
-// Fragment renders a named template fragment.
+// Fragment renders a named template fragment. It first checks the page template
+// cache, then searches for a named sub-template (e.g., a component or partial)
+// across all cached page templates.
 func (r *Renderer) Fragment(w http.ResponseWriter, req *http.Request, name string, data any) {
-	t, err := r.getTemplate(name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if r.isDev {
+		if err := r.parseTemplates(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Try page template first.
+	r.mu.RLock()
+	t, ok := r.templates[name]
+	if !ok {
+		// Search for a named sub-template across all cached page templates.
+		for _, tmpl := range r.templates {
+			if lookup := tmpl.Lookup(name); lookup != nil {
+				t = lookup
+				break
+			}
+		}
+	}
+	r.mu.RUnlock()
+
+	if t == nil {
+		http.Error(w, fmt.Sprintf("template %q not found", name), http.StatusInternalServerError)
 		return
 	}
 
