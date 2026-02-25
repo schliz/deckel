@@ -1,0 +1,39 @@
+{{define "pagination"}}
+<div class="flex justify-center mt-6">
+    <div class="join">
+        {{if gt .Page 1}}
+        <button class="join-item btn btn-sm"
+            hx-get="?page={{sub .Page 1}}"
+            hx-target="#transaction-list"
+            hx-push-url="true">«</button>
+        {{else}}
+        <button class="join-item btn btn-sm btn-disabled">«</button>
+        {{end}}
+
+        {{$current := .Page}}
+        {{$total := .TotalPages}}
+        {{range seq $total}}
+            {{$p := add . 1}}
+            {{if eq $p $current}}
+            <button class="join-item btn btn-sm btn-active">{{$p}}</button>
+            {{else if or (le $p 2) (ge $p (sub $total 1)) (and (ge $p (sub $current 1)) (le $p (add $current 1)))}}
+            <button class="join-item btn btn-sm"
+                hx-get="?page={{$p}}"
+                hx-target="#transaction-list"
+                hx-push-url="true">{{$p}}</button>
+            {{else if or (eq $p 3) (eq $p (sub $total 2))}}
+            <button class="join-item btn btn-sm btn-disabled">…</button>
+            {{end}}
+        {{end}}
+
+        {{if lt .Page .TotalPages}}
+        <button class="join-item btn btn-sm"
+            hx-get="?page={{add .Page 1}}"
+            hx-target="#transaction-list"
+            hx-push-url="true">»</button>
+        {{else}}
+        <button class="join-item btn btn-sm btn-disabled">»</button>
+        {{end}}
+    </div>
+</div>
+{{end}}

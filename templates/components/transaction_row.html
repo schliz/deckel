@@ -1,0 +1,27 @@
+{{define "transaction-row"}}
+{{$tx := index . "Tx"}}
+{{$cancelMin := index . "CancellationMinutes"}}
+{{$csrf := index . "CSRFToken"}}
+<tr class="{{if $tx.CancelledAt}}opacity-50{{end}}">
+    <td class="{{if $tx.CancelledAt}}line-through{{end}}">{{formatTime $tx.CreatedAt}}</td>
+    <td class="{{if $tx.CancelledAt}}line-through{{end}}">
+        {{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}
+        {{if $tx.CancelledAt}}<span class="badge badge-error badge-sm ml-1">Storniert</span>{{end}}
+    </td>
+    <td class="text-right {{if $tx.CancelledAt}}line-through{{end}}">
+        {{if $tx.Quantity}}{{$tx.Quantity}}{{else}}—{{end}}
+    </td>
+    <td class="text-right font-mono {{if $tx.CancelledAt}}line-through{{end}} {{if lt $tx.Amount 0}}text-error{{else}}text-success{{end}}">
+        {{formatCents $tx.Amount}}
+    </td>
+    <td class="text-right">
+        {{if and (not $tx.CancelledAt) (withinMinutes $tx.CreatedAt $cancelMin)}}
+        <button class="btn btn-error btn-xs"
+            hx-get="/transactions/{{$tx.ID}}/cancel"
+            hx-target="#modal">
+            Stornieren
+        </button>
+        {{end}}
+    </td>
+</tr>
+{{end}}

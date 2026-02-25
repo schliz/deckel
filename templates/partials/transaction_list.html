@@ -1,0 +1,31 @@
+{{define "transaction-list"}}
+<div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Beschreibung</th>
+                <th class="text-right">Menge</th>
+                <th class="text-right">Betrag</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {{$cancelMin := .CancellationMinutes}}
+            {{$csrf := .CSRFToken}}
+            {{range .Transactions}}
+            {{template "transaction-row" (map "Tx" . "CancellationMinutes" $cancelMin "CSRFToken" $csrf)}}
+            {{end}}
+            {{if not .Transactions}}
+            <tr>
+                <td colspan="5" class="text-center opacity-50 py-8">Keine Transaktionen vorhanden.</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+{{if gt .TotalPages 1}}
+{{template "pagination" .}}
+{{end}}
+{{end}}

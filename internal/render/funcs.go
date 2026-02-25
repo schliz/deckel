@@ -16,6 +16,10 @@ func FuncMap() template.FuncMap {
 		"abs":         absInt64,
 		"neg":         negInt64,
 		"seq":         seq,
+		"add":         addInt,
+		"sub":         subInt,
+		"map":         makeMap,
+		"withinMinutes": withinMinutes,
 	}
 }
 
@@ -56,6 +60,28 @@ func absInt64(n int64) int64 {
 // negInt64 negates an int64 value.
 func negInt64(n int64) int64 {
 	return -n
+}
+
+// addInt returns a + b.
+func addInt(a, b int) int { return a + b }
+
+// subInt returns a - b.
+func subInt(a, b int) int { return a - b }
+
+// makeMap creates a map from alternating key-value pairs for use in templates.
+func makeMap(pairs ...any) map[string]any {
+	m := make(map[string]any, len(pairs)/2)
+	for i := 0; i+1 < len(pairs); i += 2 {
+		if key, ok := pairs[i].(string); ok {
+			m[key] = pairs[i+1]
+		}
+	}
+	return m
+}
+
+// withinMinutes returns true if t is within the last n minutes from now.
+func withinMinutes(t time.Time, minutes int) bool {
+	return time.Since(t) <= time.Duration(minutes)*time.Minute
 }
 
 // seq returns a slice of ints [0, 1, ..., n-1].
