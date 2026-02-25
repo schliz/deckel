@@ -1133,3 +1133,16 @@
   - Uses `npm ci` for reproducible builds in Docker
   - Migrations directory also copied to runtime image since goose embeds them but they're needed at build time
 ---
+
+## 2026-02-25 - US-087
+- Created docker-compose.yml with 3 services: app (builds from Dockerfile), db (PostgreSQL 16 Alpine), oauth2-proxy (placeholder with commented config)
+- app service: env vars for DATABASE_URL/LISTEN_ADDR/DEV_MODE/ADMIN_GROUP/STATIC_DIR/TEMPLATE_DIR, depends on db (service_healthy), healthcheck via wget to /healthz
+- db service: PostgreSQL 16 Alpine with deckel user/password/database, pgdata volume for persistence, pg_isready healthcheck
+- oauth2-proxy: commented-out example config with header forwarding notes (X-Forwarded-User, X-Forwarded-Groups, X-Forwarded-Preferred-Username)
+- pgdata named volume for database persistence
+- Files changed: docker-compose.yml (new)
+- **Learnings for future iterations:**
+  - App container uses wget for healthcheck (available in Alpine, curl is not)
+  - oauth2-proxy is left as commented placeholder since it requires provider-specific secrets
+  - docker compose config validates compose file syntax (works with podman-compose too)
+---
