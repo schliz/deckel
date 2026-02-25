@@ -1,43 +1,49 @@
 {{define "user-row"}}
-<tr id="user-row-{{.ID}}">
-    <td>{{.FullName}}</td>
-    <td>{{.Email}}</td>
-    <td class="text-right {{if lt .Balance 0}}text-error{{else}}text-success{{end}}">
-        {{formatCents .Balance}}
+{{$u := .User}}
+{{$isSelf := eq $u.ID .CurrentUserID}}
+<tr id="user-row-{{$u.ID}}">
+    <td>{{$u.FullName}}{{if $u.IsAdmin}} <span class="badge badge-info badge-sm">Admin</span>{{end}}</td>
+    <td>{{$u.Email}}</td>
+    <td class="text-right {{if lt $u.Balance 0}}text-error{{else}}text-success{{end}}">
+        {{formatCents $u.Balance}}
     </td>
     <td>
         <label class="label cursor-pointer gap-2 justify-start p-0">
             <input type="checkbox" class="toggle toggle-sm toggle-primary"
-                {{if .IsBarteamer}}checked{{end}}
-                hx-post="/admin/users/{{.ID}}/toggle-barteamer"
-                hx-target="#user-row-{{.ID}}"
-                hx-swap="outerHTML">
-            <span class="text-xs">{{if .IsBarteamer}}Barteamer{{else}}Helfer{{end}}</span>
+                {{if $u.IsBarteamer}}checked{{end}}
+                hx-get="/admin/users/{{$u.ID}}/confirm-toggle?action=barteamer"
+                hx-target="#modal"
+                hx-trigger="click"
+                onclick="event.preventDefault()">
+            <span class="text-xs">{{if $u.IsBarteamer}}Barteamer{{else}}Helfer{{end}}</span>
         </label>
     </td>
     <td>
         <label class="label cursor-pointer gap-2 justify-start p-0">
             <input type="checkbox" class="toggle toggle-sm toggle-success"
-                {{if .IsActive}}checked{{end}}
-                hx-post="/admin/users/{{.ID}}/toggle-active"
-                hx-target="#user-row-{{.ID}}"
-                hx-swap="outerHTML">
-            <span class="text-xs">{{if .IsActive}}Aktiv{{else}}Inaktiv{{end}}</span>
+                {{if $u.IsActive}}checked{{end}}
+                {{if $isSelf}}disabled{{else}}
+                hx-get="/admin/users/{{$u.ID}}/confirm-toggle?action=active"
+                hx-target="#modal"
+                hx-trigger="click"
+                onclick="event.preventDefault()"{{end}}>
+            <span class="text-xs">{{if $u.IsActive}}Aktiv{{else}}Inaktiv{{end}}</span>
         </label>
     </td>
     <td>
         <label class="label cursor-pointer gap-2 justify-start p-0">
             <input type="checkbox" class="toggle toggle-sm toggle-warning"
-                {{if .SpendingLimitDisabled}}checked{{end}}
-                hx-post="/admin/users/{{.ID}}/toggle-spending-limit"
-                hx-target="#user-row-{{.ID}}"
-                hx-swap="outerHTML">
-            <span class="text-xs">{{if .SpendingLimitDisabled}}Aufgehoben{{else}}Aktiv{{end}}</span>
+                {{if $u.SpendingLimitDisabled}}checked{{end}}
+                hx-get="/admin/users/{{$u.ID}}/confirm-toggle?action=spending-limit"
+                hx-target="#modal"
+                hx-trigger="click"
+                onclick="event.preventDefault()">
+            <span class="text-xs">{{if $u.SpendingLimitDisabled}}Aufgehoben{{else}}Aktiv{{end}}</span>
         </label>
     </td>
     <td>
         <button class="btn btn-primary btn-xs"
-            hx-get="/admin/users/{{.ID}}/deposit"
+            hx-get="/admin/users/{{$u.ID}}/deposit"
             hx-target="#modal">Einzahlung</button>
     </td>
 </tr>

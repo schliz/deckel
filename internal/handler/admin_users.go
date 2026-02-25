@@ -27,6 +27,14 @@ type AdminUsersPageData struct {
 	LowBalanceWarning bool
 }
 
+// userRowData builds the template data map for a user-row fragment.
+func userRowData(ub model.UserWithBalance, currentUserID int64) map[string]any {
+	return map[string]any{
+		"User":          ub,
+		"CurrentUserID": currentUserID,
+	}
+}
+
 // AdminUserList renders the paginated admin user list sorted by balance ascending.
 func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
@@ -85,11 +93,16 @@ func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 // ToggleActive handles POST /admin/users/{id}/toggle-active.
 func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
+	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	if id == reqUser.ID {
+		return &ForbiddenError{Message: "Du kannst deinen eigenen Account nicht deaktivieren."}
 	}
 
 	if err := store.ToggleActive(ctx, db, id); err != nil {
@@ -101,7 +114,7 @@ func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("toggle active: fetch user: %w", err)
 	}
 
-	h.Renderer.Fragment(w, r, "user-row", *ub)
+	h.Renderer.Fragment(w, r, "user-row", userRowData(*ub, reqUser.ID))
 	h.Renderer.AppendOOB(w, "toast", map[string]string{
 		"Type":    "success",
 		"Message": fmt.Sprintf("Status für %s geändert.", ub.FullName),
@@ -112,6 +125,7 @@ func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 // ToggleSpendingLimit handles POST /admin/users/{id}/toggle-spending-limit.
 func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
+	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -128,11 +142,112 @@ func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("toggle spending limit: fetch user: %w", err)
 	}
 
-	h.Renderer.Fragment(w, r, "user-row", *ub)
+	h.Renderer.Fragment(w, r, "user-row", userRowData(*ub, reqUser.ID))
 	h.Renderer.AppendOOB(w, "toast", map[string]string{
 		"Type":    "success",
 		"Message": fmt.Sprintf("Ausgabelimit für %s geändert.", ub.FullName),
 	})
+	return nil
+}
+
+// ToggleBarteamer handles POST /admin/users/{id}/toggle-barteamer.
+func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	reqUser := auth.UserFromContext(ctx)
+	db := h.Store.DB()
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	if err := store.ToggleBarteamer(ctx, db, id); err != nil {
+		return fmt.Errorf("toggle barteamer: %w", err)
+	}
+
+	ub, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		return fmt.Errorf("toggle barteamer: fetch user: %w", err)
+	}
+
+	h.Renderer.Fragment(w, r, "user-row", userRowData(*ub, reqUser.ID))
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Status für %s geändert.", ub.FullName),
+	})
+	return nil
+}
+
+// ConfirmToggleModal handles GET /admin/users/{id}/confirm-toggle?action=...
+// and returns a confirmation modal fragment.
+func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	reqUser := auth.UserFromContext(ctx)
+	db := h.Store.DB()
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	action := r.URL.Query().Get("action")
+
+	ub, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+		}
+		return fmt.Errorf("confirm toggle modal: get user: %w", err)
+	}
+
+	var title, message, postURL string
+	isSelf := id == reqUser.ID
+
+	switch action {
+	case "active":
+		postURL = fmt.Sprintf("/admin/users/%d/toggle-active", id)
+		if ub.IsActive {
+			title = "Benutzer deaktivieren"
+			message = fmt.Sprintf("Möchtest du %s wirklich deaktivieren? Der Benutzer kann sich dann nicht mehr anmelden.", ub.FullName)
+		} else {
+			title = "Benutzer aktivieren"
+			message = fmt.Sprintf("Möchtest du %s wieder aktivieren?", ub.FullName)
+		}
+		if isSelf {
+			message = "Du kannst deinen eigenen Account nicht deaktivieren."
+		}
+	case "barteamer":
+		postURL = fmt.Sprintf("/admin/users/%d/toggle-barteamer", id)
+		if ub.IsBarteamer {
+			title = "Auf Helfer setzen"
+			message = fmt.Sprintf("Möchtest du %s auf Helfer-Preise umstellen?", ub.FullName)
+		} else {
+			title = "Auf Barteamer setzen"
+			message = fmt.Sprintf("Möchtest du %s auf Barteamer-Preise umstellen?", ub.FullName)
+		}
+	case "spending-limit":
+		postURL = fmt.Sprintf("/admin/users/%d/toggle-spending-limit", id)
+		if ub.SpendingLimitDisabled {
+			title = "Ausgabelimit aktivieren"
+			message = fmt.Sprintf("Möchtest du das Ausgabelimit für %s wieder aktivieren?", ub.FullName)
+		} else {
+			title = "Ausgabelimit aufheben"
+			message = fmt.Sprintf("Möchtest du das Ausgabelimit für %s aufheben?", ub.FullName)
+		}
+	default:
+		return &ValidationError{Message: "ungültige Aktion"}
+	}
+
+	data := map[string]any{
+		"Title":     title,
+		"Message":   message,
+		"PostURL":   postURL,
+		"UserID":    id,
+		"IsSelf":    isSelf && action == "active",
+		"CSRFToken": middleware.CSRFTokenFromContext(ctx),
+	}
+
+	h.Renderer.Fragment(w, r, "confirm-toggle-modal", data)
 	return nil
 }
 
@@ -163,36 +278,10 @@ func (h *Handler) DepositModal(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// ToggleBarteamer handles POST /admin/users/{id}/toggle-barteamer.
-func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
-	ctx := r.Context()
-	db := h.Store.DB()
-
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
-	}
-
-	if err := store.ToggleBarteamer(ctx, db, id); err != nil {
-		return fmt.Errorf("toggle barteamer: %w", err)
-	}
-
-	ub, err := store.GetUserWithBalance(ctx, db, id)
-	if err != nil {
-		return fmt.Errorf("toggle barteamer: fetch user: %w", err)
-	}
-
-	h.Renderer.Fragment(w, r, "user-row", *ub)
-	h.Renderer.AppendOOB(w, "toast", map[string]string{
-		"Type":    "success",
-		"Message": fmt.Sprintf("Status für %s geändert.", ub.FullName),
-	})
-	return nil
-}
-
 // RegisterDeposit handles POST /admin/users/{id}/deposit.
 func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
+	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -245,7 +334,6 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	// Render OOB header-stats update.
-	reqUser := auth.UserFromContext(ctx)
 	newBalance, _ := store.GetUserBalance(ctx, db, reqUser.ID)
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
 	rank, total, _ := store.GetUserRank(ctx, db, reqUser.ID)
@@ -264,7 +352,7 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return fmt.Errorf("register deposit: fetch user: %w", err)
 	}
-	h.Renderer.AppendOOB(w, "user-row", *ub)
+	h.Renderer.AppendOOB(w, "user-row", userRowData(*ub, reqUser.ID))
 
 	// Close modal.
 	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
