@@ -143,7 +143,7 @@ const deactivatedPageHTML = `<!DOCTYPE html>
 </div>
 </div>
 </body>
-</html>`
+</html>`	
 
 // parseJWTNames extracts name, given_name, family_name from a JWT's payload.
 // It base64-decodes the payload segment without verifying the signature.
@@ -167,5 +167,10 @@ func parseJWTNames(token string) (fullName, givenName, familyName string) {
 		return
 	}
 
-	return claims.Name, claims.GivenName, claims.FamilyName
+	fullName = strings.TrimSpace(claims.Name)
+	if fullName == "" {
+		fullName = strings.TrimSpace(claims.GivenName + " " + claims.FamilyName)
+	}
+
+	return fullName, claims.GivenName, claims.FamilyName
 }

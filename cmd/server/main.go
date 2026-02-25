@@ -136,6 +136,7 @@ func main() {
 	mux.Handle("POST /admin/items/{id}/reorder", adminOnly(h.Wrap(h.ReorderItem)))
 	mux.Handle("POST /admin/items/{id}/delete", adminOnly(h.Wrap(h.SoftDeleteItem)))
 	mux.Handle("GET /admin/users", adminOnly(h.Wrap(h.AdminUserList)))
+	mux.Handle("GET /admin/users/{id}/confirm-toggle", adminOnly(h.Wrap(h.ConfirmToggleModal)))
 	mux.Handle("POST /admin/users/{id}/toggle-barteamer", adminOnly(h.Wrap(h.ToggleBarteamer)))
 	mux.Handle("POST /admin/users/{id}/toggle-active", adminOnly(h.Wrap(h.ToggleActive)))
 	mux.Handle("POST /admin/users/{id}/toggle-spending-limit", adminOnly(h.Wrap(h.ToggleSpendingLimit)))
