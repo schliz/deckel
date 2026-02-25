@@ -1030,3 +1030,18 @@
   - smtp.PlainAuth requires the host for TLS verification
   - When Username is empty, pass nil auth to SendMail for unauthenticated relay
 ---
+
+## 2026-02-25 - US-079
+- Implemented SendReminders handler in internal/handler/admin_settings.go
+- Handler registered at POST /admin/settings/send-reminders with adminOnly middleware
+- Added store.ListActiveUsersWithBalance() to fetch all active users with computed balances
+- Handler fetches settings for email template and SMTP config, creates Mailer per-request from settings
+- Renders email template per-user using text/template with {{.Name}} and {{.Balance}} variables
+- Counts successes/failures and returns toast: "X Emails gesendet, Y Fehler"
+- Added formatCentsToEuro helper for balance formatting in emails
+- Files changed: internal/handler/admin_settings.go, internal/store/user.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - SMTP settings are stored in DB (model.Settings), not in config - create Mailer per-request from settings
+  - text/template used for email body rendering (not html/template) since emails are plain text
+  - ListActiveUsersWithBalance has no pagination (fetches all active users for batch email)
+---
