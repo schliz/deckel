@@ -919,3 +919,17 @@
   - Admin cancel button points to /admin/transactions/{id}/cancel (different from user's /transactions/{id}/cancel)
   - Type field needs German translation mapping in template (order→Bestellung, deposit→Einzahlung, etc.)
 ---
+
+## 2026-02-25 - US-071
+- Implemented admin transaction cancellation handler (AdminCancelTransaction) at POST /admin/transactions/{id}/cancel
+- Implemented admin cancel modal handler (AdminCancelModal) at GET /admin/transactions/{id}/cancel
+- Created admin cancel modal template (admin_cancel_modal.html) - shows user name, transaction details, posts to admin cancel endpoint
+- Same cancellation logic as user self-cancel but without user ownership check
+- Still validates: within cancellation window, not already cancelled
+- Response: success toast + OOB-swapped admin transaction list + modal close
+- Files changed: internal/handler/admin_transactions.go, templates/partials/admin_cancel_modal.html (new), cmd/server/main.go
+- **Learnings for future iterations:**
+  - Admin cancel handlers follow same pattern as user cancel but skip the txn.UserID != user.ID check
+  - db.QueryRow can be called inline in handlers since h.Store.DB() returns DBTX which has QueryRow
+  - Admin cancel modal needs user name from users table (not available on model.Transaction)
+---
