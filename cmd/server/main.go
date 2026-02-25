@@ -98,7 +98,7 @@ func main() {
 	mux.Handle("POST /menu/order", withCSRF(h.Wrap(h.PlaceOrder)))
 
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
-	mux.Handle("GET /profile", base(http.HandlerFunc(placeholderHandler("profile"))))
+	mux.Handle("GET /profile", withCSRF(h.Wrap(h.ProfilePage)))
 	mux.Handle("GET /transactions", withCSRF(h.Wrap(h.TransactionHistory)))
 	mux.Handle("GET /transactions/custom", withCSRF(h.Wrap(h.CustomTransactionModal)))
 	mux.Handle("POST /transactions/custom", withCSRF(h.Wrap(h.CreateCustomTransaction)))

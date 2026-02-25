@@ -110,6 +110,7 @@ func Middleware(s *store.Store, adminGroup string) func(http.Handler) http.Handl
 				IsBarteamer:           user.IsBarteamer,
 				IsActive:              user.IsActive,
 				SpendingLimitDisabled: user.SpendingLimitDisabled,
+				CreatedAt:             user.CreatedAt,
 			}
 
 			// Block deactivated users

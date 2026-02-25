@@ -1,0 +1,42 @@
+{{define "content"}}
+<h1 class="text-2xl font-bold mb-6">Profil</h1>
+
+<div class="card bg-base-100 shadow-xl max-w-lg">
+  <div class="card-body">
+    <h2 class="card-title">{{.User.FullName}}</h2>
+    <div class="space-y-3 mt-2">
+      <div class="flex justify-between">
+        <span class="text-base-content/60">E-Mail</span>
+        <span>{{.User.Email}}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Status</span>
+        <span>
+          {{if .User.IsBarteamer}}
+            <span class="badge badge-primary">Barteamer</span>
+          {{else}}
+            <span class="badge badge-secondary">Helfer</span>
+          {{end}}
+        </span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Mitglied seit</span>
+        <span>{{formatDate .User.CreatedAt}}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-base-content/60">Guthaben</span>
+        <span class="{{if ge .User.Balance 0}}text-success{{else}}text-error{{end}} font-bold">
+          {{formatCents .User.Balance}}
+        </span>
+      </div>
+    </div>
+    <div class="card-actions justify-end mt-4">
+      <button class="btn btn-outline btn-sm"
+              hx-post="/profile/export"
+              hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+        Daten exportieren
+      </button>
+    </div>
+  </div>
+</div>
+{{end}}

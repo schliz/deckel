@@ -1,6 +1,9 @@
 package auth
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // RequestUser represents the authenticated user extracted from request headers.
 type RequestUser struct {
@@ -15,6 +18,7 @@ type RequestUser struct {
 	IsBarteamer           bool
 	IsActive              bool
 	SpendingLimitDisabled bool
+	CreatedAt             time.Time
 }
 
 type contextKey struct{}
