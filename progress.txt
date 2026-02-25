@@ -1120,3 +1120,16 @@
   - The auth middleware already handles HTMX session expiry since initial implementation - check existing code before implementing
   - HX-Redirect header with 401 tells HTMX to perform full-page navigation to the specified URL
 ---
+
+## 2026-02-25 - US-086
+- Created multi-stage Dockerfile with 3 stages: tailwind (Node Alpine for CSS build with DaisyUI), builder (Go Alpine for binary), runtime (minimal Alpine)
+- Added .dockerignore to keep build context lean
+- Uses TARGETARCH ARG for multi-architecture support
+- CGO_ENABLED=0 -ldflags='-s -w' for static binary
+- Exposes port 8080
+- Files changed: Dockerfile, .dockerignore
+- **Learnings for future iterations:**
+  - Standalone Tailwind CLI doesn't support DaisyUI plugin, so must use Node/npm in Docker stage 1 (not standalone binary)
+  - Uses `npm ci` for reproducible builds in Docker
+  - Migrations directory also copied to runtime image since goose embeds them but they're needed at build time
+---
