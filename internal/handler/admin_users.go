@@ -3,13 +3,16 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/middleware"
 	"github.com/k4-bar/deckel/internal/model"
 	"github.com/k4-bar/deckel/internal/store"
+	"github.com/jackc/pgx/v5"
 )
 
 // AdminUsersPageData is the view model for the admin user list page.
@@ -182,5 +185,84 @@ func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error 
 		"Type":    "success",
 		"Message": fmt.Sprintf("Status für %s geändert.", ub.FullName),
 	})
+	return nil
+}
+
+// RegisterDeposit handles POST /admin/users/{id}/deposit.
+func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	// Parse Euro amount string to cents.
+	amountStr := r.FormValue("amount")
+	amountFloat, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil || amountFloat <= 0 {
+		return &ValidationError{Message: "Ungültiger Betrag"}
+	}
+	amountCents := int64(math.Round(amountFloat * 100))
+
+	// Optional note, default to "Einzahlung".
+	note := strings.TrimSpace(r.FormValue("note"))
+	if note == "" {
+		note = "Einzahlung"
+	}
+
+	// Create deposit transaction (positive amount = credit).
+	txn := &model.Transaction{
+		UserID:      id,
+		Amount:      amountCents,
+		Description: &note,
+		Type:        "deposit",
+	}
+
+	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
+		_, err := store.CreateTransaction(ctx, tx, txn)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("register deposit: %w", err)
+	}
+
+	// Build response: toast + OOB header-stats + OOB user row + close modal.
+	h.Renderer.Fragment(w, r, "toast", map[string]string{
+		"Type":    "success",
+		"Message": "Einzahlung gebucht!",
+	})
+
+	// Fetch settings for header-stats.
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("register deposit: get settings: %w", err)
+	}
+
+	// Render OOB header-stats update.
+	reqUser := auth.UserFromContext(ctx)
+	newBalance, _ := store.GetUserBalance(ctx, db, reqUser.ID)
+	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	rank, total, _ := store.GetUserRank(ctx, db, reqUser.ID)
+
+	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
+		"UserBalance":  newBalance,
+		"TotalBalance": totalBalance,
+		"UserRank":     rank,
+		"TotalUsers":   total,
+		"Settings":     settings,
+	})
+
+	// Render OOB user row swap.
+	ub, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		return fmt.Errorf("register deposit: fetch user: %w", err)
+	}
+	h.Renderer.AppendOOB(w, "user-row", *ub)
+
+	// Close modal.
+	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
+
 	return nil
 }
