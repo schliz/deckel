@@ -557,3 +557,30 @@
   - Use `map` helper to pass structured data to pagination: `(map "Page" .Page "TotalPages" .TotalPages "Target" "#id" "BaseURL" "/path")`
   - Pagination component is now reusable: just pass different Target and BaseURL values for each page
 ---
+
+## 2026-02-24 - US-041
+- Created CancelModal handler at GET /transactions/{id}/cancel
+- Handler fetches transaction, verifies ownership (403 if not user's), checks not already cancelled (400), checks within cancellation window (400)
+- Renders "cancel-modal" fragment with transaction details and CSRF token
+- Created minimal cancel_modal.html placeholder template (US-042 will build the full template)
+- Registered route in main.go with withCSRF middleware
+- Files changed: internal/handler/history.go, cmd/server/main.go, templates/partials/cancel_modal.html
+- **Learnings for future iterations:**
+  - CancelModal follows same pattern as OrderModal: fetch entity, validate, render fragment
+  - time.Since(txn.CreatedAt) compared against time.Duration(minutes)*time.Minute for window check
+  - ValidationError used for "already cancelled" and "window expired" (returns 400), ForbiddenError for wrong user (returns 403)
+---
+
+## 2026-02-24 - US-042
+- Built full cancel confirmation modal template replacing placeholder
+- Shows transaction description (Description or ItemTitle × Quantity fallback), amount (formatCents), date (formatTime)
+- Warning alert with "Wirklich stornieren?" prompt
+- Stornieren button with hx-post="/transactions/{id}/cancel", CSRF header, targeting #modal
+- Abbrechen button closes modal (same pattern as order modal)
+- JS IIFE shows modal container on load
+- Files changed: templates/partials/cancel_modal.html
+- **Learnings for future iterations:**
+  - Transaction model has nullable fields (ItemTitle, Description, Quantity as pointers); Go templates handle nil pointer checks with `{{if .Field}}`
+  - Cancel modal follows exact same pattern as order modal for show/close behavior
+  - formatCents and formatTime work directly on non-pointer Transaction fields (Amount int64, CreatedAt time.Time)
+---
