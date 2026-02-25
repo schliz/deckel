@@ -222,6 +222,53 @@ func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// UpdateItem handles POST /admin/items/{id}/update to modify a drink item.
+func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Artikel nicht gefunden"}
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
+	}
+
+	priceBarteamerF, err := strconv.ParseFloat(r.FormValue("price_barteamer"), 64)
+	if err != nil || priceBarteamerF <= 0 {
+		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
+	}
+	priceHelferF, err := strconv.ParseFloat(r.FormValue("price_helfer"), 64)
+	if err != nil || priceHelferF <= 0 {
+		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
+	}
+
+	priceBarteamer := int64(math.Round(priceBarteamerF * 100))
+	priceHelfer := int64(math.Round(priceHelferF * 100))
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	if err := store.UpdateItem(ctx, db, id, name, priceBarteamer, priceHelfer); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Artikel nicht gefunden"}
+		}
+		return fmt.Errorf("update item: %w", err)
+	}
+
+	if err := h.renderAdminCategoryList(w, r); err != nil {
+		return err
+	}
+
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Artikel '%s' aktualisiert", name),
+	})
+
+	return nil
+}
+
 // renderAdminCategoryList re-fetches all categories with items and renders
 // the admin-category-list partial as the main response content.
 func (h *Handler) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) error {
