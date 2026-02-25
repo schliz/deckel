@@ -111,10 +111,37 @@ func Middleware(s *store.Store, adminGroup string) func(http.Handler) http.Handl
 				IsActive:    user.IsActive,
 			}
 
+			// Block deactivated users
+			if !reqUser.IsActive {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.WriteHeader(http.StatusForbidden)
+				w.Write([]byte(deactivatedPageHTML))
+				return
+			}
+
 			next.ServeHTTP(w, r.WithContext(contextWithUser(ctx, reqUser)))
 		})
 	}
 }
+
+// deactivatedPageHTML is the full HTML page shown to deactivated users.
+const deactivatedPageHTML = `<!DOCTYPE html>
+<html lang="de" data-theme="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konto deaktiviert - K4-Bar Deckel</title>
+<link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="min-h-screen flex items-center justify-center bg-base-200">
+<div class="card bg-base-100 shadow-xl max-w-md mx-auto">
+<div class="card-body text-center">
+<h1 class="card-title justify-center text-2xl">Konto deaktiviert</h1>
+<p class="py-4">Dein Konto ist deaktiviert. Bitte wende dich an einen Admin.</p>
+</div>
+</div>
+</body>
+</html>`
 
 // parseJWTNames extracts name, given_name, family_name from a JWT's payload.
 // It base64-decodes the payload segment without verifying the signature.
