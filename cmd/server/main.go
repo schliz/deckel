@@ -70,8 +70,6 @@ func main() {
 		base,
 		middleware.CSRF(csrfSecret),
 	)
-	_ = h // handler will be used once real routes are added
-
 	mux := http.NewServeMux()
 
 	// Health check - outside middleware (no auth needed).
@@ -89,8 +87,11 @@ func main() {
 	staticFS := http.FileServer(http.Dir(cfg.StaticDir))
 	mux.Handle("/static/", http.StripPrefix("/static/", staticCacheHandler(staticFS, cfg.DevMode)))
 
+	// Menu page (GET / and GET /menu).
+	mux.Handle("GET /{$}", base(h.Wrap(h.MenuPage)))
+	mux.Handle("GET /menu", base(h.Wrap(h.MenuPage)))
+
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
-	mux.Handle("GET /menu", base(http.HandlerFunc(placeholderHandler("menu"))))
 	mux.Handle("GET /profile", base(http.HandlerFunc(placeholderHandler("profile"))))
 	mux.Handle("GET /transactions", base(http.HandlerFunc(placeholderHandler("transactions"))))
 
