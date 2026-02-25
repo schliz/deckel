@@ -130,6 +130,7 @@ func main() {
 	mux.Handle("GET /admin/stats", adminOnly(h.Wrap(h.AdminStatsPage)))
 	mux.Handle("GET /admin/settings", adminOnly(h.Wrap(h.AdminSettingsPage)))
 	mux.Handle("POST /admin/settings", adminOnly(h.Wrap(h.SaveSettings)))
+	mux.Handle("POST /admin/settings/send-reminders", adminOnly(h.Wrap(h.SendReminders)))
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,

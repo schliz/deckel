@@ -182,6 +182,43 @@ func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]mo
 	return users, total, nil
 }
 
+// ListActiveUsersWithBalance returns all active users with their computed balance.
+func ListActiveUsersWithBalance(ctx context.Context, db DBTX) ([]model.UserWithBalance, error) {
+	rows, err := db.Query(ctx, `
+		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
+		       u.is_barteamer, u.is_admin, u.is_active, u.spending_limit_disabled,
+		       u.created_at, u.updated_at,
+		       COALESCE(SUM(t.amount), 0) AS balance
+		FROM users u
+		LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+		WHERE u.is_active = TRUE
+		GROUP BY u.id
+		ORDER BY u.full_name ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("list active users with balance: %w", err)
+	}
+	defer rows.Close()
+
+	var users []model.UserWithBalance
+	for rows.Next() {
+		var ub model.UserWithBalance
+		if err := rows.Scan(
+			&ub.ID, &ub.Email, &ub.FullName, &ub.GivenName, &ub.FamilyName,
+			&ub.IsBarteamer, &ub.IsAdmin, &ub.IsActive, &ub.SpendingLimitDisabled,
+			&ub.CreatedAt, &ub.UpdatedAt,
+			&ub.Balance,
+		); err != nil {
+			return nil, fmt.Errorf("scan active user with balance: %w", err)
+		}
+		users = append(users, ub)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate active users with balance: %w", err)
+	}
+
+	return users, nil
+}
+
 // ToggleBarteamer flips the is_barteamer flag for the given user.
 func ToggleBarteamer(ctx context.Context, db DBTX, id int64) error {
 	return toggleUserBool(ctx, db, id, "is_barteamer", "toggle barteamer")

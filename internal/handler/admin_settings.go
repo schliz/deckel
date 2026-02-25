@@ -1,13 +1,17 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/k4-bar/deckel/internal/auth"
+	"github.com/k4-bar/deckel/internal/mail"
 	"github.com/k4-bar/deckel/internal/middleware"
 	"github.com/k4-bar/deckel/internal/model"
 	"github.com/k4-bar/deckel/internal/store"
@@ -125,4 +129,72 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 		"Message": "Einstellungen gespeichert",
 	})
 	return nil
+}
+
+// SendReminders sends balance reminder emails to all active users.
+func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	users, err := store.ListActiveUsersWithBalance(ctx, db)
+	if err != nil {
+		return fmt.Errorf("send reminders: list users: %w", err)
+	}
+
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("send reminders: get settings: %w", err)
+	}
+
+	tmpl, err := template.New("email").Parse(settings.EmailTemplate)
+	if err != nil {
+		return &ValidationError{Message: "E-Mail-Template ist ungültig: " + err.Error()}
+	}
+
+	mailer := &mail.Mailer{
+		Host:     settings.SMTPHost,
+		Port:     strconv.Itoa(settings.SMTPPort),
+		Username: settings.SMTPUser,
+		Password: settings.SMTPPassword,
+		From:     settings.SMTPFrom,
+	}
+
+	var successes, failures int
+	for _, u := range users {
+		// Render per-user email body.
+		var buf bytes.Buffer
+		data := map[string]string{
+			"Name":    u.FullName,
+			"Balance": formatCentsToEuro(u.Balance),
+		}
+		if err := tmpl.Execute(&buf, data); err != nil {
+			log.Printf("send reminders: render template for %s: %v", u.Email, err)
+			failures++
+			continue
+		}
+
+		if err := mailer.Send(u.Email, "Kontostand-Erinnerung", buf.String()); err != nil {
+			log.Printf("send reminders: send to %s: %v", u.Email, err)
+			failures++
+			continue
+		}
+		successes++
+	}
+
+	msg := fmt.Sprintf("%d Emails gesendet, %d Fehler", successes, failures)
+	h.Renderer.Fragment(w, r, "toast", map[string]string{
+		"Type":    "success",
+		"Message": msg,
+	})
+	return nil
+}
+
+// formatCentsToEuro formats a cent amount as a Euro string (e.g. -150 → "-1.50 EUR").
+func formatCentsToEuro(cents int64) string {
+	sign := ""
+	if cents < 0 {
+		sign = "-"
+		cents = -cents
+	}
+	return fmt.Sprintf("%s%d.%02d EUR", sign, cents/100, cents%100)
 }
