@@ -54,6 +54,12 @@ type Transaction struct {
 	CreatedAt   time.Time
 }
 
+type TransactionWithUser struct {
+	Transaction
+	UserName  string
+	UserEmail string
+}
+
 type Settings struct {
 	ID                 int
 	WarningLimit       int64

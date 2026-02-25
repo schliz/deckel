@@ -114,6 +114,47 @@ func ListAllTransactionsByUser(ctx context.Context, db DBTX, userID int64) ([]mo
 	return txns, nil
 }
 
+// ListAllTransactions returns paginated transactions across all users (newest first),
+// joined with user info, and the total count.
+func ListAllTransactions(ctx context.Context, db DBTX, limit, offset int) ([]model.TransactionWithUser, int, error) {
+	var total int
+	err := db.QueryRow(ctx, `SELECT COUNT(*) FROM transactions`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count all transactions: %w", err)
+	}
+
+	rows, err := db.Query(ctx, `
+		SELECT t.id, t.user_id, t.amount, t.item_title, t.unit_price, t.quantity, t.description,
+		       t.type, t.cancelled_at, t.cancels_id, t.created_at,
+		       u.full_name, u.email
+		FROM transactions t
+		JOIN users u ON u.id = t.user_id
+		ORDER BY t.created_at DESC, t.id DESC
+		LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list all transactions: %w", err)
+	}
+	defer rows.Close()
+
+	var txns []model.TransactionWithUser
+	for rows.Next() {
+		var t model.TransactionWithUser
+		if err := rows.Scan(
+			&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
+			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+			&t.UserName, &t.UserEmail,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan transaction with user: %w", err)
+		}
+		txns = append(txns, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate all transactions: %w", err)
+	}
+
+	return txns, total, nil
+}
+
 // CountTransactionsByUser returns the total number of transactions for a given user.
 func CountTransactionsByUser(ctx context.Context, db DBTX, userID int64) (int, error) {
 	var count int
