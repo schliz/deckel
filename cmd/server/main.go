@@ -99,7 +99,7 @@ func main() {
 
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
 	mux.Handle("GET /profile", base(http.HandlerFunc(placeholderHandler("profile"))))
-	mux.Handle("GET /transactions", base(http.HandlerFunc(placeholderHandler("transactions"))))
+	mux.Handle("GET /transactions", withCSRF(h.Wrap(h.TransactionHistory)))
 
 	// Admin routes with CSRF + RequireAdmin.
 	adminOnly := func(h http.Handler) http.Handler {
