@@ -110,6 +110,7 @@ func main() {
 	adminOnly := func(h http.Handler) http.Handler {
 		return withCSRF(auth.RequireAdmin(h))
 	}
+	mux.Handle("GET /admin/menu", adminOnly(h.Wrap(h.AdminMenuPage)))
 	mux.Handle("GET /admin/users", adminOnly(http.HandlerFunc(placeholderHandler("admin/users"))))
 
 	srv := &http.Server{
