@@ -959,3 +959,18 @@
   - time.ParseInLocation used for date parsing to respect server locale
   - HTMX partial vs full page: check isHTMX(r) then Fragment() or Page()
 ---
+
+## 2026-02-25 - US-074
+- Created templates/pages/admin_stats.html with time range filter UI
+- Created templates/partials/stats_panel.html with DaisyUI stat cards and ranked item lists
+- Page template includes preset buttons (Heute, Letzte Woche, Letzter Monat) using hx-get with JS-computed date params
+- Custom date range with from/to date inputs and filter button
+- Stats panel renders: Gesamtumsatz, Anzahl Transaktionen, Einzahlungen gesamt as DaisyUI stat cards
+- Top 10 lists: Meistverkaufte Artikel (by count) and Umsatzstärkste Artikel (by revenue) as ordered lists
+- Files changed: templates/pages/admin_stats.html (new), templates/partials/stats_panel.html (new)
+- **Learnings for future iterations:**
+  - Template define name must match what Fragment() looks up: "admin-stats-panel" (with hyphens, matching handler)
+  - DaisyUI stat component: div.stat > div.stat-title + div.stat-value
+  - static/css/styles.css is in .gitignore; no need to commit CSS changes
+  - hx-vals='js:{...}' allows dynamic JavaScript-computed values for HTMX requests
+---
