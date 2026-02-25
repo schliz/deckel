@@ -1,0 +1,70 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: "postgres://deckel:deckel@db:5432/deckel?sslmode=disable"
+      LISTEN_ADDR: ":8080"
+      DEV_MODE: "false"
+      ADMIN_GROUP: "admin"
+      STATIC_DIR: "/app/static"
+      TEMPLATE_DIR: "/app/templates"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: deckel
+      POSTGRES_PASSWORD: deckel
+      POSTGRES_DB: deckel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deckel -d deckel"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # oauth2-proxy: Reverse proxy for authentication
+  # In production, oauth2-proxy sits in front of the app and forwards
+  # authenticated user information via HTTP headers:
+  #   - X-Forwarded-User: the authenticated user's email
+  #   - X-Forwarded-Groups: comma-separated list of groups
+  #   - X-Forwarded-Preferred-Username: display name
+  #
+  # Example configuration (adjust for your OAuth provider):
+  #   oauth2-proxy:
+  #     image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+  #     ports:
+  #       - "4180:4180"
+  #     environment:
+  #       OAUTH2_PROXY_PROVIDER: oidc
+  #       OAUTH2_PROXY_CLIENT_ID: <your-client-id>
+  #       OAUTH2_PROXY_CLIENT_SECRET: <your-client-secret>
+  #       OAUTH2_PROXY_OIDC_ISSUER_URL: <your-issuer-url>
+  #       OAUTH2_PROXY_COOKIE_SECRET: <generate-with-openssl>
+  #       OAUTH2_PROXY_UPSTREAMS: http://app:8080
+  #       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+  #       OAUTH2_PROXY_PASS_USER_HEADERS: "true"
+  #       OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
+  #       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+  #     depends_on:
+  #       app:
+  #         condition: service_healthy
+
+volumes:
+  pgdata:
