@@ -1,18 +1,32 @@
 {{define "layout"}}<!DOCTYPE html>
-<html lang="de" data-theme="night">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{.CSRFToken}}">
     <title>K4-Bar Deckel</title>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'night';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.addEventListener('DOMContentLoaded', function() {
+                if (theme === 'light') {
+                    document.getElementById('theme-icon-sun').classList.add('hidden');
+                    document.getElementById('theme-icon-moon').classList.remove('hidden');
+                }
+            });
+        })();
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'night' ? 'light' : 'night';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            document.getElementById('theme-icon-sun').classList.toggle('hidden');
+            document.getElementById('theme-icon-moon').classList.toggle('hidden');
+        }
+    </script>
     <link rel="stylesheet" href="{{cssFile}}">
     <script src="/static/js/htmx.min.js"></script>
-    <script>
-        document.body.addEventListener('htmx:configRequest', function(event) {
-            var token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            event.detail.headers['X-CSRF-Token'] = token;
-        });
-    </script>
 </head>
 <body class="min-h-screen bg-base-100">
     {{block "nav" .}}{{end}}
@@ -30,8 +44,15 @@
         {{block "content" .}}{{end}}
     </main>
 
-    <div id="modal" class="modal modal-open" style="display:none"></div>
+    <div id="modal" class="modal"></div>
 
     <div id="toast-zone" class="toast toast-end toast-top z-50"></div>
+
+    <script>
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            var token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            event.detail.headers['X-CSRF-Token'] = token;
+        });
+    </script>
 </body>
 </html>{{end}}

@@ -9,6 +9,13 @@
 *.swp
 *.swo
 
+# Claude and Ralph
+.claude
+CLAUDE.md
+tasks/
+docs/*-spec.md
+scripts/ralph
+
 # OS
 .DS_Store
 Thumbs.db
@@ -22,3 +29,6 @@ static/css/styles.*.css
 
 # Build output
 /tmp/
+
+# Secrets
+.env
