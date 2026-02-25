@@ -1112,3 +1112,11 @@
   - The catch-all needs base middleware (auth) applied to maintain consistent behavior
   - Browser testing not possible without running DB; rely on typecheck + visual verification when DB available
 ---
+
+## 2026-02-25 - US-085
+- What was implemented: Session expiry handling for HTMX was already implemented in internal/auth/middleware.go (lines 22-24). The middleware detects missing X-Forwarded-Email on HTMX requests and returns HX-Redirect: / with 401 status. Normal requests get standard 401.
+- Files changed: prd.json (marked passes: true)
+- **Learnings for future iterations:**
+  - The auth middleware already handles HTMX session expiry since initial implementation - check existing code before implementing
+  - HX-Redirect header with 401 tells HTMX to perform full-page navigation to the specified URL
+---
