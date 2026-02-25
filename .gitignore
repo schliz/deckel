@@ -32,3 +32,6 @@ static/css/styles.*.css
 
 # Secrets
 .env
+
+# Local environmet
+docker-compose.override.yml
