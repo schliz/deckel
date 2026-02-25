@@ -67,6 +67,18 @@ func CreateCategory(ctx context.Context, db DBTX, name string) (*model.Category,
 	return &c, nil
 }
 
+// UpdateCategory renames a category.
+func UpdateCategory(ctx context.Context, db DBTX, id int64, name string) error {
+	ct, err := db.Exec(ctx, `UPDATE categories SET name = $1 WHERE id = $2`, name, id)
+	if err != nil {
+		return fmt.Errorf("update category: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // DeleteCategory removes a category by ID.
 func DeleteCategory(ctx context.Context, db DBTX, id int64) error {
 	ct, err := db.Exec(ctx, `DELETE FROM categories WHERE id = $1`, id)

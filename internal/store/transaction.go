@@ -182,20 +182,29 @@ func CancelTransaction(ctx context.Context, db DBTX, id int64) error {
 		return ErrNotFound
 	}
 
-	// Fetch original to get amount and user_id for counter-transaction.
+	// Fetch original to get amount, user_id, and description for counter-transaction.
 	var userID int64
 	var amount int64
+	var itemTitle, description *string
 	err = db.QueryRow(ctx, `
-		SELECT user_id, amount FROM transactions WHERE id = $1`, id).Scan(&userID, &amount)
+		SELECT user_id, amount, item_title, description FROM transactions WHERE id = $1`, id).Scan(&userID, &amount, &itemTitle, &description)
 	if err != nil {
 		return fmt.Errorf("cancel transaction: get original: %w", err)
 	}
 
-	// Insert counter-transaction.
+	// Build storno description from original item title or description.
+	stornoDesc := "Storno"
+	if itemTitle != nil && *itemTitle != "" {
+		stornoDesc = "Storno: " + *itemTitle
+	} else if description != nil && *description != "" {
+		stornoDesc = "Storno: " + *description
+	}
+
+	// Insert counter-transaction (no cancelled_at — it's the active reversal record).
 	_, err = db.Exec(ctx, `
-		INSERT INTO transactions (user_id, amount, type, cancels_id, cancelled_at)
-		VALUES ($1, $2, 'cancellation', $3, $4)`,
-		userID, -amount, id, now)
+		INSERT INTO transactions (user_id, amount, description, type, cancels_id)
+		VALUES ($1, $2, $3, 'cancellation', $4)`,
+		userID, -amount, stornoDesc, id)
 	if err != nil {
 		return fmt.Errorf("cancel transaction: insert counter: %w", err)
 	}

@@ -1,5 +1,5 @@
 {{define "content"}}
-<h1 class="text-2xl font-bold mb-4">Getränkekarte</h1>
+<h1 class="text-2xl font-bold mb-4">Karte</h1>
 
 {{if .IsBlocked}}
 <div class="alert alert-info mb-6">
@@ -9,6 +9,23 @@
     <span>Du hast dein Ausgabelimit erreicht. Bitte zahle bei einem Admin ein.</span>
 </div>
 {{end}}
+
+<section class="mb-8">
+    <ul class="list bg-base-200 rounded-box shadow-sm">
+        <li class="list-row cursor-pointer hover:bg-base-300 transition-colors {{if .IsBlocked}}opacity-50{{end}}"
+            {{if not .IsBlocked}}
+            hx-get="/transactions/custom"
+            hx-target="#modal"
+            {{end}}>
+            <div class="list-col-grow font-semibold">Eigene Buchung</div>
+            {{if .IsBlocked}}
+                <span class="badge badge-warning badge-sm">Bitte erst einzahlen</span>
+            {{else}}
+                <span class="text-sm text-base-content/60">Freier Betrag</span>
+            {{end}}
+        </li>
+    </ul>
+</section>
 
 <div id="menu-categories">
     {{template "menu-categories" .}}

@@ -10,6 +10,7 @@
     </td>
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">
         {{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{if $tx.Quantity}} × {{$tx.Quantity}}{{end}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}
+        {{if eq $tx.Type "cancellation"}}<span class="badge badge-info badge-sm ml-1">Storno</span>{{end}}
     </td>
     <td class="text-right font-mono {{if $tx.CancelledAt}}line-through{{end}} {{if lt $tx.Amount 0}}text-error{{else}}text-success{{end}}">
         {{formatCents $tx.Amount}}
