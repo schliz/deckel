@@ -1072,3 +1072,14 @@
   - Custom transaction button lives on the history page (not menu page); when implementing spending limit blocks, remember to disable it there too
   - IsBlocked logic needs to be duplicated across page data structs that need it (MenuPageData, TransactionHistoryData)
 ---
+
+## 2026-02-25 - US-082
+- Modified PlaceOrder handler to show separate success + warning toasts instead of combined message
+- Success toast always shows "Bestellung gebucht!" (type: success)
+- When projected balance hits hard limit, additional warning toast appended: "Achtung: Du hast dein Limit erreicht. Bitte zahle bald ein!" (type: warning)
+- Warning detection logic unchanged: projectedBalance <= hardLimit && currentBalance > hardLimit
+- Files changed: internal/handler/order.go
+- **Learnings for future iterations:**
+  - Toast template uses `hx-swap-oob="beforeend:#toast-zone"` so multiple toasts can be appended in a single response
+  - Use Fragment() for the first toast (primary response) and AppendOOB() for additional toasts
+---
