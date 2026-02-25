@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/k4-bar/deckel/internal/auth"
@@ -91,6 +93,32 @@ func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 	})
 
 	return nil
+}
+
+// ReorderCategory handles POST /admin/categories/{id}/reorder to change category order.
+func (h *Handler) ReorderCategory(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+	}
+
+	direction := r.URL.Query().Get("direction")
+	if direction == "" {
+		direction = r.FormValue("direction")
+	}
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	if err := store.ReorderCategory(ctx, db, id, direction); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		}
+		return fmt.Errorf("reorder category: %w", err)
+	}
+
+	return h.renderAdminCategoryList(w, r)
 }
 
 // renderAdminCategoryList re-fetches all categories with items and renders

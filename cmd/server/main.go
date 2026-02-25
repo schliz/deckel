@@ -112,6 +112,7 @@ func main() {
 	}
 	mux.Handle("GET /admin/menu", adminOnly(h.Wrap(h.AdminMenuPage)))
 	mux.Handle("POST /admin/categories", adminOnly(h.Wrap(h.CreateCategory)))
+	mux.Handle("POST /admin/categories/{id}/reorder", adminOnly(h.Wrap(h.ReorderCategory)))
 	mux.Handle("GET /admin/users", adminOnly(http.HandlerFunc(placeholderHandler("admin/users"))))
 
 	srv := &http.Server{
