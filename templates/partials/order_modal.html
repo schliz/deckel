@@ -1,32 +1,23 @@
 {{define "order-modal"}}
 <div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
-    <div class="modal-box">
-        <h3 class="font-bold text-lg">{{.Item.Name}} bestellen</h3>
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg">{{.Item.Name}}</h3>
+        <p class="text-sm text-base-content/60">
+            {{if .User.IsBarteamer}}{{formatCents .Item.PriceBarteamer}}{{else}}{{formatCents .Item.PriceHelfer}}{{end}} pro Stück
+        </p>
 
-        <div class="py-4">
-            <p class="text-sm opacity-70 mb-4">
-                Preis: {{if .User.IsBarteamer}}{{formatCents .Item.PriceBarteamer}}{{else}}{{formatCents .Item.PriceHelfer}}{{end}}
-            </p>
-
-            <div class="form-control mb-4">
-                <label class="label">
-                    <span class="label-text">Anzahl</span>
-                </label>
-                <div class="flex items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline" onclick="changeQty(-1)">−</button>
-                    <input type="number" id="order-qty" value="1" min="1" max="{{.MaxQuantity}}"
-                        class="input input-bordered w-20 text-center" onchange="updateTotal()">
-                    <button type="button" class="btn btn-sm btn-outline" onclick="changeQty(1)">+</button>
-                </div>
+        <div class="flex items-center justify-between mt-4">
+            <div class="join">
+                <button type="button" class="btn btn-outline join-item" onclick="changeQty(-1)">−</button>
+                <input type="number" id="order-qty" value="1" min="1" max="{{.MaxQuantity}}"
+                    class="input join-item w-16 text-center" onchange="updateTotal()">
+                <button type="button" class="btn btn-outline join-item" onclick="changeQty(1)">+</button>
             </div>
-
-            <p class="text-lg font-semibold">
-                Gesamt: <span id="order-total">{{if .User.IsBarteamer}}{{formatCents .Item.PriceBarteamer}}{{else}}{{formatCents .Item.PriceHelfer}}{{end}}</span>
-            </p>
+            <span class="text-lg font-semibold" id="order-total">{{if .User.IsBarteamer}}{{formatCents .Item.PriceBarteamer}}{{else}}{{formatCents .Item.PriceHelfer}}{{end}}</span>
         </div>
 
         <div class="modal-action">
-            <button class="btn" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
             <button class="btn btn-primary" id="order-confirm-btn"
                 hx-post="/menu/order"
                 hx-vals='js:{"item_id": "{{.Item.ID}}", "quantity": document.getElementById("order-qty").value}'

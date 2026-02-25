@@ -12,7 +12,7 @@
                 hx-post="/admin/users/{{.ID}}/toggle-barteamer"
                 hx-target="#user-row-{{.ID}}"
                 hx-swap="outerHTML">
-            <span class="label-text text-xs">{{if .IsBarteamer}}Barteamer{{else}}Helfer{{end}}</span>
+            <span class="text-xs">{{if .IsBarteamer}}Barteamer{{else}}Helfer{{end}}</span>
         </label>
     </td>
     <td>
@@ -22,7 +22,7 @@
                 hx-post="/admin/users/{{.ID}}/toggle-active"
                 hx-target="#user-row-{{.ID}}"
                 hx-swap="outerHTML">
-            <span class="label-text text-xs">{{if .IsActive}}Aktiv{{else}}Inaktiv{{end}}</span>
+            <span class="text-xs">{{if .IsActive}}Aktiv{{else}}Inaktiv{{end}}</span>
         </label>
     </td>
     <td>
@@ -32,7 +32,7 @@
                 hx-post="/admin/users/{{.ID}}/toggle-spending-limit"
                 hx-target="#user-row-{{.ID}}"
                 hx-swap="outerHTML">
-            <span class="label-text text-xs">{{if .SpendingLimitDisabled}}Aufgehoben{{else}}Aktiv{{end}}</span>
+            <span class="text-xs">{{if .SpendingLimitDisabled}}Aufgehoben{{else}}Aktiv{{end}}</span>
         </label>
     </td>
     <td>

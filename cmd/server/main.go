@@ -99,8 +99,8 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", staticCacheHandler(staticFS, cfg.DevMode)))
 
 	// Menu page (GET / and GET /menu).
-	mux.Handle("GET /{$}", base(h.Wrap(h.MenuPage)))
-	mux.Handle("GET /menu", base(h.Wrap(h.MenuPage)))
+	mux.Handle("GET /{$}", withCSRF(h.Wrap(h.MenuPage)))
+	mux.Handle("GET /menu", withCSRF(h.Wrap(h.MenuPage)))
 
 	// Order modal (GET /menu/items/{id}/order).
 	mux.Handle("GET /menu/items/{id}/order", withCSRF(h.Wrap(h.OrderModal)))

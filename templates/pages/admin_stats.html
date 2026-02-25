@@ -31,14 +31,14 @@
                 hx-get="/admin/stats"
                 hx-target="#admin-stats-panel"
                 hx-swap="innerHTML">
-                <div class="form-control">
-                    <label class="label"><span class="label-text">Von</span></label>
-                    <input type="date" name="from" value="{{.From}}" class="input input-bordered input-sm">
-                </div>
-                <div class="form-control">
-                    <label class="label"><span class="label-text">Bis</span></label>
-                    <input type="date" name="to" value="{{.To}}" class="input input-bordered input-sm">
-                </div>
+                <fieldset class="fieldset">
+                    <label class="label">Von</label>
+                    <input type="date" name="from" value="{{.From}}" class="input input-sm">
+                </fieldset>
+                <fieldset class="fieldset">
+                    <label class="label">Bis</label>
+                    <input type="date" name="to" value="{{.To}}" class="input input-sm">
+                </fieldset>
                 <button type="submit" class="btn btn-primary btn-sm">Filtern</button>
             </form>
         </div>

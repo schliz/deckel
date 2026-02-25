@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/k4-bar/deckel/internal/auth"
+	"github.com/k4-bar/deckel/internal/middleware"
 	"github.com/k4-bar/deckel/internal/model"
 	"github.com/k4-bar/deckel/internal/store"
 )
@@ -22,6 +23,7 @@ type StatsPageData struct {
 	To                string
 	ActivePage        string
 	LowBalanceWarning bool
+	CSRFToken         string
 }
 
 // AdminStatsPage renders the admin statistics page for a selected time range.
@@ -95,6 +97,7 @@ func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		To:                to.Format("2006-01-02"),
 		ActivePage:        "admin-stats",
 		LowBalanceWarning: isLowBalance(user, settings),
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 	}
 
 	if isHTMX(r) {

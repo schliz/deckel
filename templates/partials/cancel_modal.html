@@ -5,15 +5,15 @@
 
         <div class="py-4 space-y-2">
             <p>
-                <span class="opacity-70">Beschreibung:</span>
+                <span class="text-base-content/60">Beschreibung:</span>
                 {{if .Transaction.Description}}{{.Transaction.Description}}{{else if .Transaction.ItemTitle}}{{.Transaction.ItemTitle}}{{if .Transaction.Quantity}} × {{.Transaction.Quantity}}{{end}}{{else}}Transaktion{{end}}
             </p>
             <p>
-                <span class="opacity-70">Betrag:</span>
+                <span class="text-base-content/60">Betrag:</span>
                 <span class="font-semibold">{{formatCents .Transaction.Amount}}</span>
             </p>
             <p>
-                <span class="opacity-70">Datum:</span>
+                <span class="text-base-content/60">Datum:</span>
                 {{formatTime .Transaction.CreatedAt}}
             </p>
         </div>
@@ -23,7 +23,7 @@
         </div>
 
         <div class="modal-action">
-            <button class="btn" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
             <button class="btn btn-error"
                 hx-post="/transactions/{{.Transaction.ID}}/cancel"
                 hx-target="#modal"

@@ -3,10 +3,9 @@ FROM node:20-alpine AS tailwind
 WORKDIR /src
 COPY package.json package-lock.json* ./
 RUN npm ci
-COPY tailwind.config.js ./
 COPY static/css/input.css ./static/css/input.css
 COPY templates/ ./templates/
-RUN npx tailwindcss -i static/css/input.css -o static/css/styles.css --minify
+RUN npx @tailwindcss/cli -i static/css/input.css -o static/css/styles.css --minify
 
 # Stage 2: Build Go binary
 FROM golang:1.25-alpine AS builder

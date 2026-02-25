@@ -9,26 +9,26 @@
             <div class="card-body p-4 space-y-4">
                 <h2 class="card-title text-lg">Limits</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Warnlimit (€)</span></label>
+                    <fieldset class="fieldset">
+                        <label class="label">Warnlimit (€)</label>
                         <input type="number" name="warning_limit" step="0.01"
                             value="{{centsToEuros .Settings.WarningLimit}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Ausgabelimit (€)</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">Ausgabelimit (€)</label>
                         <input type="number" name="hard_spending_limit" step="0.01"
                             value="{{centsToEuros .Settings.HardSpendingLimit}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
                         <label class="label cursor-pointer justify-start gap-2">
                             <input type="checkbox" name="hard_limit_enabled" value="true"
                                 class="toggle toggle-primary toggle-sm"
                                 {{if .Settings.HardLimitEnabled}}checked{{end}}>
-                            <span class="label-text">Ausgabelimit aktiv</span>
+                            <span>Ausgabelimit aktiv</span>
                         </label>
-                    </div>
+                    </fieldset>
                 </div>
             </div>
         </div>
@@ -38,36 +38,36 @@
             <div class="card-body p-4 space-y-4">
                 <h2 class="card-title text-lg">Buchung & Bestellung</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Eigenbuchung Min (€)</span></label>
+                    <fieldset class="fieldset">
+                        <label class="label">Eigenbuchung Min (€)</label>
                         <input type="number" name="custom_tx_min" step="0.01"
                             value="{{centsToEuros .Settings.CustomTxMin}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Eigenbuchung Max (€)</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">Eigenbuchung Max (€)</label>
                         <input type="number" name="custom_tx_max" step="0.01"
                             value="{{centsToEuros .Settings.CustomTxMax}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Max Anzahl pro Bestellung</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">Max Anzahl pro Bestellung</label>
                         <input type="number" name="max_item_quantity" min="1"
                             value="{{.Settings.MaxItemQuantity}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Stornofrist Minuten</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">Stornofrist Minuten</label>
                         <input type="number" name="cancellation_minutes" min="0"
                             value="{{.Settings.CancellationMinutes}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Seitengröße</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">Seitengröße</label>
                         <input type="number" name="pagination_size" min="1"
                             value="{{.Settings.PaginationSize}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
+                            class="input input-sm w-full">
+                    </fieldset>
                 </div>
             </div>
         </div>
@@ -77,36 +77,36 @@
             <div class="card-body p-4 space-y-4">
                 <h2 class="card-title text-lg">E-Mail (SMTP)</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">SMTP Host</span></label>
+                    <fieldset class="fieldset">
+                        <label class="label">SMTP Host</label>
                         <input type="text" name="smtp_host"
                             value="{{.Settings.SMTPHost}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">SMTP Port</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">SMTP Port</label>
                         <input type="number" name="smtp_port" min="1" max="65535"
                             value="{{.Settings.SMTPPort}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">SMTP Benutzer</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">SMTP Benutzer</label>
                         <input type="text" name="smtp_user"
                             value="{{.Settings.SMTPUser}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">SMTP Passwort</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">SMTP Passwort</label>
                         <input type="password" name="smtp_password"
                             value="{{.Settings.SMTPPassword}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
-                    <div class="form-control sm:col-span-2">
-                        <label class="label"><span class="label-text">Absender-Email</span></label>
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset sm:col-span-2">
+                        <label class="label">Absender-Email</label>
                         <input type="text" name="smtp_from"
                             value="{{.Settings.SMTPFrom}}"
-                            class="input input-bordered input-sm w-full">
-                    </div>
+                            class="input input-sm w-full">
+                    </fieldset>
                 </div>
             </div>
         </div>
@@ -115,10 +115,10 @@
         <div class="card bg-base-200 shadow-sm mb-4">
             <div class="card-body p-4 space-y-4">
                 <h2 class="card-title text-lg">Email-Vorlage</h2>
-                <div class="form-control">
+                <fieldset class="fieldset">
                     <textarea name="email_template" rows="8"
-                        class="textarea textarea-bordered w-full font-mono text-sm">{{.Settings.EmailTemplate}}</textarea>
-                </div>
+                        class="textarea w-full font-mono text-sm">{{.Settings.EmailTemplate}}</textarea>
+                </fieldset>
             </div>
         </div>
 
@@ -131,7 +131,7 @@
     <div class="card bg-base-200 shadow-sm">
         <div class="card-body p-4">
             <h2 class="card-title text-lg">Erinnerungsmails</h2>
-            <p class="text-sm opacity-70">Sendet Erinnerungsmails an alle Nutzer mit negativem Kontostand.</p>
+            <p class="text-sm text-base-content/60">Sendet Erinnerungsmails an alle Nutzer mit negativem Kontostand.</p>
             <div class="card-actions mt-2">
                 <button class="btn btn-warning btn-sm"
                     hx-post="/admin/settings/send-reminders"

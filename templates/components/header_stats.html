@@ -3,17 +3,17 @@
     <div class="container mx-auto px-4 py-2">
         <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm">
             <div class="flex items-center gap-1">
-                <span class="opacity-70">Guthaben:</span>
+                <span class="text-base-content/60">Guthaben:</span>
                 <span class="font-bold{{if gt .UserBalance 0}} text-success{{else if lt .UserBalance 0}}{{if and .Settings (lt .UserBalance .Settings.WarningLimit)}} text-error font-extrabold{{else}} text-error{{end}}{{end}}">
                     {{formatCents .UserBalance}}
                 </span>
             </div>
             <div class="flex items-center gap-1">
-                <span class="opacity-70">Bar-Kasse:</span>
+                <span class="text-base-content/60">Bar-Kasse:</span>
                 <span class="font-bold">{{formatCents .TotalBalance}}</span>
             </div>
             <div class="flex items-center gap-1">
-                <span class="opacity-70">Platz {{.UserRank}} von {{.TotalUsers}}</span>
+                <span class="text-base-content/60">Platz {{.UserRank}} von {{.TotalUsers}}</span>
             </div>
         </div>
     </div>

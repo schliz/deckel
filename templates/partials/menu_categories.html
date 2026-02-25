@@ -1,36 +1,25 @@
 {{define "menu-categories"}}
 {{range .Categories}}
 <section class="mb-8">
-    <h2 class="text-xl font-semibold mb-3">{{.Category.Name}}</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <ul class="list bg-base-200 rounded-box shadow-sm">
+        <li class="p-4 pb-2 text-xs text-base-content/60 tracking-wide uppercase font-semibold">{{.Category.Name}}</li>
         {{$blocked := $.IsBlocked}}
         {{$isBarteamer := $.User.IsBarteamer}}
         {{range .Items}}
-        <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-4">
-                <h3 class="card-title text-base">{{.Name}}</h3>
-                <p class="text-sm opacity-70">
-                    {{if $isBarteamer}}
-                        {{formatCents .PriceBarteamer}}
-                    {{else}}
-                        {{formatCents .PriceHelfer}}
-                    {{end}}
-                </p>
-                <div class="card-actions justify-end mt-2">
-                    {{if $blocked}}
-                        <span class="badge badge-warning">Bitte erst einzahlen</span>
-                    {{else}}
-                        <button class="btn btn-primary btn-sm"
-                            hx-get="/menu/items/{{.ID}}/order"
-                            hx-target="#modal">
-                            Bestellen
-                        </button>
-                    {{end}}
-                </div>
-            </div>
-        </div>
+        <li class="list-row cursor-pointer hover:bg-base-300 transition-colors"
+            {{if not $blocked}}
+            hx-get="/menu/items/{{.ID}}/order"
+            hx-target="#modal"
+            {{end}}>
+            <div class="list-col-grow">{{.Name}}</div>
+            {{if $blocked}}
+                <span class="badge badge-warning badge-sm">Bitte erst einzahlen</span>
+            {{else}}
+                <span class="text-sm text-base-content/60">{{if $isBarteamer}}{{formatCents .PriceBarteamer}}{{else}}{{formatCents .PriceHelfer}}{{end}}</span>
+            {{end}}
+        </li>
         {{end}}
-    </div>
+    </ul>
 </section>
 {{end}}
 {{end}}

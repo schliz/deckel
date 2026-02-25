@@ -79,7 +79,7 @@
             </table>
         </div>
         {{else}}
-        <p class="text-sm opacity-60">Keine Artikel in dieser Kategorie.</p>
+        <p class="text-sm text-base-content/60">Keine Artikel in dieser Kategorie.</p>
         {{end}}
 
         <!-- Add new item form -->
@@ -88,21 +88,21 @@
                 hx-post="/admin/categories/{{$cat.ID}}/items"
                 hx-target="#admin-category-list"
                 hx-swap="innerHTML">
-                <div class="form-control">
-                    <label class="label label-text text-xs">Name</label>
+                <fieldset class="fieldset">
+                    <label class="label text-xs">Name</label>
                     <input type="text" name="name" placeholder="Artikelname"
-                        class="input input-bordered input-xs w-32" required>
-                </div>
-                <div class="form-control">
-                    <label class="label label-text text-xs">Barteamer (€)</label>
+                        class="input input-xs w-32" required>
+                </fieldset>
+                <fieldset class="fieldset">
+                    <label class="label text-xs">Barteamer (€)</label>
                     <input type="number" name="price_barteamer" placeholder="0.00" step="0.01" min="0"
-                        class="input input-bordered input-xs w-24" required>
-                </div>
-                <div class="form-control">
-                    <label class="label label-text text-xs">Helfer (€)</label>
+                        class="input input-xs w-24" required>
+                </fieldset>
+                <fieldset class="fieldset">
+                    <label class="label text-xs">Helfer (€)</label>
                     <input type="number" name="price_helfer" placeholder="0.00" step="0.01" min="0"
-                        class="input input-bordered input-xs w-24" required>
-                </div>
+                        class="input input-xs w-24" required>
+                </fieldset>
                 <button type="submit" class="btn btn-primary btn-xs">Hinzufügen</button>
             </form>
         </div>

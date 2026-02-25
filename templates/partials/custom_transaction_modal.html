@@ -4,28 +4,22 @@
         <h3 class="font-bold text-lg">Eigene Buchung</h3>
 
         <div class="py-4">
-            <div class="form-control mb-4">
-                <label class="label">
-                    <span class="label-text">Beschreibung *</span>
-                </label>
+            <fieldset class="fieldset mb-4">
+                <label class="label">Beschreibung *</label>
                 <input type="text" id="custom-tx-description" placeholder="z.B. Snacks, Einkauf..."
-                    class="input input-bordered w-full" required>
-            </div>
+                    class="input w-full" required>
+            </fieldset>
 
-            <div class="form-control mb-4">
-                <label class="label">
-                    <span class="label-text">Betrag (EUR)</span>
-                </label>
+            <fieldset class="fieldset mb-4">
+                <label class="label">Betrag (EUR)</label>
                 <input type="number" id="custom-tx-amount" step="0.01" min="0.01"
-                    placeholder="0,00" class="input input-bordered w-full">
-                <label class="label">
-                    <span class="label-text-alt">Min: {{formatCents .Settings.CustomTxMin}} / Max: {{formatCents .Settings.CustomTxMax}}</span>
-                </label>
-            </div>
+                    placeholder="0,00" class="input w-full">
+                <p class="text-xs text-base-content/60 mt-1">Min: {{formatCents .Settings.CustomTxMin}} / Max: {{formatCents .Settings.CustomTxMax}}</p>
+            </fieldset>
         </div>
 
         <div class="modal-action">
-            <button class="btn" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
             <button class="btn btn-primary" id="custom-tx-confirm-btn"
                 hx-post="/transactions/custom"
                 hx-vals='js:{"description": document.getElementById("custom-tx-description").value, "amount": document.getElementById("custom-tx-amount").value}'

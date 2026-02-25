@@ -6,7 +6,7 @@
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">{{formatTime $tx.CreatedAt}}</td>
     <td>
         <div class="{{if $tx.CancelledAt}}line-through{{end}}">{{$tx.UserName}}</div>
-        <div class="text-xs opacity-60">{{$tx.UserEmail}}</div>
+        <div class="text-xs text-base-content/60">{{$tx.UserEmail}}</div>
     </td>
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">
         {{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{if $tx.Quantity}} × {{$tx.Quantity}}{{end}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}
