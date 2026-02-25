@@ -785,3 +785,14 @@
   - Pattern: fetch entity before delete to get name for toast message (same as DeleteCategory)
   - Soft-deleted items are already filtered out by ListItemsByCategory (WHERE deleted_at IS NULL)
 ---
+
+## 2026-02-25 - US-059
+- Implemented admin user list store queries
+- Added `UserWithBalance` struct (embeds `User` + `Balance int64`) to `internal/model/models.go`
+- Added `ListUsersWithBalance(ctx, dbtx, limit, offset)` to `internal/store/user.go` - joins users with transactions, sorted by balance ascending, paginated, returns total count
+- Added `ToggleBarteamer`, `ToggleActive`, `ToggleSpendingLimit` toggle functions using shared `toggleUserBool` helper
+- Files changed: `internal/model/models.go`, `internal/store/user.go`
+- **Learnings for future iterations:**
+  - DBTX.Exec returns `pgconn.CommandTag` directly (not interface), so no type assertion needed for `.RowsAffected()`
+  - Toggle pattern: use `SET col = NOT col` with `RowsAffected() == 0` check for ErrNotFound
+---
