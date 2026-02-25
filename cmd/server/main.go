@@ -111,6 +111,7 @@ func main() {
 		return withCSRF(auth.RequireAdmin(h))
 	}
 	mux.Handle("GET /admin/menu", adminOnly(h.Wrap(h.AdminMenuPage)))
+	mux.Handle("POST /admin/categories", adminOnly(h.Wrap(h.CreateCategory)))
 	mux.Handle("GET /admin/users", adminOnly(http.HandlerFunc(placeholderHandler("admin/users"))))
 
 	srv := &http.Server{
