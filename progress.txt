@@ -19,6 +19,7 @@
 - Template helpers: `map` (key-value pairs → map[string]any), `add`/`sub` (int arithmetic), `withinMinutes` (time check), `seq` (0..n-1 slice)
 - Use `map` helper to pass multiple values to sub-templates: `{{template "foo" (map "Key1" val1 "Key2" val2)}}`
 - User row partial: `user-row` template takes `model.UserWithBalance` and renders a `<tr>` with toggles; swap individual rows via `hx-target="#user-row-{id}"` + `hx-swap="outerHTML"`
+- Toggle handler pattern: parse ID → store.ToggleX(ctx, db, id) → store.GetUserWithBalance(ctx, db, id) → Fragment("user-row") + AppendOOB("toast")
 
 ---
 
@@ -819,4 +820,16 @@
   - Toggle POST endpoints use `hx-target="#user-row-{{.ID}}"` + `hx-swap="outerHTML"` to replace just the row
   - Einzahlung button targets `#modal` div for deposit modal (US-065/066)
   - Reused pagination component via `{{template "pagination" (map "Page" .Page "TotalPages" .TotalPages "Target" "#user-list" "BaseURL" "/admin/users")}}`
+---
+
+## 2026-02-25 - US-062
+- Implemented ToggleBarteamer handler at POST /admin/users/{id}/toggle-barteamer
+- Added store.GetUserWithBalance(ctx, db, id) to fetch a single user with computed balance
+- Handler: toggles is_barteamer via store.ToggleBarteamer, fetches updated user, renders user-row fragment + success toast OOB
+- Registered route with adminOnly middleware in main.go
+- Files changed: internal/handler/admin_users.go, internal/store/user.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - GetUserWithBalance reusable for any handler needing a single user row after mutation
+  - Toggle handler pattern: parse ID → store.ToggleX → store.GetUserWithBalance → Fragment("user-row") + AppendOOB("toast")
+  - Same pattern applies to US-063 (toggle active) and US-064 (toggle spending limit)
 ---
