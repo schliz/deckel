@@ -18,6 +18,8 @@
 - Multi-fragment HTMX response: Fragment() + AppendOOB() + raw HTML for multiple OOB swaps
 - Template helpers: `map` (key-value pairs → map[string]any), `add`/`sub` (int arithmetic), `withinMinutes` (time check), `seq` (0..n-1 slice)
 - Use `map` helper to pass multiple values to sub-templates: `{{template "foo" (map "Key1" val1 "Key2" val2)}}`
+- `centsToEuros` helper: converts int64 cents to "X.YY" string for form input values (no EUR suffix)
+- static/css/styles.css is .gitignored; build with `scripts/build-css.sh` but don't commit
 - User row partial: `user-row` template takes `model.UserWithBalance` and renders a `<tr>` with toggles; swap individual rows via `hx-target="#user-row-{id}"` + `hx-swap="outerHTML"`
 - Toggle handler pattern: parse ID → store.ToggleX(ctx, db, id) → store.GetUserWithBalance(ctx, db, id) → Fragment("user-row") + AppendOOB("toast")
 
@@ -984,4 +986,19 @@
 - **Learnings for future iterations:**
   - Settings handler is simpler than other admin handlers - just fetch singleton settings row and render
   - CSRFToken included in view model for the settings edit form (US-076+)
+---
+
+## 2026-02-25 - US-076
+- Created templates/pages/admin_settings.html with full settings form
+- Form includes all fields: Warnlimit, Ausgabelimit, Ausgabelimit aktiv toggle, Eigenbuchung Min/Max, Max Anzahl pro Bestellung, Stornofrist Minuten, Seitengröße, SMTP Host/Port/Benutzer/Passwort (password type)/Absender-Email, Email-Vorlage textarea
+- Speichern button POSTs to /admin/settings
+- Erinnerungsmails senden button POSTs to /admin/settings/send-reminders with confirm dialog
+- Added `centsToEuros` template helper in internal/render/funcs.go for displaying cents as euro form values (e.g., 150 → "1.50")
+- Files changed: templates/pages/admin_settings.html (new), internal/render/funcs.go
+- Handler (AdminSettingsPage) and route (GET /admin/settings) already existed from US-075
+- **Learnings for future iterations:**
+  - Monetary form inputs need `centsToEuros` helper (not `formatCents` which adds "EUR" suffix)
+  - static/css/styles.css is .gitignored - don't try to commit it
+  - goose v3.27 migration 000_placeholder.sql now errors with "version must be greater than zero" - pre-existing issue, prevents dev server startup
+  - Template verification: can parse all templates programmatically to verify without running server
 ---
