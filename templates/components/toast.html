@@ -1,12 +1,28 @@
 {{define "toast"}}
 <div hx-swap-oob="beforeend:#toast-zone">
-    <div class="alert alert-{{.Type}} shadow-lg">
+    <div class="alert alert-{{.Type}} shadow-lg toast-enter">
         <span>{{.Message}}</span>
     </div>
+    <style>
+        @keyframes toast-slide-in {
+            from { opacity: 0; transform: translateX(1rem); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toast-fade-out {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(1rem); }
+        }
+        .toast-enter { animation: toast-slide-in 0.2s ease-out; }
+        .toast-exit { animation: toast-fade-out 0.3s ease-in forwards; }
+    </style>
     <script>
         (function() {
-            var el = document.currentScript.previousElementSibling;
-            setTimeout(function() { el.remove(); }, 4000);
+            var el = document.currentScript.previousElementSibling.previousElementSibling;
+            setTimeout(function() {
+                el.classList.remove('toast-enter');
+                el.classList.add('toast-exit');
+                el.addEventListener('animationend', function() { el.remove(); });
+            }, 3000);
             document.currentScript.remove();
         })();
     </script>
