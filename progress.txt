@@ -852,3 +852,15 @@
   - store.ToggleSpendingLimit was already implemented in a prior story — always check store layer first
   - Toast message uses "Ausgabelimit" (German) for spending limit context
 ---
+
+## 2026-02-25 - US-065
+- Implemented DepositModal handler at GET /admin/users/{id}/deposit
+- Created templates/partials/payment_modal.html with amount input, optional note, and user balance display
+- Handler fetches user via store.GetUserWithBalance, renders payment-modal fragment with user context and CSRF token
+- Registered route with adminOnly middleware in cmd/server/main.go
+- Files changed: internal/handler/admin_users.go, templates/partials/payment_modal.html (new), cmd/server/main.go
+- **Learnings for future iterations:**
+  - Modal handler pattern: parse ID → fetch entity → render fragment with data map (User + CSRFToken)
+  - Payment modal posts to POST /admin/users/{id}/deposit (US-067 will implement the submit handler)
+  - Template uses `formatCents` helper for balance display and JS-based hx-vals for form submission
+---
