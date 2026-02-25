@@ -75,19 +75,19 @@ func GetUserBalanceForUpdate(ctx context.Context, db DBTX, userID int64) (int64,
 	var balance int64
 	err = db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(amount), 0) FROM transactions
-		WHERE user_id = $1 AND cancelled_at IS NULL`, userID).Scan(&balance)
+		WHERE user_id = $1`, userID).Scan(&balance)
 	if err != nil {
 		return 0, fmt.Errorf("get user balance for update: %w", err)
 	}
 	return balance, nil
 }
 
-// GetUserBalance returns the sum of all non-cancelled transaction amounts for the given user.
+// GetUserBalance returns the sum of all transaction amounts for the given user.
 func GetUserBalance(ctx context.Context, db DBTX, userID int64) (int64, error) {
 	var balance int64
 	err := db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(amount), 0) FROM transactions
-		WHERE user_id = $1 AND cancelled_at IS NULL`, userID).Scan(&balance)
+		WHERE user_id = $1`, userID).Scan(&balance)
 	if err != nil {
 		return 0, fmt.Errorf("get user balance: %w", err)
 	}
@@ -100,12 +100,12 @@ func GetUserRank(ctx context.Context, db DBTX, userID int64) (rank int, total in
 		SELECT COUNT(*) + 1 FROM (
 			SELECT u.id, COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
-			LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+			LEFT JOIN transactions t ON t.user_id = u.id
 			WHERE u.is_active = TRUE
 			GROUP BY u.id
 			HAVING COALESCE(SUM(t.amount), 0) > (
 				SELECT COALESCE(SUM(amount), 0) FROM transactions
-				WHERE user_id = $1 AND cancelled_at IS NULL
+				WHERE user_id = $1
 			)
 		) as higher`, userID).Scan(&rank)
 	if err != nil {
@@ -121,14 +121,14 @@ func GetUserRank(ctx context.Context, db DBTX, userID int64) (rank int, total in
 	return rank, total, nil
 }
 
-// GetAllBalancesSum returns the sum of all active users' balances (non-cancelled transactions).
+// GetAllBalancesSum returns the sum of all active users' balances.
 func GetAllBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 	var sum int64
 	err := db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(sub.balance), 0) FROM (
 			SELECT COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
-			LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+			LEFT JOIN transactions t ON t.user_id = u.id
 			WHERE u.is_active = TRUE
 			GROUP BY u.id
 		) sub`).Scan(&sum)
@@ -145,7 +145,7 @@ func GetNegativeBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 		SELECT COALESCE(SUM(sub.balance), 0) FROM (
 			SELECT COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
-			LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+			LEFT JOIN transactions t ON t.user_id = u.id
 			WHERE u.is_active = TRUE
 			GROUP BY u.id
 			HAVING COALESCE(SUM(t.amount), 0) < 0
@@ -171,7 +171,7 @@ func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]mo
 		       u.created_at, u.updated_at,
 		       COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
-		LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+		LEFT JOIN transactions t ON t.user_id = u.id
 		GROUP BY u.id
 		ORDER BY balance ASC
 		LIMIT $1 OFFSET $2`, limit, offset)
@@ -208,7 +208,7 @@ func ListActiveUsersWithBalance(ctx context.Context, db DBTX) ([]model.UserWithB
 		       u.created_at, u.updated_at,
 		       COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
-		LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+		LEFT JOIN transactions t ON t.user_id = u.id
 		WHERE u.is_active = TRUE
 		GROUP BY u.id
 		ORDER BY u.full_name ASC`)
@@ -291,7 +291,7 @@ func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWith
 		       u.created_at, u.updated_at,
 		       COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
-		LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+		LEFT JOIN transactions t ON t.user_id = u.id
 		WHERE u.id = $1
 		GROUP BY u.id`, id).Scan(
 		&ub.ID, &ub.Email, &ub.FullName, &ub.GivenName, &ub.FamilyName,

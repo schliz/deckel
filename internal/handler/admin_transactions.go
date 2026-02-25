@@ -111,6 +111,10 @@ func (h *Handler) AdminCancelModal(w http.ResponseWriter, r *http.Request) error
 		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
+	if txn.Type == "cancellation" {
+		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+	}
+
 	settings, err := store.GetSettings(ctx, db)
 	if err != nil {
 		return fmt.Errorf("admin cancel modal: get settings: %w", err)
@@ -159,6 +163,10 @@ func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request)
 
 	if txn.CancelledAt != nil {
 		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+	}
+
+	if txn.Type == "cancellation" {
+		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	settings, err := store.GetSettings(ctx, db)

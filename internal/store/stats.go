@@ -22,6 +22,7 @@ func GetTotalRevenue(ctx context.Context, db DBTX, from, to time.Time) (int64, e
 		FROM transactions
 		WHERE amount < 0
 		  AND cancelled_at IS NULL
+		  AND type != 'cancellation'
 		  AND created_at >= $1
 		  AND created_at < $2`, from, to).Scan(&total)
 	if err != nil {
@@ -37,6 +38,7 @@ func GetTopItemsByCount(ctx context.Context, db DBTX, from, to time.Time, limit 
 		FROM transactions
 		WHERE item_title IS NOT NULL
 		  AND cancelled_at IS NULL
+		  AND type != 'cancellation'
 		  AND created_at >= $1
 		  AND created_at < $2
 		GROUP BY item_title
@@ -68,6 +70,7 @@ func GetTopItemsByRevenue(ctx context.Context, db DBTX, from, to time.Time, limi
 		FROM transactions
 		WHERE item_title IS NOT NULL
 		  AND cancelled_at IS NULL
+		  AND type != 'cancellation'
 		  AND created_at >= $1
 		  AND created_at < $2
 		GROUP BY item_title
@@ -99,6 +102,7 @@ func GetTransactionCount(ctx context.Context, db DBTX, from, to time.Time) (int,
 		SELECT COUNT(*)
 		FROM transactions
 		WHERE cancelled_at IS NULL
+		  AND type != 'cancellation'
 		  AND created_at >= $1
 		  AND created_at < $2`, from, to).Scan(&count)
 	if err != nil {

@@ -156,6 +156,11 @@ func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
 		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
+	// Stornobuchungen cannot be voided.
+	if txn.Type == "cancellation" {
+		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+	}
+
 	// Fetch settings for cancellation window.
 	settings, err := store.GetSettings(ctx, db)
 	if err != nil {
@@ -298,6 +303,11 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 	// Verify not already cancelled.
 	if txn.CancelledAt != nil {
 		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+	}
+
+	// Stornobuchungen cannot be voided.
+	if txn.Type == "cancellation" {
+		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	// Fetch settings for cancellation window.

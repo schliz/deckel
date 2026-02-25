@@ -22,7 +22,7 @@
         {{if $tx.CancelledAt}}<span class="badge badge-error badge-sm">Storniert</span>{{else}}<span class="badge badge-success badge-sm">Aktiv</span>{{end}}
     </td>
     <td>
-        {{if and (not $tx.CancelledAt) (withinMinutes $tx.CreatedAt $cancelMin)}}
+        {{if and (not $tx.CancelledAt) (ne $tx.Type "cancellation") (withinMinutes $tx.CreatedAt $cancelMin)}}
         <button class="btn btn-error btn-xs"
             hx-get="/admin/transactions/{{$tx.ID}}/cancel"
             hx-target="#modal">
