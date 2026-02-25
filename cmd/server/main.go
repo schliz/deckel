@@ -119,6 +119,7 @@ func main() {
 	mux.Handle("POST /admin/items/{id}/reorder", adminOnly(h.Wrap(h.ReorderItem)))
 	mux.Handle("POST /admin/items/{id}/delete", adminOnly(h.Wrap(h.SoftDeleteItem)))
 	mux.Handle("GET /admin/users", adminOnly(h.Wrap(h.AdminUserList)))
+	mux.Handle("POST /admin/users/{id}/toggle-barteamer", adminOnly(h.Wrap(h.ToggleBarteamer)))
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,

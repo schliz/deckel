@@ -75,3 +75,30 @@ func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 	h.Renderer.Page(w, r, "admin_users", data)
 	return nil
 }
+
+// ToggleBarteamer handles POST /admin/users/{id}/toggle-barteamer.
+func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	if err := store.ToggleBarteamer(ctx, db, id); err != nil {
+		return fmt.Errorf("toggle barteamer: %w", err)
+	}
+
+	ub, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		return fmt.Errorf("toggle barteamer: fetch user: %w", err)
+	}
+
+	h.Renderer.Fragment(w, r, "user-row", *ub)
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Status für %s geändert.", ub.FullName),
+	})
+	return nil
+}

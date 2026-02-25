@@ -211,3 +211,29 @@ func toggleUserBool(ctx context.Context, db DBTX, id int64, column, label string
 	}
 	return nil
 }
+
+// GetUserWithBalance returns a single user with their computed balance.
+func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWithBalance, error) {
+	var ub model.UserWithBalance
+	err := db.QueryRow(ctx, `
+		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
+		       u.is_barteamer, u.is_admin, u.is_active, u.spending_limit_disabled,
+		       u.created_at, u.updated_at,
+		       COALESCE(SUM(t.amount), 0) AS balance
+		FROM users u
+		LEFT JOIN transactions t ON t.user_id = u.id AND t.cancelled_at IS NULL
+		WHERE u.id = $1
+		GROUP BY u.id`, id).Scan(
+		&ub.ID, &ub.Email, &ub.FullName, &ub.GivenName, &ub.FamilyName,
+		&ub.IsBarteamer, &ub.IsAdmin, &ub.IsActive, &ub.SpendingLimitDisabled,
+		&ub.CreatedAt, &ub.UpdatedAt,
+		&ub.Balance,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get user with balance: %w", err)
+	}
+	return &ub, nil
+}
