@@ -974,3 +974,14 @@
   - static/css/styles.css is in .gitignore; no need to commit CSS changes
   - hx-vals='js:{...}' allows dynamic JavaScript-computed values for HTMX requests
 ---
+
+## 2026-02-25 - US-075
+- Created internal/handler/admin_settings.go with AdminSettingsPageData view model and AdminSettingsPage handler
+- View model includes User, Settings, CSRFToken, ActivePage fields
+- Handler fetches settings via store.GetSettings and renders admin_settings page
+- Registered GET /admin/settings route in cmd/server/main.go with adminOnly middleware
+- Files changed: internal/handler/admin_settings.go (new), cmd/server/main.go
+- **Learnings for future iterations:**
+  - Settings handler is simpler than other admin handlers - just fetch singleton settings row and render
+  - CSRFToken included in view model for the settings edit form (US-076+)
+---
