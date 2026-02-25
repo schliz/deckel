@@ -44,7 +44,18 @@ func main() {
 
 	// Initialize store, renderer, and handler.
 	s := store.New(dbpool)
-	rndr, err := render.New(cfg.TemplateDir, cfg.DevMode, render.FuncMap())
+
+	// Compute content-hashed CSS filename for cache busting.
+	cssPath, err := render.CSSHashedPath(cfg.StaticDir, "styles.css")
+	if err != nil {
+		log.Fatalf("Failed to hash CSS: %v", err)
+	}
+	log.Printf("Serving CSS as %s", cssPath)
+
+	funcMap := render.FuncMap()
+	funcMap["cssFile"] = func() string { return cssPath }
+
+	rndr, err := render.New(cfg.TemplateDir, cfg.DevMode, funcMap)
 	if err != nil {
 		log.Fatalf("Failed to initialize renderer: %v", err)
 	}
