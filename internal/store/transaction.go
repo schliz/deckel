@@ -83,6 +83,37 @@ func ListTransactionsByUser(ctx context.Context, db DBTX, userID int64, limit, o
 	return txns, total, nil
 }
 
+// ListAllTransactionsByUser returns all transactions for a user (newest first), without pagination.
+func ListAllTransactionsByUser(ctx context.Context, db DBTX, userID int64) ([]model.Transaction, error) {
+	rows, err := db.Query(ctx, `
+		SELECT id, user_id, amount, item_title, unit_price, quantity, description,
+		       type, cancelled_at, cancels_id, created_at
+		FROM transactions
+		WHERE user_id = $1
+		ORDER BY created_at DESC, id DESC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list all transactions by user: %w", err)
+	}
+	defer rows.Close()
+
+	var txns []model.Transaction
+	for rows.Next() {
+		var t model.Transaction
+		if err := rows.Scan(
+			&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
+			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan transaction: %w", err)
+		}
+		txns = append(txns, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate transactions: %w", err)
+	}
+
+	return txns, nil
+}
+
 // CountTransactionsByUser returns the total number of transactions for a given user.
 func CountTransactionsByUser(ctx context.Context, db DBTX, userID int64) (int, error) {
 	var count int

@@ -585,6 +585,19 @@
   - formatCents and formatTime work directly on non-pointer Transaction fields (Amount int64, CreatedAt time.Time)
 ---
 
+## 2026-02-25 - US-047
+- Created internal/handler/profile.go with ProfilePage handler
+- ProfilePageData view model: User (*auth.RequestUser), CSRFToken, ActivePage
+- Added CreatedAt (time.Time) to auth.RequestUser and populated it in auth middleware
+- Created templates/pages/profile.html with DaisyUI card showing name, email, status badge, creation date, balance
+- Registered GET /profile with withCSRF middleware (replacing placeholder), needed for export button CSRF
+- Files changed: internal/auth/context.go, internal/auth/middleware.go, internal/handler/profile.go, templates/pages/profile.html, cmd/server/main.go
+- **Learnings for future iterations:**
+  - RequestUser didn't have CreatedAt originally; added it since profile page needs "Mitglied seit"
+  - Profile page uses withCSRF (not base) because the "Daten exportieren" button needs CSRF token
+  - Template uses formatDate and formatCents helpers from render.FuncMap()
+---
+
 ## 2026-02-24 - US-043
 - Implemented CancelTransaction handler at POST /transactions/{id}/cancel
 - Re-validates: ownership (403), not already cancelled (400), within cancellation window (400)
@@ -638,4 +651,24 @@
   - Euro to cents conversion: ParseFloat + math.Round(f*100) avoids floating point truncation issues
   - Custom transaction follows same response pattern as PlaceOrder: toast + OOB header-stats + modal close
   - formatEuroCents helper added locally in handler (not in render.FuncMap) since it's only used for error messages
+---
+
+## 2026-02-25 - US-048
+- Already implemented in US-047; marked as passing
+- No code changes needed
+- Files changed: prd.json (passes: true)
+---
+
+## 2026-02-25 - US-049
+- Implemented GDPR data export handler at POST /profile/export
+- Added ListAllTransactionsByUser store function (no pagination, newest first)
+- ExportData handler generates ZIP containing profile.json and transactions.csv
+- CSV uses semicolon separator (German locale), headers: Datum, Beschreibung, Menge, Betrag, Typ, Status
+- Content-Disposition: attachment; filename=deckel-export.zip
+- Files changed: internal/store/transaction.go, internal/handler/profile.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - archive/zip.NewWriter can write directly to http.ResponseWriter (streams ZIP)
+  - CSV semicolon separator: German convention, just use fmt.Sprintf with ";" between fields
+  - Must set Content-Type/Content-Disposition headers BEFORE writing body
+  - escapeSemicolon wraps fields containing semicolons/quotes/newlines in double quotes
 ---

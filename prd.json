@@ -792,7 +792,7 @@
         "Typecheck passes"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -808,8 +808,8 @@
         "Typecheck passes"
       ],
       "priority": 48,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Already implemented in US-047"
     },
     {
       "id": "US-049",
@@ -825,7 +825,7 @@
         "Typecheck passes"
       ],
       "priority": 49,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

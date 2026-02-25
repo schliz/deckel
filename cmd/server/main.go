@@ -99,6 +99,7 @@ func main() {
 
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
 	mux.Handle("GET /profile", withCSRF(h.Wrap(h.ProfilePage)))
+	mux.Handle("POST /profile/export", withCSRF(h.Wrap(h.ExportData)))
 	mux.Handle("GET /transactions", withCSRF(h.Wrap(h.TransactionHistory)))
 	mux.Handle("GET /transactions/custom", withCSRF(h.Wrap(h.CustomTransactionModal)))
 	mux.Handle("POST /transactions/custom", withCSRF(h.Wrap(h.CreateCustomTransaction)))
