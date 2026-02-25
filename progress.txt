@@ -672,3 +672,32 @@
   - Must set Content-Type/Content-Disposition headers BEFORE writing body
   - escapeSemicolon wraps fields containing semicolons/quotes/newlines in double quotes
 ---
+
+## 2026-02-25 - US-050
+- Created internal/handler/admin_menu.go with AdminMenuPage handler and AdminMenuPageData view model
+- Unlike user-facing menu, admin view includes empty categories (no `len(items) > 0` filter)
+- Reuses CategoryWithItems struct from menu.go
+- Created minimal templates/pages/admin_menu.html placeholder (US-051 will build full template)
+- Registered GET /admin/menu with adminOnly middleware in main.go
+- Files changed: internal/handler/admin_menu.go, templates/pages/admin_menu.html, cmd/server/main.go
+- **Learnings for future iterations:**
+  - Admin menu handler follows same pattern as MenuPage but without IsBlocked logic
+  - Admin views should show empty categories (they need to be able to add items to them)
+  - adminOnly middleware = withCSRF + RequireAdmin composed together
+---
+
+## 2026-02-25 - US-051
+- Created full admin menu management page template replacing placeholder
+- Created templates/partials/admin_category_list.html as reusable partial for OOB swapping
+- New category form: name input + Hinzufügen button, posts to /admin/categories
+- Category cards: name, reorder (up/down) buttons, delete button (only shown when 0 items)
+- Items table per category: name, Barteamer price, Helfer price columns
+- Each item row: Bearbeiten, reorder (up/down), Entfernen buttons
+- Add item form per category: name, barteamer price, helfer price inputs
+- Files changed: templates/pages/admin_menu.html, templates/partials/admin_category_list.html
+- **Learnings for future iterations:**
+  - Admin category list partial uses `{{define "admin-category-list"}}` for OOB swapping by future CRUD handlers
+  - Delete category button conditionally shown via `{{if eq $itemCount 0}}` using `len .Items`
+  - Price inputs use step="0.01" for Euro cents; handlers must convert Euro to cents (multiply by 100)
+  - All HTMX actions target `#admin-category-list` for consistent partial replacement
+---

@@ -1,6 +1,27 @@
 {{define "content"}}
 <div class="space-y-6">
-  <h1 class="text-2xl font-bold">Getränkekarte verwalten</h1>
-  <p class="text-base-content/60">Kategorien und Artikel verwalten.</p>
+    <h1 class="text-2xl font-bold">Getränkekarte verwalten</h1>
+
+    <!-- Add new category form -->
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="card-title text-lg">Neue Kategorie</h2>
+            <form class="flex gap-2 items-end"
+                hx-post="/admin/categories"
+                hx-target="#admin-category-list"
+                hx-swap="innerHTML">
+                <div class="form-control flex-1">
+                    <input type="text" name="name" placeholder="Kategoriename"
+                        class="input input-bordered input-sm w-full" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Hinzufügen</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Category list -->
+    <div id="admin-category-list">
+        {{template "admin-category-list" .}}
+    </div>
 </div>
 {{end}}
