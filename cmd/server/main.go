@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"log"
 	"net/http"
@@ -13,7 +14,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/config"
+	"github.com/k4-bar/deckel/internal/handler"
+	"github.com/k4-bar/deckel/internal/middleware"
+	"github.com/k4-bar/deckel/internal/render"
+	"github.com/k4-bar/deckel/internal/store"
 	"github.com/k4-bar/deckel/migrations"
 	"github.com/pressly/goose/v3"
 )
@@ -36,7 +42,39 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Initialize store, renderer, and handler.
+	s := store.New(dbpool)
+	rndr, err := render.New(cfg.TemplateDir, cfg.DevMode, render.FuncMap())
+	if err != nil {
+		log.Fatalf("Failed to initialize renderer: %v", err)
+	}
+	h := &handler.Handler{
+		Store:    s,
+		Renderer: rndr,
+		Config:   cfg,
+	}
+
+	// Generate CSRF secret (random 32 bytes).
+	csrfSecret := make([]byte, 32)
+	if _, err := rand.Read(csrfSecret); err != nil {
+		log.Fatalf("Failed to generate CSRF secret: %v", err)
+	}
+
+	// Middleware chains.
+	base := middleware.Chain(
+		middleware.Logging(),
+		middleware.Recovery(),
+		auth.Middleware(s, cfg.AdminGroup),
+	)
+	withCSRF := middleware.Chain(
+		base,
+		middleware.CSRF(csrfSecret),
+	)
+	_ = h // handler will be used once real routes are added
+
 	mux := http.NewServeMux()
+
+	// Health check - outside middleware (no auth needed).
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := dbpool.Ping(r.Context()); err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -47,9 +85,20 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	// Static file server with cache headers.
+	// Static file server - outside auth middleware.
 	staticFS := http.FileServer(http.Dir(cfg.StaticDir))
 	mux.Handle("/static/", http.StripPrefix("/static/", staticCacheHandler(staticFS, cfg.DevMode)))
+
+	// Placeholder routes with base middleware (auth, no CSRF for GET).
+	mux.Handle("GET /menu", base(http.HandlerFunc(placeholderHandler("menu"))))
+	mux.Handle("GET /profile", base(http.HandlerFunc(placeholderHandler("profile"))))
+	mux.Handle("GET /transactions", base(http.HandlerFunc(placeholderHandler("transactions"))))
+
+	// Admin routes with CSRF + RequireAdmin.
+	adminOnly := func(h http.Handler) http.Handler {
+		return withCSRF(auth.RequireAdmin(h))
+	}
+	mux.Handle("GET /admin/users", adminOnly(http.HandlerFunc(placeholderHandler("admin/users"))))
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,
@@ -98,6 +147,15 @@ func staticCacheHandler(next http.Handler, devMode bool) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// placeholderHandler returns a simple handler that responds with the route name.
+func placeholderHandler(name string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("placeholder: " + name))
+	}
 }
 
 func runMigrations(databaseURL string) error {
