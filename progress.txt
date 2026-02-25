@@ -1097,3 +1097,18 @@
   - Header stats uses conditional OOB: initial load via Fragment() (no OOB), mutations use AppendOOB() with OOB=true
   - Server can't start locally due to 000_placeholder.sql migration issue - manual browser verification requires fixing this
 ---
+
+## 2026-02-25 - US-084
+- Created styled error page template (templates/pages/error.html) with DaisyUI styling
+- Updated handleError in handler.go to render error page with proper titles: "Seite nicht gefunden" (404), "Zugriff verweigert" (403), "Interner Fehler" (500)
+- Added RenderErrorPage helper method on Handler
+- Added NotFoundHandler for catch-all unmatched routes in main.go
+- HTMX requests still get error toast instead of full page
+- Each error page extends base layout and includes "Zurück zur Startseite" link
+- Files changed: internal/handler/handler.go, cmd/server/main.go, templates/pages/error.html
+- **Learnings for future iterations:**
+  - Error page uses the existing renderer.Page() which handles HTMX vs full page rendering automatically
+  - Catch-all route "/" in Go ServeMux matches any unmatched path when placed after specific routes
+  - The catch-all needs base middleware (auth) applied to maintain consistent behavior
+  - Browser testing not possible without running DB; rely on typecheck + visual verification when DB available
+---
