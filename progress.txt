@@ -864,3 +864,12 @@
   - Payment modal posts to POST /admin/users/{id}/deposit (US-067 will implement the submit handler)
   - Template uses `formatCents` helper for balance display and JS-based hx-vals for form submission
 ---
+
+## 2026-02-25 - US-066
+- Updated payment_modal.html confirm button text from "Einzahlen" to "Einzahlung buchen" per AC
+- Template already had all required elements from US-065: user name, balance, amount input, note input, cancel button, POST action
+- Files changed: templates/partials/payment_modal.html
+- **Learnings for future iterations:**
+  - US-065 pre-built the modal template; US-066 only needed button text alignment with AC
+  - Always compare existing template content against AC wording before implementing
+---
