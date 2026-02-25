@@ -172,6 +172,32 @@ func (h *Handler) ReorderCategory(w http.ResponseWriter, r *http.Request) error 
 	return h.renderAdminCategoryList(w, r)
 }
 
+// ReorderItem handles POST /admin/items/{id}/reorder to change item order within its category.
+func (h *Handler) ReorderItem(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Artikel nicht gefunden"}
+	}
+
+	direction := r.URL.Query().Get("direction")
+	if direction == "" {
+		direction = r.FormValue("direction")
+	}
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	if err := store.ReorderItem(ctx, db, id, direction); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Artikel nicht gefunden"}
+		}
+		return fmt.Errorf("reorder item: %w", err)
+	}
+
+	return h.renderAdminCategoryList(w, r)
+}
+
 // DeleteCategory handles DELETE /admin/categories/{id} to remove an empty category.
 func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
