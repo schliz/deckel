@@ -584,3 +584,18 @@
   - Cancel modal follows exact same pattern as order modal for show/close behavior
   - formatCents and formatTime work directly on non-pointer Transaction fields (Amount int64, CreatedAt time.Time)
 ---
+
+## 2026-02-24 - US-043
+- Implemented CancelTransaction handler at POST /transactions/{id}/cancel
+- Re-validates: ownership (403), not already cancelled (400), within cancellation window (400)
+- Executes store.CancelTransaction within WithTx (sets cancelled_at on original, inserts counter-transaction)
+- Response: success toast + OOB header-stats + OOB transaction-list re-render + modal close
+- Reads optional `page` query param to re-render correct page of transaction list
+- Registered route in main.go with withCSRF middleware
+- Files changed: internal/handler/history.go, cmd/server/main.go
+- **Learnings for future iterations:**
+  - CancelTransaction handler follows same validation pattern as CancelModal (duplicate validation is intentional for security)
+  - Multi-fragment response pattern: Fragment() for toast, AppendOOB() for header-stats, AppendOOB() for transaction-list, then raw HTML for modal close
+  - Transaction list OOB swap reuses TransactionHistoryData struct to pass all needed fields to the partial
+  - pgx.Tx import needed in handler when using Store.WithTx callback
+---
