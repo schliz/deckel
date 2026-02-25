@@ -91,6 +91,9 @@ func main() {
 	mux.Handle("GET /{$}", base(h.Wrap(h.MenuPage)))
 	mux.Handle("GET /menu", base(h.Wrap(h.MenuPage)))
 
+	// Order modal (GET /menu/items/{id}/order).
+	mux.Handle("GET /menu/items/{id}/order", withCSRF(h.Wrap(h.OrderModal)))
+
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
 	mux.Handle("GET /profile", base(http.HandlerFunc(placeholderHandler("profile"))))
 	mux.Handle("GET /transactions", base(http.HandlerFunc(placeholderHandler("transactions"))))
