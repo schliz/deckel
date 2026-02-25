@@ -1,0 +1,147 @@
+{{define "content"}}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">Einstellungen</h1>
+
+    <!-- Settings form -->
+    <form hx-post="/admin/settings" hx-target="#toast-zone" hx-swap="afterbegin">
+        <!-- Limits -->
+        <div class="card bg-base-200 shadow-sm mb-4">
+            <div class="card-body p-4 space-y-4">
+                <h2 class="card-title text-lg">Limits</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Warnlimit (€)</span></label>
+                        <input type="number" name="warning_limit" step="0.01"
+                            value="{{centsToEuros .Settings.WarningLimit}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Ausgabelimit (€)</span></label>
+                        <input type="number" name="hard_spending_limit" step="0.01"
+                            value="{{centsToEuros .Settings.HardSpendingLimit}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-2">
+                            <input type="checkbox" name="hard_limit_enabled" value="true"
+                                class="toggle toggle-primary toggle-sm"
+                                {{if .Settings.HardLimitEnabled}}checked{{end}}>
+                            <span class="label-text">Ausgabelimit aktiv</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking & Order settings -->
+        <div class="card bg-base-200 shadow-sm mb-4">
+            <div class="card-body p-4 space-y-4">
+                <h2 class="card-title text-lg">Buchung & Bestellung</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Eigenbuchung Min (€)</span></label>
+                        <input type="number" name="custom_tx_min" step="0.01"
+                            value="{{centsToEuros .Settings.CustomTxMin}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Eigenbuchung Max (€)</span></label>
+                        <input type="number" name="custom_tx_max" step="0.01"
+                            value="{{centsToEuros .Settings.CustomTxMax}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Max Anzahl pro Bestellung</span></label>
+                        <input type="number" name="max_item_quantity" min="1"
+                            value="{{.Settings.MaxItemQuantity}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Stornofrist Minuten</span></label>
+                        <input type="number" name="cancellation_minutes" min="0"
+                            value="{{.Settings.CancellationMinutes}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Seitengröße</span></label>
+                        <input type="number" name="pagination_size" min="1"
+                            value="{{.Settings.PaginationSize}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SMTP settings -->
+        <div class="card bg-base-200 shadow-sm mb-4">
+            <div class="card-body p-4 space-y-4">
+                <h2 class="card-title text-lg">E-Mail (SMTP)</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">SMTP Host</span></label>
+                        <input type="text" name="smtp_host"
+                            value="{{.Settings.SMTPHost}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">SMTP Port</span></label>
+                        <input type="number" name="smtp_port" min="1" max="65535"
+                            value="{{.Settings.SMTPPort}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">SMTP Benutzer</span></label>
+                        <input type="text" name="smtp_user"
+                            value="{{.Settings.SMTPUser}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">SMTP Passwort</span></label>
+                        <input type="password" name="smtp_password"
+                            value="{{.Settings.SMTPPassword}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                    <div class="form-control sm:col-span-2">
+                        <label class="label"><span class="label-text">Absender-Email</span></label>
+                        <input type="text" name="smtp_from"
+                            value="{{.Settings.SMTPFrom}}"
+                            class="input input-bordered input-sm w-full">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email template -->
+        <div class="card bg-base-200 shadow-sm mb-4">
+            <div class="card-body p-4 space-y-4">
+                <h2 class="card-title text-lg">Email-Vorlage</h2>
+                <div class="form-control">
+                    <textarea name="email_template" rows="8"
+                        class="textarea textarea-bordered w-full font-mono text-sm">{{.Settings.EmailTemplate}}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+            <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+    </form>
+
+    <!-- Send reminder emails (separate action) -->
+    <div class="card bg-base-200 shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="card-title text-lg">Erinnerungsmails</h2>
+            <p class="text-sm opacity-70">Sendet Erinnerungsmails an alle Nutzer mit negativem Kontostand.</p>
+            <div class="card-actions mt-2">
+                <button class="btn btn-warning btn-sm"
+                    hx-post="/admin/settings/send-reminders"
+                    hx-target="#toast-zone"
+                    hx-swap="afterbegin"
+                    hx-confirm="Wirklich Erinnerungsmails an alle Nutzer mit negativem Kontostand senden?">
+                    Erinnerungsmails senden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

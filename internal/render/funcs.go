@@ -20,6 +20,7 @@ func FuncMap() template.FuncMap {
 		"sub":         subInt,
 		"map":         makeMap,
 		"withinMinutes": withinMinutes,
+		"centsToEuros":  centsToEuros,
 	}
 }
 
@@ -82,6 +83,20 @@ func makeMap(pairs ...any) map[string]any {
 // withinMinutes returns true if t is within the last n minutes from now.
 func withinMinutes(t time.Time, minutes int) bool {
 	return time.Since(t) <= time.Duration(minutes)*time.Minute
+}
+
+// centsToEuros converts cents (int64) to a euro string for form input values.
+// e.g., 150 → "1.50", 1234 → "12.34"
+func centsToEuros(cents int64) string {
+	negative := cents < 0
+	if negative {
+		cents = -cents
+	}
+	prefix := ""
+	if negative {
+		prefix = "-"
+	}
+	return fmt.Sprintf("%s%d.%02d", prefix, cents/100, cents%100)
 }
 
 // seq returns a slice of ints [0, 1, ..., n-1].
