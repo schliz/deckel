@@ -480,6 +480,21 @@
   - `go build` and `go vet` both pass with no changes
 ---
 
+## 2026-02-24 - US-038
+- Created internal/handler/history.go with TransactionHistory handler
+- TransactionHistoryData view model: User, Transactions, Settings, CSRFToken, ActivePage, CancellationMinutes, Page, TotalPages
+- Handler reads `page` query param (default 1), uses settings.PaginationSize for limit/offset
+- Computes totalPages via ceiling division, clamps page to valid range
+- Passes CancellationMinutes for storno button visibility in template
+- Registered at GET /transactions with withCSRF middleware (replacing placeholder)
+- Created minimal templates/pages/history.html placeholder (US-039 will build the full template)
+- Files changed: internal/handler/history.go, cmd/server/main.go, templates/pages/history.html
+- **Learnings for future iterations:**
+  - Transaction history uses withCSRF (not base) because it needs CSRF token for cancel buttons
+  - Ceiling division for total pages: `(total + limit - 1) / limit`
+  - Page template just needs `{{define "content"}}` block minimum; full template built in next story
+---
+
 ## 2026-02-24 - US-036
 - Created internal/store/transaction.go with all transaction CRUD + cancel queries
 - CreateTransaction: inserts and returns with generated ID via RETURNING
