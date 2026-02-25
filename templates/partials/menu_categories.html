@@ -1,0 +1,36 @@
+{{define "menu-categories"}}
+{{range .Categories}}
+<section class="mb-8">
+    <h2 class="text-xl font-semibold mb-3">{{.Category.Name}}</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {{$blocked := $.IsBlocked}}
+        {{$isBarteamer := $.User.IsBarteamer}}
+        {{range .Items}}
+        <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="card-title text-base">{{.Name}}</h3>
+                <p class="text-sm opacity-70">
+                    {{if $isBarteamer}}
+                        {{formatCents .PriceBarteamer}}
+                    {{else}}
+                        {{formatCents .PriceHelfer}}
+                    {{end}}
+                </p>
+                <div class="card-actions justify-end mt-2">
+                    {{if $blocked}}
+                        <span class="badge badge-warning">Bitte erst einzahlen</span>
+                    {{else}}
+                        <button class="btn btn-primary btn-sm"
+                            hx-get="/menu/items/{{.ID}}/order"
+                            hx-target="#modal">
+                            Bestellen
+                        </button>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</section>
+{{end}}
+{{end}}
