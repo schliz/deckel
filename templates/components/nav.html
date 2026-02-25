@@ -8,14 +8,14 @@
                 </svg>
             </div>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-200 rounded-box w-52">
-                <li><a href="/menu" class="{{if eq .ActivePage "menu"}}active{{end}}">Getränkekarte</a></li>
+                <li><a href="/menu" class="{{if eq .ActivePage "menu"}}active{{end}}">Karte</a></li>
                 <li><a href="/transactions" class="{{if eq .ActivePage "transactions"}}active{{end}}">Transaktionen</a></li>
                 <li><a href="/profile" class="{{if eq .ActivePage "profile"}}active{{end}}">Profil</a></li>
                 {{if and .User .User.IsAdmin}}
                 <li>
                     <a>Verwaltung</a>
                     <ul class="p-2 bg-base-200">
-                        <li><a href="/admin/menu">Getränkekarte</a></li>
+                        <li><a href="/admin/menu">Karte</a></li>
                         <li><a href="/admin/users">Nutzer</a></li>
                         <li><a href="/admin/transactions">Transaktionen</a></li>
                         <li><a href="/admin/stats">Statistiken</a></li>
@@ -29,7 +29,7 @@
     </div>
     <div class="navbar-center hidden lg:flex">
         <ul class="menu menu-horizontal px-1">
-            <li><a href="/menu" class="{{if eq .ActivePage "menu"}}active{{end}}">Getränkekarte</a></li>
+            <li><a href="/menu" class="{{if eq .ActivePage "menu"}}active{{end}}">Karte</a></li>
             <li><a href="/transactions" class="{{if eq .ActivePage "transactions"}}active{{end}}">Transaktionen</a></li>
             <li><a href="/profile" class="{{if eq .ActivePage "profile"}}active{{end}}">Profil</a></li>
             {{if and .User .User.IsAdmin}}
@@ -37,7 +37,7 @@
                 <details>
                     <summary>Verwaltung</summary>
                     <ul class="p-2 bg-base-200 z-[1]">
-                        <li><a href="/admin/menu">Getränkekarte</a></li>
+                        <li><a href="/admin/menu">Karte</a></li>
                         <li><a href="/admin/users">Nutzer</a></li>
                         <li><a href="/admin/transactions">Transaktionen</a></li>
                         <li><a href="/admin/stats">Statistiken</a></li>
@@ -55,6 +55,9 @@
         </button>
         {{if .User}}
         <span class="text-sm mr-2 hidden sm:inline">{{.User.GivenName}}</span>
+        <a href="/oauth2/sign_out" class="btn btn-ghost btn-circle btn-sm" aria-label="Abmelden" title="Abmelden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </a>
         {{end}}
     </div>
 </div>

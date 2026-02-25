@@ -1,0 +1,34 @@
+{{define "edit-category-modal"}}
+<div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg">Kategorie bearbeiten</h3>
+
+        <div class="py-4">
+            <fieldset class="fieldset">
+                <label class="label">Name *</label>
+                <input type="text" id="edit-category-name" value="{{.Category.Name}}"
+                    class="input w-full" required>
+            </fieldset>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-primary"
+                hx-post="/admin/categories/{{.Category.ID}}/update"
+                hx-vals='js:{"name": document.getElementById("edit-category-name").value}'
+                hx-target="#admin-category-list"
+                hx-swap="innerHTML"
+                hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'
+                hx-on::after-request="if(event.detail.successful){var m=document.getElementById('modal');m.innerHTML='';m.style.display='none';}">
+                Speichern
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    document.getElementById('modal').style.display = '';
+})();
+</script>
+{{end}}

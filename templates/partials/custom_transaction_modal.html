@@ -3,6 +3,10 @@
     <div class="modal-box">
         <h3 class="font-bold text-lg">Eigene Buchung</h3>
 
+        <div id="custom-tx-error" class="alert alert-error mt-3 hidden">
+            <span id="custom-tx-error-msg"></span>
+        </div>
+
         <div class="py-4">
             <fieldset class="fieldset mb-4">
                 <label class="label">Beschreibung *</label>
@@ -35,6 +39,22 @@
 (function() {
     // Show the modal container.
     document.getElementById('modal').style.display = '';
+
+    // Handle error responses inline in the modal.
+    var btn = document.getElementById('custom-tx-confirm-btn');
+    btn.addEventListener('htmx:beforeSwap', function(evt) {
+        if (evt.detail.xhr.status >= 400) {
+            evt.detail.shouldSwap = false;
+            var errDiv = document.getElementById('custom-tx-error');
+            var errMsg = document.getElementById('custom-tx-error-msg');
+            // Extract text from the HTML response.
+            var tmp = document.createElement('div');
+            tmp.innerHTML = evt.detail.xhr.responseText;
+            var span = tmp.querySelector('span');
+            errMsg.textContent = span ? span.textContent : 'Ein Fehler ist aufgetreten';
+            errDiv.classList.remove('hidden');
+        }
+    });
 })();
 </script>
 {{end}}

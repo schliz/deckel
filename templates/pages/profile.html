@@ -31,9 +31,7 @@
       </div>
     </div>
     <div class="card-actions justify-end mt-4">
-      <button class="btn btn-outline btn-sm"
-              hx-post="/profile/export"
-              hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
+      <button class="btn btn-outline btn-sm" onclick="(async()=>{const r=await fetch('/profile/export',{method:'POST',headers:{'X-CSRF-Token':'{{.CSRFToken}}'}});if(!r.ok)return;const b=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='deckel-export.zip';a.click();URL.revokeObjectURL(a.href);})()">
         Daten exportieren
       </button>
     </div>

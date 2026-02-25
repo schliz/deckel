@@ -1,0 +1,46 @@
+{{define "edit-item-modal"}}
+<div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg">Artikel bearbeiten</h3>
+
+        <div class="py-4">
+            <fieldset class="fieldset mb-4">
+                <label class="label">Name *</label>
+                <input type="text" id="edit-item-name" value="{{.Item.Name}}"
+                    class="input w-full" required>
+            </fieldset>
+
+            <fieldset class="fieldset mb-4">
+                <label class="label">Barteamer-Preis (EUR) *</label>
+                <input type="number" id="edit-item-price-barteamer" step="0.01" min="0.01"
+                    value="{{centsToEuros .Item.PriceBarteamer}}" class="input w-full" required>
+            </fieldset>
+
+            <fieldset class="fieldset mb-4">
+                <label class="label">Helfer-Preis (EUR) *</label>
+                <input type="number" id="edit-item-price-helfer" step="0.01" min="0.01"
+                    value="{{centsToEuros .Item.PriceHelfer}}" class="input w-full" required>
+            </fieldset>
+        </div>
+
+        <div class="modal-action">
+            <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
+            <button class="btn btn-primary"
+                hx-post="/admin/items/{{.Item.ID}}/update"
+                hx-vals='js:{"name": document.getElementById("edit-item-name").value, "price_barteamer": document.getElementById("edit-item-price-barteamer").value, "price_helfer": document.getElementById("edit-item-price-helfer").value}'
+                hx-target="#admin-category-list"
+                hx-swap="innerHTML"
+                hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'
+                hx-on::after-request="if(event.detail.successful){var m=document.getElementById('modal');m.innerHTML='';m.style.display='none';}">
+                Speichern
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    document.getElementById('modal').style.display = '';
+})();
+</script>
+{{end}}

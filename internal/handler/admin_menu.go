@@ -69,6 +69,75 @@ func (h *Handler) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// EditCategoryForm handles GET /admin/categories/{id}/edit and returns an edit modal fragment.
+func (h *Handler) EditCategoryForm(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+	}
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	cat, err := store.GetCategory(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		}
+		return fmt.Errorf("edit category form: %w", err)
+	}
+
+	data := struct {
+		Category  *model.Category
+		CSRFToken string
+	}{
+		Category:  cat,
+		CSRFToken: middleware.CSRFTokenFromContext(ctx),
+	}
+
+	h.Renderer.Fragment(w, r, "edit-category-modal", data)
+	return nil
+}
+
+// UpdateCategory handles POST /admin/categories/{id}/update to rename a category.
+func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		return &ValidationError{Message: "Kategoriename darf nicht leer sein"}
+	}
+	if err := validateTextLen(name, 255, "Kategoriename"); err != nil {
+		return err
+	}
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	if err := store.UpdateCategory(ctx, db, id, name); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		}
+		return fmt.Errorf("update category: %w", err)
+	}
+
+	if err := h.renderAdminCategoryList(w, r); err != nil {
+		return err
+	}
+
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
+		"Type":    "success",
+		"Message": fmt.Sprintf("Kategorie '%s' aktualisiert", name),
+	})
+
+	return nil
+}
+
 // CreateCategory handles POST /admin/categories to create a new drink category.
 func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -254,6 +323,40 @@ func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 		"Message": fmt.Sprintf("Kategorie '%s' gelöscht", cat.Name),
 	})
 
+	return nil
+}
+
+// EditItemForm handles GET /admin/items/{id}/edit and returns an edit modal fragment.
+func (h *Handler) EditItemForm(w http.ResponseWriter, r *http.Request) error {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &NotFoundError{Message: "Artikel nicht gefunden"}
+	}
+
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	item, err := store.GetItem(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Artikel nicht gefunden"}
+		}
+		return fmt.Errorf("edit item form: %w", err)
+	}
+	if item.DeletedAt != nil {
+		return &NotFoundError{Message: "Artikel nicht gefunden"}
+	}
+
+	data := struct {
+		Item      *model.Item
+		CSRFToken string
+	}{
+		Item:      item,
+		CSRFToken: middleware.CSRFTokenFromContext(ctx),
+	}
+
+	h.Renderer.Fragment(w, r, "edit-item-modal", data)
 	return nil
 }
 

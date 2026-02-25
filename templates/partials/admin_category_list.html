@@ -11,6 +11,10 @@
             <h2 class="card-title text-lg">{{$cat.Name}}</h2>
             <div class="flex gap-1">
                 <button class="btn btn-ghost btn-xs"
+                    hx-get="/admin/categories/{{$cat.ID}}/edit"
+                    hx-target="#modal"
+                    title="Bearbeiten">Bearbeiten</button>
+                <button class="btn btn-ghost btn-xs"
                     hx-post="/admin/categories/{{$cat.ID}}/reorder?direction=up"
                     hx-target="#admin-category-list"
                     hx-swap="innerHTML"
@@ -20,14 +24,12 @@
                     hx-target="#admin-category-list"
                     hx-swap="innerHTML"
                     title="Nach unten">▼</button>
-                {{if eq $itemCount 0}}
                 <button class="btn btn-error btn-xs"
                     hx-delete="/admin/categories/{{$cat.ID}}"
                     hx-target="#admin-category-list"
                     hx-swap="innerHTML"
                     hx-confirm="Kategorie '{{$cat.Name}}' wirklich löschen?"
                     title="Löschen">Löschen</button>
-                {{end}}
             </div>
         </div>
 
