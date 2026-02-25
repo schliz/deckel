@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/middleware"
 	"github.com/k4-bar/deckel/internal/model"
@@ -61,5 +62,138 @@ func (h *Handler) OrderModal(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	h.Renderer.Fragment(w, r, "order-modal", data)
+	return nil
+}
+
+// PlaceOrder processes an order submission: validates input, checks spending limits,
+// creates a purchase transaction, and responds with toast + OOB header-stats update.
+func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	user := auth.UserFromContext(ctx)
+
+	// Parse form data.
+	itemIDStr := r.FormValue("item_id")
+	qtyStr := r.FormValue("quantity")
+
+	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
+	if err != nil {
+		return &ValidationError{Message: "Ungültige Artikel-ID"}
+	}
+
+	quantity, err := strconv.Atoi(qtyStr)
+	if err != nil || quantity < 1 {
+		return &ValidationError{Message: "Ungültige Menge"}
+	}
+
+	db := h.Store.DB()
+
+	// Fetch item.
+	item, err := store.GetItem(ctx, db, itemID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Artikel nicht gefunden"}
+		}
+		return fmt.Errorf("place order: get item: %w", err)
+	}
+	if item.DeletedAt != nil {
+		return &NotFoundError{Message: "Artikel nicht gefunden"}
+	}
+
+	// Fetch settings for max quantity and spending limits.
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("place order: get settings: %w", err)
+	}
+
+	// Validate quantity against max.
+	if quantity > settings.MaxItemQuantity {
+		return &ValidationError{Message: fmt.Sprintf("Maximal %d Stück erlaubt", settings.MaxItemQuantity)}
+	}
+
+	// Determine price tier based on user role.
+	var unitPrice int64
+	if user.IsBarteamer {
+		unitPrice = item.PriceBarteamer
+	} else {
+		unitPrice = item.PriceHelfer
+	}
+
+	// Amount is negative (purchase debits the user's tab).
+	amount := -(unitPrice * int64(quantity))
+
+	var warning bool
+
+	// Execute within a DB transaction with FOR UPDATE locking.
+	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
+		// Get current balance with row lock.
+		balance, err := store.GetUserBalanceForUpdate(ctx, tx, user.ID)
+		if err != nil {
+			return fmt.Errorf("get balance for update: %w", err)
+		}
+
+		// Check hard spending limit (if enabled and user not exempt).
+		if settings.HardLimitEnabled && !user.SpendingLimitDisabled {
+			hardLimit := -settings.HardSpendingLimit
+			if balance <= hardLimit {
+				return &ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht. Bitte erst einzahlen."}
+			}
+			projectedBalance := balance + amount
+			if projectedBalance <= hardLimit {
+				warning = true
+			}
+		}
+
+		// Create purchase transaction.
+		itemTitle := item.Name
+		txn := &model.Transaction{
+			UserID:    user.ID,
+			Amount:    amount,
+			ItemTitle: &itemTitle,
+			UnitPrice: &unitPrice,
+			Quantity:  &quantity,
+			Type:      "purchase",
+		}
+		_, err = store.CreateTransaction(ctx, tx, txn)
+		return err
+	})
+	if err != nil {
+		// Check if it's a ValidationError from inside the tx.
+		var valErr *ValidationError
+		if errors.As(err, &valErr) {
+			return valErr
+		}
+		return fmt.Errorf("place order: %w", err)
+	}
+
+	// Build response: toast + OOB header-stats + close modal.
+	toastMsg := "Bestellung gebucht!"
+	toastType := "success"
+	if warning {
+		toastMsg = "Bestellung gebucht! Achtung: Ausgabenlimit fast erreicht."
+		toastType = "warning"
+	}
+
+	// Render toast.
+	h.Renderer.Fragment(w, r, "toast", map[string]string{
+		"Type":    toastType,
+		"Message": toastMsg,
+	})
+
+	// Render OOB header-stats update.
+	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
+	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
+	rank, total, _ := store.GetUserRank(ctx, db, user.ID)
+
+	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
+		"UserBalance":  newBalance,
+		"TotalBalance": totalBalance,
+		"UserRank":     rank,
+		"TotalUsers":   total,
+		"Settings":     settings,
+	})
+
+	// Close modal by rendering empty content into #modal.
+	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
+
 	return nil
 }

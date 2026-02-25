@@ -99,16 +99,17 @@ func Middleware(s *store.Store, adminGroup string) func(http.Handler) http.Handl
 			}
 
 			reqUser := &RequestUser{
-				Email:       user.Email,
-				FullName:    user.FullName,
-				GivenName:   user.GivenName,
-				FamilyName:  user.FamilyName,
-				Groups:      groups,
-				IsAdmin:     user.IsAdmin,
-				ID:          user.ID,
-				Balance:     balance,
-				IsBarteamer: user.IsBarteamer,
-				IsActive:    user.IsActive,
+				Email:                 user.Email,
+				FullName:              user.FullName,
+				GivenName:             user.GivenName,
+				FamilyName:            user.FamilyName,
+				Groups:                groups,
+				IsAdmin:               user.IsAdmin,
+				ID:                    user.ID,
+				Balance:               balance,
+				IsBarteamer:           user.IsBarteamer,
+				IsActive:              user.IsActive,
+				SpendingLimitDisabled: user.SpendingLimitDisabled,
 			}
 
 			// Block deactivated users

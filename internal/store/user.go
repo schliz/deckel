@@ -63,6 +63,25 @@ func UpdateUserProfile(ctx context.Context, db DBTX, id int64, fullName, givenNa
 	return nil
 }
 
+// GetUserBalanceForUpdate returns the user's balance with a FOR UPDATE lock on the user row.
+// This must be called within a transaction to prevent concurrent balance modifications.
+func GetUserBalanceForUpdate(ctx context.Context, db DBTX, userID int64) (int64, error) {
+	// Lock the user row to prevent concurrent modifications.
+	_, err := db.Exec(ctx, `SELECT id FROM users WHERE id = $1 FOR UPDATE`, userID)
+	if err != nil {
+		return 0, fmt.Errorf("lock user row: %w", err)
+	}
+
+	var balance int64
+	err = db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(amount), 0) FROM transactions
+		WHERE user_id = $1 AND cancelled_at IS NULL`, userID).Scan(&balance)
+	if err != nil {
+		return 0, fmt.Errorf("get user balance for update: %w", err)
+	}
+	return balance, nil
+}
+
 // GetUserBalance returns the sum of all non-cancelled transaction amounts for the given user.
 func GetUserBalance(ctx context.Context, db DBTX, userID int64) (int64, error) {
 	var balance int64

@@ -4,16 +4,17 @@ import "context"
 
 // RequestUser represents the authenticated user extracted from request headers.
 type RequestUser struct {
-	Email       string
-	FullName    string
-	GivenName   string
-	FamilyName  string
-	Groups      []string
-	IsAdmin     bool
-	ID          int64
-	Balance     int64
-	IsBarteamer bool
-	IsActive    bool
+	Email                 string
+	FullName              string
+	GivenName             string
+	FamilyName            string
+	Groups                []string
+	IsAdmin               bool
+	ID                    int64
+	Balance               int64
+	IsBarteamer           bool
+	IsActive              bool
+	SpendingLimitDisabled bool
 }
 
 type contextKey struct{}
