@@ -26,6 +26,6 @@
 </div>
 
 {{if gt .TotalPages 1}}
-{{template "pagination" .}}
+{{template "pagination" (map "Page" .Page "TotalPages" .TotalPages "Target" "#transaction-list" "BaseURL" "/transactions")}}
 {{end}}
 {{end}}

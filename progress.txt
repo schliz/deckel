@@ -16,6 +16,8 @@
 - ErrNotFound sentinel error in store package for "not found" cases (wrap with errors.Is)
 - FOR UPDATE pattern: lock user row first, then query balance within WithTx
 - Multi-fragment HTMX response: Fragment() + AppendOOB() + raw HTML for multiple OOB swaps
+- Template helpers: `map` (key-value pairs → map[string]any), `add`/`sub` (int arithmetic), `withinMinutes` (time check), `seq` (0..n-1 slice)
+- Use `map` helper to pass multiple values to sub-templates: `{{template "foo" (map "Key1" val1 "Key2" val2)}}`
 
 ---
 
@@ -525,4 +527,33 @@
   - Multi-fragment HTMX response: Fragment() for toast, AppendOOB() for header-stats, then raw HTML for modal close
   - ValidationError can be returned from inside WithTx and unwrapped via errors.As in the handler
   - Modal close done via `<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`
+---
+
+## 2026-02-24 - US-039
+- Created full transaction history page template with table layout
+- Created templates/partials/transaction_list.html with table rendering and pagination inclusion
+- Created templates/components/transaction_row.html with date, description, quantity, amount columns
+- Created templates/components/pagination.html with DaisyUI join (btn-group) pagination, ellipsis for long ranges
+- Added template helper functions: `add`, `sub`, `map`, `withinMinutes` to render.FuncMap()
+- Cancelled transactions show strikethrough + opacity-50 + "Storniert" badge
+- Transactions within cancellation window show Stornieren button
+- "Eigene Buchung" button at page top opens custom transaction modal
+- Files changed: internal/render/funcs.go, templates/pages/history.html, templates/partials/transaction_list.html, templates/components/transaction_row.html, templates/components/pagination.html
+- **Learnings for future iterations:**
+  - Go template engine uses reflection to unwrap `any`/`interface{}` values when calling template functions, so `map[string]any` values work with typed function params
+  - `{{index . "Key"}}` on `map[string]any` returns `any`, but template function calls handle type conversion via reflection
+  - Use `map` helper to pass multiple values to sub-templates since `{{template}}` only accepts one data argument
+  - Pagination uses `seq` (0-based) with `add . 1` to get 1-based page numbers
+  - `withinMinutes` checks `time.Since(t) <= N*time.Minute` for cancellation window logic
+---
+
+## 2026-02-24 - US-040
+- Made pagination component reusable by parameterizing hx-target and base URL
+- Pagination now accepts `.Target` (CSS selector for hx-target) and `.BaseURL` (URL prefix for page links)
+- Updated transaction_list.html to pass Target="#transaction-list" and BaseURL="/transactions" via map helper
+- Component was already created in US-039; this story made it generic for reuse across admin pages
+- Files changed: templates/components/pagination.html, templates/partials/transaction_list.html
+- **Learnings for future iterations:**
+  - Use `map` helper to pass structured data to pagination: `(map "Page" .Page "TotalPages" .TotalPages "Target" "#id" "BaseURL" "/path")`
+  - Pagination component is now reusable: just pass different Target and BaseURL values for each page
 ---
