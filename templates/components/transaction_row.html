@@ -5,9 +5,11 @@
 <tr class="{{if $tx.CancelledAt}}opacity-50{{end}}">
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">{{formatTime $tx.CreatedAt}}</td>
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">
-        {{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}
-        {{if eq $tx.Type "cancellation"}}<span class="badge badge-info badge-sm ml-1">Storno</span>
-        {{else if $tx.CancelledAt}}<span class="badge badge-error badge-sm ml-1">Storniert</span>{{end}}
+        <span class="inline-flex items-center gap-1">
+        {{if eq $tx.Type "cancellation"}}{{if $tx.Description}}{{trimPrefix $tx.Description "Storno: "}}{{else}}—{{end}} <span class="badge badge-info badge-sm">Storno</span>
+        {{else}}{{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}
+        {{if $tx.CancelledAt}}<span class="badge badge-error badge-sm">Storniert</span>{{end}}{{end}}
+        </span>
     </td>
     <td class="text-right {{if $tx.CancelledAt}}line-through{{end}}">
         {{if $tx.Quantity}}{{$tx.Quantity}}{{else}}—{{end}}

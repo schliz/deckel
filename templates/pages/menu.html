@@ -2,17 +2,17 @@
 <h1 class="text-2xl font-bold mb-4">Karte</h1>
 
 {{if .IsBlocked}}
-<div class="alert alert-info mb-6">
+<div class="alert alert-error mb-6">
     <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
-    <span>Du hast dein Ausgabelimit erreicht. Bitte zahle bei einem Admin ein.</span>
+    <span>Du hast dein Ausgabelimit erreicht. Bitte zahle beim Barabend ein.</span>
 </div>
 {{end}}
 
 <section class="mb-8">
     <ul class="list bg-base-200 rounded-box shadow-sm">
-        <li class="list-row cursor-pointer hover:bg-base-300 transition-colors {{if .IsBlocked}}opacity-50{{end}}"
+        <li class="list-row cursor-pointer hover:bg-base-300 active:bg-base-300 active:scale-[0.98] transition-all {{if .IsBlocked}}opacity-50{{end}}"
             {{if not .IsBlocked}}
             hx-get="/transactions/custom"
             hx-target="#modal"
@@ -22,6 +22,7 @@
                 <span class="badge badge-warning badge-sm">Bitte erst einzahlen</span>
             {{else}}
                 <span class="text-sm text-base-content/60">Freier Betrag</span>
+                <span class="text-base-content/40">›</span>
             {{end}}
         </li>
     </ul>

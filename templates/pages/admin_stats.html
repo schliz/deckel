@@ -8,22 +8,28 @@
             <h2 class="card-title text-lg">Zeitraum</h2>
 
             <!-- Preset buttons -->
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2" id="stats-presets">
                 <button class="btn btn-sm btn-outline"
                     hx-get="/admin/stats"
                     hx-vals='js:{from: new Date(new Date().setHours(0,0,0,0)).toISOString().slice(0,10), to: new Date(new Date().setDate(new Date().getDate()+1)).toISOString().slice(0,10)}'
                     hx-target="#admin-stats-panel"
-                    hx-swap="innerHTML">Heute</button>
+                    hx-swap="innerHTML"
+                    hx-indicator="#stats-loading"
+                    onclick="updateStatsDateInputs(this)">Heute</button>
                 <button class="btn btn-sm btn-outline"
                     hx-get="/admin/stats"
                     hx-vals='js:{from: new Date(Date.now() - 7*86400000).toISOString().slice(0,10), to: new Date(new Date().setDate(new Date().getDate()+1)).toISOString().slice(0,10)}'
                     hx-target="#admin-stats-panel"
-                    hx-swap="innerHTML">Letzte Woche</button>
+                    hx-swap="innerHTML"
+                    hx-indicator="#stats-loading"
+                    onclick="updateStatsDateInputs(this)">Letzte Woche</button>
                 <button class="btn btn-sm btn-outline"
                     hx-get="/admin/stats"
                     hx-vals='js:{from: new Date(new Date().getFullYear(), new Date().getMonth()-1, new Date().getDate()).toISOString().slice(0,10), to: new Date(new Date().setDate(new Date().getDate()+1)).toISOString().slice(0,10)}'
                     hx-target="#admin-stats-panel"
-                    hx-swap="innerHTML">Letzter Monat</button>
+                    hx-swap="innerHTML"
+                    hx-indicator="#stats-loading"
+                    onclick="updateStatsDateInputs(this)">Letzter Monat</button>
             </div>
 
             <!-- Custom date range -->
@@ -39,14 +45,41 @@
                     <label class="label">Bis</label>
                     <input type="date" name="to" value="{{.To}}" class="input input-sm">
                 </fieldset>
-                <button type="submit" class="btn btn-primary btn-sm">Filtern</button>
+                <button type="submit" class="btn btn-primary btn-sm" hx-indicator="#stats-loading">Filtern</button>
             </form>
         </div>
     </div>
 
     <!-- Stats panel -->
-    <div id="admin-stats-panel">
-        {{template "admin-stats-panel" .}}
+    <div class="relative">
+        <span id="stats-loading" class="htmx-indicator loading loading-spinner loading-md absolute top-4 right-4"></span>
+        <div id="admin-stats-panel">
+            {{template "admin-stats-panel" .}}
+        </div>
     </div>
 </div>
+
+<script>
+function updateStatsDateInputs(btn) {
+    // Evaluate hx-vals to get from/to, then update the date inputs
+    var vals = btn.getAttribute('hx-vals');
+    if (!vals) return;
+    // hx-vals with js: prefix — extract the object
+    var match = vals.match(/from:\s*([^,}]+),\s*to:\s*([^}]+)/);
+    if (!match) return;
+    try {
+        var fromVal = eval(match[1]);
+        var toVal = eval(match[2]);
+        var fromInput = document.querySelector('input[name="from"]');
+        var toInput = document.querySelector('input[name="to"]');
+        if (fromInput) fromInput.value = fromVal;
+        if (toInput) toInput.value = toVal;
+    } catch(e) {}
+    // Highlight active preset button
+    document.querySelectorAll('#stats-presets button').forEach(function(b) {
+        b.classList.remove('btn-active');
+    });
+    btn.classList.add('btn-active');
+}
+</script>
 {{end}}

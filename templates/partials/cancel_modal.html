@@ -26,7 +26,7 @@
             <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
             <button class="btn btn-error"
                 hx-post="/transactions/{{.Transaction.ID}}/cancel"
-                hx-target="#modal"
+                hx-target="#transaction-list"
                 hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
                 Stornieren
             </button>

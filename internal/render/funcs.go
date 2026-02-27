@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -21,6 +22,7 @@ func FuncMap() template.FuncMap {
 		"map":         makeMap,
 		"withinMinutes": withinMinutes,
 		"centsToEuros":  centsToEuros,
+		"trimPrefix":    strings.TrimPrefix,
 	}
 }
 
@@ -96,7 +98,7 @@ func centsToEuros(cents int64) string {
 	if negative {
 		prefix = "-"
 	}
-	return fmt.Sprintf("%s%d.%02d", prefix, cents/100, cents%100)
+	return fmt.Sprintf("%s%d,%02d", prefix, cents/100, cents%100)
 }
 
 // seq returns a slice of ints [0, 1, ..., n-1].

@@ -11,13 +11,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <fieldset class="fieldset">
                         <label class="label">Warnlimit (€)</label>
-                        <input type="number" name="warning_limit" step="0.01"
+                        <input type="text" inputmode="decimal" name="warning_limit" pattern="[0-9-]+([,.][0-9]{1,2})?"
                             value="{{centsToEuros .Settings.WarningLimit}}"
                             class="input input-sm w-full">
                     </fieldset>
                     <fieldset class="fieldset">
                         <label class="label">Ausgabelimit (€)</label>
-                        <input type="number" name="hard_spending_limit" step="0.01"
+                        <input type="text" inputmode="decimal" name="hard_spending_limit" pattern="[0-9-]+([,.][0-9]{1,2})?"
                             value="{{centsToEuros .Settings.HardSpendingLimit}}"
                             class="input input-sm w-full">
                     </fieldset>
@@ -40,13 +40,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <fieldset class="fieldset">
                         <label class="label">Eigenbuchung Min (€)</label>
-                        <input type="number" name="custom_tx_min" step="0.01"
+                        <input type="text" inputmode="decimal" name="custom_tx_min" pattern="[0-9-]+([,.][0-9]{1,2})?"
                             value="{{centsToEuros .Settings.CustomTxMin}}"
                             class="input input-sm w-full">
                     </fieldset>
                     <fieldset class="fieldset">
                         <label class="label">Eigenbuchung Max (€)</label>
-                        <input type="number" name="custom_tx_max" step="0.01"
+                        <input type="text" inputmode="decimal" name="custom_tx_max" pattern="[0-9-]+([,.][0-9]{1,2})?"
                             value="{{centsToEuros .Settings.CustomTxMax}}"
                             class="input input-sm w-full">
                     </fieldset>

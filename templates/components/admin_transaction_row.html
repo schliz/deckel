@@ -9,8 +9,10 @@
         <div class="text-xs text-base-content/60">{{$tx.UserEmail}}</div>
     </td>
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">
-        {{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{if $tx.Quantity}} × {{$tx.Quantity}}{{end}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}
-        {{if eq $tx.Type "cancellation"}}<span class="badge badge-info badge-sm ml-1">Storno</span>{{end}}
+        <span class="inline-flex items-center gap-1">
+        {{if eq $tx.Type "cancellation"}}{{if $tx.Description}}{{trimPrefix $tx.Description "Storno: "}}{{else}}—{{end}} <span class="badge badge-info badge-sm">Storno</span>
+        {{else}}{{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{if $tx.Quantity}} × {{$tx.Quantity}}{{end}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}{{end}}
+        </span>
     </td>
     <td class="text-right font-mono {{if $tx.CancelledAt}}line-through{{end}} {{if lt $tx.Amount 0}}text-error{{else}}text-success{{end}}">
         {{formatCents $tx.Amount}}

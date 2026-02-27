@@ -18,12 +18,12 @@
                     hx-post="/admin/categories/{{$cat.ID}}/reorder?direction=up"
                     hx-target="#admin-category-list"
                     hx-swap="innerHTML"
-                    title="Nach oben">▲</button>
+                    title="Nach oben">&#x25B2;</button>
                 <button class="btn btn-ghost btn-xs"
                     hx-post="/admin/categories/{{$cat.ID}}/reorder?direction=down"
                     hx-target="#admin-category-list"
                     hx-swap="innerHTML"
-                    title="Nach unten">▼</button>
+                    title="Nach unten">&#x25BC;</button>
                 <button class="btn btn-error btn-xs"
                     hx-delete="/admin/categories/{{$cat.ID}}"
                     hx-target="#admin-category-list"
@@ -33,79 +33,68 @@
             </div>
         </div>
 
-        <!-- Items table -->
+        <!-- Items list -->
         {{if $items}}
-        <div class="overflow-x-auto">
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Barteamer</th>
-                        <th>Helfer</th>
-                        <th class="text-right">Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range $items}}
-                    <tr>
-                        <td>{{.Name}}</td>
-                        <td>{{formatCents .PriceBarteamer}}</td>
-                        <td>{{formatCents .PriceHelfer}}</td>
-                        <td class="text-right">
-                            <div class="flex gap-1 justify-end">
-                                <button class="btn btn-ghost btn-xs"
-                                    hx-get="/admin/items/{{.ID}}/edit"
-                                    hx-target="#modal"
-                                    title="Bearbeiten">Bearbeiten</button>
-                                <button class="btn btn-ghost btn-xs"
-                                    hx-post="/admin/items/{{.ID}}/reorder?direction=up"
-                                    hx-target="#admin-category-list"
-                                    hx-swap="innerHTML"
-                                    title="Nach oben">▲</button>
-                                <button class="btn btn-ghost btn-xs"
-                                    hx-post="/admin/items/{{.ID}}/reorder?direction=down"
-                                    hx-target="#admin-category-list"
-                                    hx-swap="innerHTML"
-                                    title="Nach unten">▼</button>
-                                <button class="btn btn-error btn-xs"
-                                    hx-delete="/admin/items/{{.ID}}"
-                                    hx-target="#admin-category-list"
-                                    hx-swap="innerHTML"
-                                    hx-confirm="Artikel '{{.Name}}' wirklich entfernen?"
-                                    title="Entfernen">Entfernen</button>
-                            </div>
-                        </td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
-        </div>
+        <ul class="list bg-base-100 rounded-box">
+            {{range $items}}
+            <li class="list-row items-center">
+                <div class="list-col-grow">
+                    <span class="font-medium">{{.Name}}</span>
+                    <span class="text-xs text-base-content/60 ml-2">{{formatCents .PriceBarteamer}} / {{formatCents .PriceHelfer}}</span>
+                </div>
+                <div class="flex gap-1">
+                    <button class="btn btn-ghost btn-xs"
+                        hx-get="/admin/items/{{.ID}}/edit"
+                        hx-target="#modal"
+                        title="Bearbeiten">Bearbeiten</button>
+                    <button class="btn btn-ghost btn-xs"
+                        hx-post="/admin/items/{{.ID}}/reorder?direction=up"
+                        hx-target="#admin-category-list"
+                        hx-swap="innerHTML"
+                        title="Nach oben">&#x25B2;</button>
+                    <button class="btn btn-ghost btn-xs"
+                        hx-post="/admin/items/{{.ID}}/reorder?direction=down"
+                        hx-target="#admin-category-list"
+                        hx-swap="innerHTML"
+                        title="Nach unten">&#x25BC;</button>
+                    <button class="btn btn-error btn-xs"
+                        hx-delete="/admin/items/{{.ID}}"
+                        hx-target="#admin-category-list"
+                        hx-swap="innerHTML"
+                        hx-confirm="Artikel '{{.Name}}' wirklich entfernen?"
+                        title="Entfernen">Entfernen</button>
+                </div>
+            </li>
+            {{end}}
+        </ul>
         {{else}}
         <p class="text-sm text-base-content/60">Keine Artikel in dieser Kategorie.</p>
         {{end}}
 
         <!-- Add new item form -->
         <div class="mt-3 pt-3 border-t border-base-300">
-            <form class="flex flex-wrap gap-2 items-end"
+            <form class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end"
                 hx-post="/admin/categories/{{$cat.ID}}/items"
                 hx-target="#admin-category-list"
                 hx-swap="innerHTML">
                 <fieldset class="fieldset">
                     <label class="label text-xs">Name</label>
                     <input type="text" name="name" placeholder="Artikelname"
-                        class="input input-xs w-32" required>
+                        class="input input-sm w-full" required>
                 </fieldset>
                 <fieldset class="fieldset">
                     <label class="label text-xs">Barteamer (€)</label>
-                    <input type="number" name="price_barteamer" placeholder="0.00" step="0.01" min="0"
-                        class="input input-xs w-24" required>
+                    <input type="text" inputmode="decimal" name="price_barteamer" placeholder="0,00" pattern="[0-9]+([,.][0-9]{1,2})?"
+                        class="input input-sm w-full" required>
                 </fieldset>
                 <fieldset class="fieldset">
                     <label class="label text-xs">Helfer (€)</label>
-                    <input type="number" name="price_helfer" placeholder="0.00" step="0.01" min="0"
-                        class="input input-xs w-24" required>
+                    <input type="text" inputmode="decimal" name="price_helfer" placeholder="0,00" pattern="[0-9]+([,.][0-9]{1,2})?"
+                        class="input input-sm w-full" required>
                 </fieldset>
-                <button type="submit" class="btn btn-primary btn-xs">Hinzufügen</button>
+                <fieldset class="fieldset">
+	            <button type="submit" class="btn btn-primary btn-sm">Hinzufügen</button>
+                </fieldset>
             </form>
         </div>
     </div>

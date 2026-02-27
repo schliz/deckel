@@ -6,17 +6,18 @@
         {{$blocked := $.IsBlocked}}
         {{$isBarteamer := $.User.IsBarteamer}}
         {{range .Items}}
-        <li class="list-row cursor-pointer hover:bg-base-300 transition-colors" style="touch-action:manipulation"
+        <li class="list-row cursor-pointer hover:bg-base-300 active:bg-base-300 active:scale-[0.98] transition-all" style="touch-action:manipulation"
             {{if not $blocked}}
             hx-get="/menu/items/{{.ID}}/order"
             hx-target="#modal"
             onclick=""
             {{end}}>
-            <div class="list-col-grow">{{.Name}}</div>
+            <div class="list-col-grow font-medium">{{.Name}}</div>
             {{if $blocked}}
                 <span class="badge badge-warning badge-sm">Bitte erst einzahlen</span>
             {{else}}
                 <span class="text-sm text-base-content/60">{{if $isBarteamer}}{{formatCents .PriceBarteamer}}{{else}}{{formatCents .PriceHelfer}}{{end}}</span>
+                <span class="text-base-content/40">›</span>
             {{end}}
         </li>
         {{end}}

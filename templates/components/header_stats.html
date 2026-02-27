@@ -4,7 +4,7 @@
         <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm">
             <div class="flex items-center gap-1">
                 <span class="text-base-content/60">Guthaben:</span>
-                <span class="font-bold{{if gt .UserBalance 0}} text-success{{else if lt .UserBalance 0}}{{if and .Settings (lt .UserBalance .Settings.WarningLimit)}} text-error font-extrabold{{else}} text-error{{end}}{{end}}">
+                <span class="font-bold{{if gt .UserBalance 0}} text-success{{else if lt .UserBalance 0}}{{if and .Settings (lt .UserBalance .Settings.WarningLimit)}} text-error font-extrabold{{else}} text-warning{{end}}{{end}}">
                     {{formatCents .UserBalance}}
                 </span>
             </div>
