@@ -17,8 +17,9 @@ type StatsPageData struct {
 	TotalRevenue      int64
 	TotalDeposits     int64
 	TransactionCount  int
-	TopItemsByCount   []store.ItemStat
-	TopItemsByRevenue []store.ItemStat
+	TopItemsByCount    []store.ItemStat
+	TopItemsByRevenue  []store.ItemStat
+	RevenueByCategory  []store.CategoryStat
 	From              string
 	To                string
 	ActivePage        string
@@ -79,6 +80,11 @@ func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("admin stats: get top items by revenue: %w", err)
 	}
 
+	revenueByCategory, err := store.GetRevenueByCategory(ctx, db, from, to)
+	if err != nil {
+		return fmt.Errorf("admin stats: get revenue by category: %w", err)
+	}
+
 	// Fetch settings for low balance warning.
 	var settings *model.Settings
 	settings, err = store.GetSettings(ctx, db)
@@ -92,7 +98,8 @@ func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		TotalDeposits:     totalDeposits,
 		TransactionCount:  txnCount,
 		TopItemsByCount:   topByCount,
-		TopItemsByRevenue: topByRevenue,
+		TopItemsByRevenue:  topByRevenue,
+		RevenueByCategory:  revenueByCategory,
 		From:              from.Format("2006-01-02"),
 		To:                to.Format("2006-01-02"),
 		ActivePage:        "admin-stats",

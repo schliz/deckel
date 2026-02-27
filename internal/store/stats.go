@@ -111,6 +111,52 @@ func GetTransactionCount(ctx context.Context, db DBTX, from, to time.Time) (int,
 	return count, nil
 }
 
+// CategoryStat holds aggregated statistics for a category.
+type CategoryStat struct {
+	Name    string
+	Count   int
+	Revenue int64
+}
+
+// GetRevenueByCategory returns purchase counts and revenue grouped by item category
+// within the given time range. It maps transactions to categories via item_title,
+// using DISTINCT ON to resolve any duplicate item names (preferring non-deleted items).
+func GetRevenueByCategory(ctx context.Context, db DBTX, from, to time.Time) ([]CategoryStat, error) {
+	rows, err := db.Query(ctx, `
+		SELECT c.name, COUNT(*) AS cnt, COALESCE(SUM(ABS(t.amount)), 0) AS revenue
+		FROM transactions t
+		JOIN (
+			SELECT DISTINCT ON (name) name, category_id
+			FROM items
+			ORDER BY name, deleted_at NULLS FIRST
+		) i ON i.name = t.item_title
+		JOIN categories c ON c.id = i.category_id
+		WHERE t.item_title IS NOT NULL
+		  AND t.cancelled_at IS NULL
+		  AND t.type != 'cancellation'
+		  AND t.created_at >= $1
+		  AND t.created_at < $2
+		GROUP BY c.id, c.name
+		ORDER BY revenue DESC`, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("get revenue by category: %w", err)
+	}
+	defer rows.Close()
+
+	var stats []CategoryStat
+	for rows.Next() {
+		var s CategoryStat
+		if err := rows.Scan(&s.Name, &s.Count, &s.Revenue); err != nil {
+			return nil, fmt.Errorf("scan category stat: %w", err)
+		}
+		stats = append(stats, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate category stats: %w", err)
+	}
+	return stats, nil
+}
+
 // GetTotalDeposits returns the sum of deposit transactions within the given time range.
 func GetTotalDeposits(ctx context.Context, db DBTX, from, to time.Time) (int64, error) {
 	var total int64

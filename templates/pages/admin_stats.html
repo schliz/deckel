@@ -9,27 +9,9 @@
 
             <!-- Preset buttons -->
             <div class="flex flex-wrap gap-2" id="stats-presets">
-                <button class="btn btn-sm btn-outline"
-                    hx-get="/admin/stats"
-                    hx-vals='js:{from: new Date(new Date().setHours(0,0,0,0)).toISOString().slice(0,10), to: new Date(new Date().setDate(new Date().getDate()+1)).toISOString().slice(0,10)}'
-                    hx-target="#admin-stats-panel"
-                    hx-swap="innerHTML"
-                    hx-indicator="#stats-loading"
-                    onclick="updateStatsDateInputs(this)">Heute</button>
-                <button class="btn btn-sm btn-outline"
-                    hx-get="/admin/stats"
-                    hx-vals='js:{from: new Date(Date.now() - 7*86400000).toISOString().slice(0,10), to: new Date(new Date().setDate(new Date().getDate()+1)).toISOString().slice(0,10)}'
-                    hx-target="#admin-stats-panel"
-                    hx-swap="innerHTML"
-                    hx-indicator="#stats-loading"
-                    onclick="updateStatsDateInputs(this)">Letzte Woche</button>
-                <button class="btn btn-sm btn-outline"
-                    hx-get="/admin/stats"
-                    hx-vals='js:{from: new Date(new Date().getFullYear(), new Date().getMonth()-1, new Date().getDate()).toISOString().slice(0,10), to: new Date(new Date().setDate(new Date().getDate()+1)).toISOString().slice(0,10)}'
-                    hx-target="#admin-stats-panel"
-                    hx-swap="innerHTML"
-                    hx-indicator="#stats-loading"
-                    onclick="updateStatsDateInputs(this)">Letzter Monat</button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="applyPreset('today', this)">Heute</button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="applyPreset('week', this)">Letzte Woche</button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="applyPreset('month', this)">Letzter Monat</button>
             </div>
 
             <!-- Custom date range -->
@@ -60,26 +42,44 @@
 </div>
 
 <script>
-function updateStatsDateInputs(btn) {
-    // Evaluate hx-vals to get from/to, then update the date inputs
-    var vals = btn.getAttribute('hx-vals');
-    if (!vals) return;
-    // hx-vals with js: prefix — extract the object
-    var match = vals.match(/from:\s*([^,}]+),\s*to:\s*([^}]+)/);
-    if (!match) return;
-    try {
-        var fromVal = eval(match[1]);
-        var toVal = eval(match[2]);
-        var fromInput = document.querySelector('input[name="from"]');
-        var toInput = document.querySelector('input[name="to"]');
-        if (fromInput) fromInput.value = fromVal;
-        if (toInput) toInput.value = toVal;
-    } catch(e) {}
+function toDateStr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function applyPreset(preset, btn) {
+    var now = new Date();
+    var from, to;
+    var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    switch (preset) {
+        case 'today':
+            from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            to = tomorrow;
+            break;
+        case 'week':
+            from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+            to = tomorrow;
+            break;
+        case 'month':
+            from = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            to = tomorrow;
+            break;
+    }
+
+    var fromInput = document.querySelector('input[name="from"]');
+    var toInput = document.querySelector('input[name="to"]');
+    if (fromInput) fromInput.value = toDateStr(from);
+    if (toInput) toInput.value = toDateStr(to);
+
     // Highlight active preset button
     document.querySelectorAll('#stats-presets button').forEach(function(b) {
         b.classList.remove('btn-active');
     });
     btn.classList.add('btn-active');
+
+    // Trigger the form's HTMX request
+    var form = document.querySelector('form[hx-get="/admin/stats"]');
+    if (form) htmx.trigger(form, 'submit');
 }
 </script>
 {{end}}
