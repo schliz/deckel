@@ -7,7 +7,7 @@
     <title>K4-Bar Deckel</title>
     <script>
         (function() {
-            var theme = localStorage.getItem('theme') || 'corporate2';
+            var theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'business2' : 'corporate2');
             document.documentElement.setAttribute('data-theme', theme);
             document.addEventListener('DOMContentLoaded', function() {
                 if (theme === 'business2') {
