@@ -26,7 +26,9 @@
             <button class="btn btn-primary" id="deposit-confirm-btn"
                 hx-post="/admin/users/{{.User.ID}}/deposit"
                 hx-vals='js:{"amount": document.getElementById("deposit-amount").value, "note": document.getElementById("deposit-note").value}'
-                hx-target="#modal"
+                hx-target="#user-row-{{.User.ID}}"
+                hx-swap="outerHTML"
+                hx-on::after-request="if(event.detail.successful){var m=document.getElementById('modal');m.innerHTML='';m.style.display='none';}"
                 hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'>
                 Einzahlung buchen
             </button>

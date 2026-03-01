@@ -58,7 +58,7 @@
                         hx-swap="innerHTML"
                         title="Nach unten">&#x25BC;</button>
                     <button class="btn btn-error btn-xs"
-                        hx-delete="/admin/items/{{.ID}}"
+                        hx-post="/admin/items/{{.ID}}/delete"
                         hx-target="#admin-category-list"
                         hx-swap="innerHTML"
                         hx-confirm="Artikel '{{.Name}}' wirklich entfernen?"

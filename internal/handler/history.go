@@ -89,6 +89,11 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 		IsBlocked:           isBlocked,
 	}
 
+	if isHTMX(r) {
+		h.Renderer.Fragment(w, r, "transaction-list", data)
+		return nil
+	}
+
 	h.Renderer.Page(w, r, "history", data)
 	return nil
 }

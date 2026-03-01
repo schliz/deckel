@@ -77,6 +77,11 @@ func (h *Handler) AdminTransactionList(w http.ResponseWriter, r *http.Request) e
 		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
+	if isHTMX(r) {
+		h.Renderer.Fragment(w, r, "admin-transaction-list", data)
+		return nil
+	}
+
 	h.Renderer.Page(w, r, "admin_transactions", data)
 	return nil
 }

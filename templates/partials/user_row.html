@@ -1,7 +1,7 @@
 {{define "user-row"}}
 {{$u := .User}}
 {{$isSelf := eq $u.ID .CurrentUserID}}
-<tr id="user-row-{{$u.ID}}">
+<tr id="user-row-{{$u.ID}}"{{if .OOB}} hx-swap-oob="outerHTML"{{end}}>
     <td>{{$u.FullName}}{{if $u.IsAdmin}} <span class="badge badge-info badge-sm">Admin</span>{{end}}</td>
     <td>{{$u.Email}}</td>
     <td class="text-right {{if lt $u.Balance 0}}text-error{{else}}text-success{{end}}">

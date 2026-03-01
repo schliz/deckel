@@ -86,6 +86,11 @@ func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
+	if isHTMX(r) {
+		h.Renderer.Fragment(w, r, "user-list", data)
+		return nil
+	}
+
 	h.Renderer.Page(w, r, "admin_users", data)
 	return nil
 }
@@ -321,8 +326,18 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 		return fmt.Errorf("register deposit: %w", err)
 	}
 
-	// Build response: toast + OOB header-stats + OOB user row + close modal.
-	h.Renderer.Fragment(w, r, "toast", map[string]string{
+	// Build response: user-row as primary body + OOB toast + OOB header-stats.
+	// Modal is closed client-side via hx-on::after-request on the button.
+
+	// Render user row as primary body (swapped into hx-target via outerHTML).
+	ub, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		return fmt.Errorf("register deposit: fetch user: %w", err)
+	}
+	h.Renderer.Fragment(w, r, "user-row", userRowData(*ub, reqUser.ID))
+
+	// OOB toast.
+	h.Renderer.AppendOOB(w, "toast", map[string]string{
 		"Type":    "success",
 		"Message": "Einzahlung gebucht!",
 	})
@@ -333,7 +348,7 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 		return fmt.Errorf("register deposit: get settings: %w", err)
 	}
 
-	// Render OOB header-stats update.
+	// OOB header-stats update.
 	newBalance, _ := store.GetUserBalance(ctx, db, reqUser.ID)
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
 	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
@@ -349,16 +364,6 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 		"User":                reqUser,
 		"OOB":                 true,
 	})
-
-	// Render OOB user row swap.
-	ub, err := store.GetUserWithBalance(ctx, db, id)
-	if err != nil {
-		return fmt.Errorf("register deposit: fetch user: %w", err)
-	}
-	h.Renderer.AppendOOB(w, "user-row", userRowData(*ub, reqUser.ID))
-
-	// Close modal.
-	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
 
 	return nil
 }
