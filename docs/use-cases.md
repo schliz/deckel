@@ -1,4 +1,4 @@
-# Use Cases — Deckel (K4 Bar)
+# Use Cases — schliz/deckel
 
 Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrieben. Die Kennzeichnungen lauten wiefolgt:
 - [ ] offen: Keine Testfälle

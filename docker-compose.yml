@@ -4,12 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: "postgres://${POSTGRES_USERNAME:-deckel}:${POSTGRES_PASSWORD}@${X_SERVICE_NAME_DB}:5432/${POSTGRES_DATABASE:-deckel}?sslmode=disable"
-      LISTEN_ADDR: ":8080"
-      DEV_MODE: "false"
-      ADMIN_GROUP: ${APP_ADMIN_GROUP:-"role:admin"}
-      STATIC_DIR: "/app/static"
-      TEMPLATE_DIR: "/app/templates"
+      DECKEL_DATABASE_URL: "postgres://${POSTGRES_USERNAME:-deckel}:${POSTGRES_PASSWORD}@${X_SERVICE_NAME_DB}:5432/${POSTGRES_DATABASE:-deckel}?sslmode=disable"
+      DECKEL_LISTEN_ADDR: ":8080"
+      DECKEL_DEV_MODE: "false"
+      DECKEL_ADMIN_GROUP: ${APP_ADMIN_GROUP:-"role:admin"}
+      DECKEL_STATIC_DIR: "/app/static"
+      DECKEL_TEMPLATE_DIR: "/app/templates"
+      DECKEL_ORGANIZATION: ${DECKEL_ORGANIZATION:-K4-Bar}
+      DECKEL_APP_NAME: ${DECKEL_APP_NAME:-Deckel}
       POSTGRES_USERNAME: ${POSTGRES_USERNAME:-deckel}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DATABASE: ${POSTGRES_DATABASE:-deckel}

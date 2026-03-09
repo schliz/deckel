@@ -6,11 +6,13 @@ services:
       context: .
       dockerfile: test/Dockerfile.cover
     environment:
-      DATABASE_URL: "postgres://deckel:deckel@postgres:5432/deckel_test?sslmode=disable"
-      LISTEN_ADDR: ":8080"
-      ADMIN_GROUP: "role:admin"
-      STATIC_DIR: "/app/static"
-      TEMPLATE_DIR: "/app/templates"
+      DECKEL_DATABASE_URL: "postgres://deckel:deckel@postgres:5432/deckel_test?sslmode=disable"
+      DECKEL_LISTEN_ADDR: ":8080"
+      DECKEL_ADMIN_GROUP: "role:admin"
+      DECKEL_STATIC_DIR: "/app/static"
+      DECKEL_TEMPLATE_DIR: "/app/templates"
+      DECKEL_ORGANIZATION: "K4-Bar"
+      DECKEL_APP_NAME: "Deckel"
       GOCOVERDIR: "/coverage"
     volumes:
       - ./coverage:/coverage

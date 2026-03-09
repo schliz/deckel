@@ -12,8 +12,8 @@ Deckel is a beverage tab management system for the K4 Bar. Members order drinks,
 # Full stack (app + Postgres + oauth2-proxy)
 docker compose up --build
 
-# Build and run locally (requires DATABASE_URL env var and running Postgres)
-go build -o deckel ./cmd/server && DEV_MODE=true DATABASE_URL="postgres://deckel:deckel@localhost:5432/deckel?sslmode=disable" ./deckel
+# Build and run locally (requires DECKEL_DATABASE_URL env var and running Postgres)
+go build -o deckel ./cmd/server && DECKEL_DEV_MODE=true DECKEL_DATABASE_URL="postgres://deckel:deckel@localhost:5432/deckel?sslmode=disable" ./deckel
 
 # Build CSS (requires Node.js, one-time: npm install)
 make css
@@ -44,12 +44,14 @@ All monetary values are stored as cents (bigint). Items use soft-delete (`delete
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| DATABASE_URL | (required) | Postgres connection string |
-| LISTEN_ADDR | :8080 | Server bind address |
-| DEV_MODE | false | Enables template hot-reload, disables cache headers |
-| ADMIN_GROUP | admin | Group name that grants admin access |
-| STATIC_DIR | ./static | Path to static assets |
-| TEMPLATE_DIR | ./templates | Path to HTML templates |
+| DECKEL_DATABASE_URL | (required) | Postgres connection string |
+| DECKEL_LISTEN_ADDR | :8080 | Server bind address |
+| DECKEL_DEV_MODE | false | Enables template hot-reload, disables cache headers |
+| DECKEL_ADMIN_GROUP | admin | Group name that grants admin access |
+| DECKEL_STATIC_DIR | ./static | Path to static assets |
+| DECKEL_TEMPLATE_DIR | ./templates | Path to HTML templates |
+| DECKEL_ORGANIZATION | K4-Bar | Organization name shown in navbar and page title |
+| DECKEL_APP_NAME | Deckel | App name shown in page title |
 
 ## Pitfalls
 

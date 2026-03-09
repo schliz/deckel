@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -14,7 +15,7 @@ import (
 
 // Middleware returns HTTP middleware that extracts the authenticated user from
 // oauth2-proxy forwarded headers, enriches with DB data, and stores in context.
-func Middleware(s *store.Store, adminGroup string) func(http.Handler) http.Handler {
+func Middleware(s *store.Store, adminGroup, orgName, appName string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			email := r.Header.Get("X-Forwarded-Email")
@@ -117,7 +118,7 @@ func Middleware(s *store.Store, adminGroup string) func(http.Handler) http.Handl
 			if !reqUser.IsActive {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				w.WriteHeader(http.StatusForbidden)
-				w.Write([]byte(deactivatedPageHTML))
+				fmt.Fprintf(w, deactivatedPageHTML, orgName, appName)
 				return
 			}
 
@@ -127,12 +128,13 @@ func Middleware(s *store.Store, adminGroup string) func(http.Handler) http.Handl
 }
 
 // deactivatedPageHTML is the full HTML page shown to deactivated users.
+// It contains two %s verbs: organization name and app name.
 const deactivatedPageHTML = `<!DOCTYPE html>
 <html lang="de" data-theme="night">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Konto deaktiviert - K4-Bar Deckel</title>
+<title>Konto deaktiviert - %s %s</title>
 <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body class="min-h-screen flex items-center justify-center bg-base-200">

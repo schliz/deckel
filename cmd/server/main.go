@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/schliz/deckel/internal/auth"
 	"github.com/schliz/deckel/internal/config"
 	"github.com/schliz/deckel/internal/handler"
@@ -21,7 +22,6 @@ import (
 	"github.com/schliz/deckel/internal/render"
 	"github.com/schliz/deckel/internal/store"
 	"github.com/schliz/deckel/migrations"
-	"github.com/pressly/goose/v3"
 )
 
 func main() {
@@ -54,6 +54,8 @@ func main() {
 
 	funcMap := render.FuncMap()
 	funcMap["cssFile"] = func() string { return cssPath }
+	funcMap["orgName"] = func() string { return cfg.Organization }
+	funcMap["appName"] = func() string { return cfg.AppName }
 
 	rndr, err := render.New(cfg.TemplateDir, cfg.DevMode, funcMap)
 	if err != nil {
@@ -75,7 +77,7 @@ func main() {
 	base := middleware.Chain(
 		middleware.Logging(),
 		middleware.Recovery(),
-		auth.Middleware(s, cfg.AdminGroup),
+		auth.Middleware(s, cfg.AdminGroup, cfg.Organization, cfg.AppName),
 	)
 	withCSRF := middleware.Chain(
 		base,
@@ -167,7 +169,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		log.Printf("K4-Bar Deckel starting on %s", cfg.ListenAddr)
+		log.Printf("schliz/deckel starting on %s", cfg.ListenAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}
