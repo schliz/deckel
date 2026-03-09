@@ -24,6 +24,9 @@ make css
 
 # Run the Go server (requires DECKEL_DATABASE_URL)
 go build -o deckel ./cmd/server && ./deckel
+
+# Run end to end tests
+make e2e
 ```
 
 For local testing with oauth2-proxy reachable only via HTTP, use the following `docker-compose.override.yml`:
