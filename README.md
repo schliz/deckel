@@ -19,8 +19,8 @@ After connecting an OIDC IdP the app is available at `http://localhost:4180`. Po
 > While originally written for ai coding agents, the [CLAUDE.md](CLAUDE.md) file provides a brief overview that can be beneficial to human contributors as well.
 
 ```sh
-# Build CSS (requires Node.js + npm)
-npm install && scripts/build-css.sh
+# Build CSS (requires Node.js + npm, one-time: npm install)
+make css
 
 # Run the Go server (requires DATABASE_URL)
 go build -o deckel ./cmd/server && ./deckel

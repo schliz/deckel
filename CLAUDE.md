@@ -1,4 +1,4 @@
-# CLAUDE.md
+# Guidelines for AI Coding Agents
 
 Use context7 when working on this project to get the required knowledge about the libraries and dependencies used here. Do not use your own knowledge of these dependencies, it is outdated.
 
@@ -15,8 +15,8 @@ docker compose up --build
 # Build and run locally (requires DATABASE_URL env var and running Postgres)
 go build -o deckel ./cmd/server && DEV_MODE=true DATABASE_URL="postgres://deckel:deckel@localhost:5432/deckel?sslmode=disable" ./deckel
 
-# Build CSS (requires Node.js)
-npm install && scripts/build-css.sh
+# Build CSS (requires Node.js, one-time: npm install)
+make css
 
 # Rebuild only the app container (force no-cache if templates changed)
 podman build --no-cache -t deckel_app . && docker compose up -d --force-recreate app
@@ -63,7 +63,7 @@ Playwright e2e tests live in `e2e/`, which is a self-contained directory with it
 
 ## Node.js Policy
 
-This is a Go project. Node.js is used only as a build tool — the root `package.json` exists solely to download the Tailwind CLI and DaisyUI for CSS generation. Do not add application dependencies, scripts, metadata (description, license, author), or test tooling to the root `package.json`. The `e2e/` directory has its own isolated `package.json` for Playwright.
+This is a Go project. Node.js is used only as a build tool — the root `package.json` exists solely to download the Tailwind CLI and DaisyUI for CSS generation (`make css`). Do not add application dependencies, scripts, metadata (description, license, author), or test tooling to the root `package.json`. Build tasks go in the `Makefile`, not in npm scripts. The `e2e/` directory has its own isolated `package.json` for Playwright.
 
 ## Use Cases (`docs/use-cases.md`)
 
