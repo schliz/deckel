@@ -34,3 +34,11 @@ static/css/styles.*.css
 
 # Local environmet
 docker-compose.override.yml
+
+# E2E testing
+e2e/.auth/
+e2e/node_modules/
+e2e/playwright-report/
+e2e/test-results/
+coverage/
+coverage.out

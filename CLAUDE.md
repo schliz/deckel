@@ -22,7 +22,7 @@ npm install && scripts/build-css.sh
 podman build --no-cache -t deckel_app . && docker compose up -d --force-recreate app
 ```
 
-There are no tests or linters configured yet.
+Run `make e2e` for end-to-end tests (see E2E Tests section below). No linters configured yet.
 
 ## Architecture
 
@@ -56,6 +56,14 @@ All monetary values are stored as cents (bigint). Items use soft-delete (`delete
 - **OOB swap with `<tr>`**: Browsers strip `<tr>` tags when parsed inside a `<div>` (which HTMX uses for OOB responses). Never use `hx-swap-oob` on table rows. Instead, return the `<tr>` as the primary response and use `hx-target="#row-id"` + `hx-swap="outerHTML"` on the triggering element. See `confirm_toggle_modal.html` and `ToggleActive` handler for the correct pattern.
 - **CSRF token**: The token is injected into all HTMX requests via `htmx:configRequest` in `base.html`. Every state-changing endpoint must be behind the CSRF middleware chain.
 - **Middleware composition**: Right-to-left — first argument is outermost. Two chains exist (`base` and `withCSRF`). Admin routes add `RequireAdmin` on top. Read `internal/middleware/chain.go` before changing the chain.
+
+## E2E Tests
+
+Playwright e2e tests live in `e2e/`, which is a self-contained directory with its own `package.json` and `playwright.config.ts`. Run `make e2e` to spin up the full Docker test stack (Postgres, Keycloak, oauth2-proxy, coverage-instrumented app), execute tests, and collect Go coverage. `make e2e-up` / `make e2e-down` manage the stack independently. Install test deps with `cd e2e && npm install && npx playwright install --with-deps chromium`. Auth storage state is saved per role in `e2e/.auth/` — the `setup` project drives the real Keycloak login flow. Tests run sequentially against shared DB state. Use cases in `docs/use-cases.md` are the source for test scenarios.
+
+## Node.js Policy
+
+This is a Go project. Node.js is used only as a build tool — the root `package.json` exists solely to download the Tailwind CLI and DaisyUI for CSS generation. Do not add application dependencies, scripts, metadata (description, license, author), or test tooling to the root `package.json`. The `e2e/` directory has its own isolated `package.json` for Playwright.
 
 ## Use Cases (`docs/use-cases.md`)
 
