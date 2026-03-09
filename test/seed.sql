@@ -4,7 +4,7 @@
 -- Update the settings singleton with test defaults
 UPDATE settings SET
     warning_limit       = -1000,
-    hard_spending_limit = -2000,
+    hard_spending_limit = 2000,
     hard_limit_enabled  = true,
     custom_tx_min       = -500,
     custom_tx_max       = 500,

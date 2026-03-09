@@ -14,6 +14,7 @@ export default defineConfig({
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
     {
       name: 'user-tests',
+      testIgnore: /admin-/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/user.json',
@@ -22,6 +23,7 @@ export default defineConfig({
     },
     {
       name: 'admin-tests',
+      testMatch: /admin-/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/admin.json',
