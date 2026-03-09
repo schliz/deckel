@@ -19,9 +19,8 @@ scripts/ralph
 .DS_Store
 Thumbs.db
 
-# Node (CSS build tooling only)
+# Node
 node_modules/
-package-lock.json
 
 # Generated CSS (rebuilt from input.css)
 static/css/styles.css
