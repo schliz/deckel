@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/k4-bar/deckel/internal/auth"
 	"github.com/k4-bar/deckel/internal/config"
@@ -19,9 +20,10 @@ type AppHandler func(w http.ResponseWriter, r *http.Request) error
 
 // Handler holds shared dependencies for all HTTP handlers.
 type Handler struct {
-	Store    *store.Store
-	Renderer *render.Renderer
-	Config   *config.Config
+	Store       *store.Store
+	Renderer    *render.Renderer
+	Config      *config.Config
+	CSVSessions sync.Map
 }
 
 // NotFoundError indicates a resource was not found.

@@ -125,6 +125,10 @@ func main() {
 		return withCSRF(auth.RequireAdmin(h))
 	}
 	mux.Handle("GET /admin/menu", adminOnly(h.Wrap(h.AdminMenuPage)))
+	mux.Handle("GET /admin/menu/csv", adminOnly(h.Wrap(h.CSVWizardPage)))
+	mux.Handle("GET /admin/menu/csv/export", adminOnly(h.Wrap(h.CSVExportItems)))
+	mux.Handle("POST /admin/menu/csv/upload", adminOnly(h.Wrap(h.CSVUploadItems)))
+	mux.Handle("POST /admin/menu/csv/apply", adminOnly(h.Wrap(h.CSVApplyChanges)))
 	mux.Handle("POST /admin/categories", adminOnly(h.Wrap(h.CreateCategory)))
 	mux.Handle("GET /admin/categories/{id}/edit", adminOnly(h.Wrap(h.EditCategoryForm)))
 	mux.Handle("POST /admin/categories/{id}/update", adminOnly(h.Wrap(h.UpdateCategory)))
