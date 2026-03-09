@@ -6,7 +6,7 @@
     </div>
 
     <!-- Steps indicator -->
-    <ul class="steps steps-horizontal w-full" id="csv-steps">
+    <ul class="steps steps-horizontal w-full" id="menu-batch-steps">
         <li class="step step-primary" data-content="1">Export</li>
         <li class="step step-primary" data-content="2">Hochladen</li>
         <li class="step" data-content="3">Vorschau</li>
@@ -14,8 +14,8 @@
     </ul>
 
     <!-- Wizard content area -->
-    <div id="csv-wizard-content">
-        {{template "csv-step-export-upload" .}}
+    <div id="menu-batch-content">
+        {{template "menu-batch-export-upload" .}}
     </div>
 </div>
 {{end}}

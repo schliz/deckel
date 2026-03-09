@@ -1,4 +1,4 @@
-{{define "csv-step-export-upload"}}
+{{define "menu-batch-export-upload"}}
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <!-- Export card -->
     <div class="card bg-base-200 shadow-sm">
@@ -7,7 +7,7 @@
             <p class="text-sm opacity-70">Lade die aktuelle Getränkekarte als CSV-Datei herunter.</p>
             <div class="form-control mt-2">
                 <label class="label"><span class="label-text">Kategorie</span></label>
-                <select id="csv-export-category" class="select select-sm select-bordered w-full">
+                <select id="menu-batch-export-category" class="select select-sm select-bordered w-full">
                     <option value="all">Alle Kategorien</option>
                     {{range .Categories}}
                     <option value="{{.ID}}">{{.Name}}</option>
@@ -16,7 +16,7 @@
             </div>
             <div class="card-actions mt-4">
                 <button class="btn btn-primary btn-sm"
-                    onclick="window.location='/admin/menu/csv/export?category=' + document.getElementById('csv-export-category').value">
+                    onclick="window.location='/admin/menu/batch/export?category=' + document.getElementById('menu-batch-export-category').value">
                     Herunterladen
                 </button>
             </div>
@@ -28,18 +28,18 @@
         <div class="card-body p-4">
             <h2 class="card-title text-lg">2. Hochladen</h2>
             <p class="text-sm opacity-70">Lade die bearbeitete CSV-Datei hoch. Format: Semikolon-getrennt, Preise mit Komma (z.B. 1,50).</p>
-            <form hx-post="/admin/menu/csv/upload"
-                  hx-target="#csv-wizard-content"
+            <form hx-post="/admin/menu/batch/upload"
+                  hx-target="#menu-batch-content"
                   hx-swap="innerHTML"
                   hx-encoding="multipart/form-data"
-                  hx-indicator="#csv-upload-spinner">
+                  hx-indicator="#menu-batch-upload-spinner">
                 <div class="form-control mt-2">
                     <input type="file" name="file" accept=".csv,text/csv"
                         class="file-input file-input-sm file-input-bordered w-full" required>
                 </div>
                 <div class="card-actions mt-4">
                     <button type="submit" class="btn btn-primary btn-sm">
-                        <span id="csv-upload-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
+                        <span id="menu-batch-upload-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
                         Hochladen & Prüfen
                     </button>
                 </div>
@@ -49,10 +49,10 @@
 </div>
 {{end}}
 
-{{define "csv-diff-preview"}}
+{{define "menu-batch-diff-preview"}}
 <script>
 (function() {
-    var steps = document.getElementById('csv-steps');
+    var steps = document.getElementById('menu-batch-steps');
     if (steps) {
         var items = steps.querySelectorAll('.step');
         items.forEach(function(item, idx) {
@@ -127,14 +127,14 @@
             </table>
         </div>
         <div class="card-actions mt-4 justify-end gap-2">
-            <a href="/admin/menu/csv" class="btn btn-ghost btn-sm">Abbrechen</a>
-            <form hx-post="/admin/menu/csv/apply"
-                  hx-target="#csv-wizard-content"
+            <a href="/admin/menu/batch" class="btn btn-ghost btn-sm">Abbrechen</a>
+            <form hx-post="/admin/menu/batch/apply"
+                  hx-target="#menu-batch-content"
                   hx-swap="innerHTML"
-                  hx-indicator="#csv-apply-spinner">
+                  hx-indicator="#menu-batch-apply-spinner">
                 <input type="hidden" name="session_token" value="{{.SessionToken}}">
                 <button type="submit" class="btn btn-primary btn-sm">
-                    <span id="csv-apply-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
+                    <span id="menu-batch-apply-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
                     Änderungen anwenden
                 </button>
             </form>
@@ -147,17 +147,17 @@
         <h2 class="card-title text-lg justify-center">Keine Unterschiede gefunden</h2>
         <p class="text-sm opacity-70">Die hochgeladene CSV enthält keine Änderungen gegenüber der aktuellen Getränkekarte.</p>
         <div class="card-actions mt-4 justify-center">
-            <a href="/admin/menu/csv" class="btn btn-primary btn-sm">Zurück</a>
+            <a href="/admin/menu/batch" class="btn btn-primary btn-sm">Zurück</a>
         </div>
     </div>
 </div>
 {{end}}
 {{end}}
 
-{{define "csv-apply-result"}}
+{{define "menu-batch-apply-result"}}
 <script>
 (function() {
-    var steps = document.getElementById('csv-steps');
+    var steps = document.getElementById('menu-batch-steps');
     if (steps) {
         var items = steps.querySelectorAll('.step');
         items.forEach(function(item) { item.classList.add('step-primary'); });
@@ -187,6 +187,6 @@
 
 <div class="mt-4">
     <a href="/admin/menu" class="btn btn-primary btn-sm">Zurück zur Getränkekarte</a>
-    <a href="/admin/menu/csv" class="btn btn-ghost btn-sm">Neue CSV-Bearbeitung</a>
+    <a href="/admin/menu/batch" class="btn btn-ghost btn-sm">Neue CSV-Bearbeitung</a>
 </div>
 {{end}}

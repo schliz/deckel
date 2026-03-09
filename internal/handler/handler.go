@@ -23,7 +23,7 @@ type Handler struct {
 	Store       *store.Store
 	Renderer    *render.Renderer
 	Config      *config.Config
-	CSVSessions sync.Map
+	MenuBatchSessions sync.Map
 }
 
 // NotFoundError indicates a resource was not found.

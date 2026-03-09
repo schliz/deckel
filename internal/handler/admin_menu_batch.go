@@ -19,8 +19,8 @@ import (
 	"github.com/k4-bar/deckel/internal/store"
 )
 
-// CSVWizardSession holds the parsed diff between upload and apply.
-type CSVWizardSession struct {
+// MenuBatchSession holds the parsed diff between upload and apply.
+type MenuBatchSession struct {
 	Token     string
 	CreatedAt time.Time
 	Changes   []ItemChange
@@ -29,21 +29,21 @@ type CSVWizardSession struct {
 
 // ItemChange describes a single item's old vs new values.
 type ItemChange struct {
-	ItemID              int64
-	CategoryName        string
-	OldName             string
-	NewName             string
-	NameChanged         bool
-	OldPriceBarteamer   int64
-	NewPriceBarteamer   int64
+	ItemID                int64
+	CategoryName          string
+	OldName               string
+	NewName               string
+	NameChanged           bool
+	OldPriceBarteamer     int64
+	NewPriceBarteamer     int64
 	PriceBarteamerChanged bool
-	OldPriceHelfer      int64
-	NewPriceHelfer      int64
-	PriceHelferChanged  bool
+	OldPriceHelfer        int64
+	NewPriceHelfer        int64
+	PriceHelferChanged    bool
 }
 
-// CSVWizardPageData is the view model for the CSV wizard page.
-type CSVWizardPageData struct {
+// MenuBatchPageData is the view model for the menu batch edit page.
+type MenuBatchPageData struct {
 	User              *auth.RequestUser
 	Categories        []model.Category
 	Settings          *model.Settings
@@ -52,38 +52,38 @@ type CSVWizardPageData struct {
 	LowBalanceWarning bool
 }
 
-// CSVDiffData is the view model for the diff preview fragment.
-type CSVDiffData struct {
+// MenuBatchDiffData is the view model for the diff preview fragment.
+type MenuBatchDiffData struct {
 	SessionToken string
 	Changes      []ItemChange
 	Warnings     []string
 	CSRFToken    string
 }
 
-// CSVResultData is the view model for the apply result fragment.
-type CSVResultData struct {
+// MenuBatchResultData is the view model for the apply result fragment.
+type MenuBatchResultData struct {
 	Success      bool
 	UpdatedCount int
 	ErrorMessage string
 }
 
-// CSVWizardPage renders the CSV batch edit wizard page.
-func (h *Handler) CSVWizardPage(w http.ResponseWriter, r *http.Request) error {
+// MenuBatchPage renders the menu batch edit wizard page.
+func (h *Handler) MenuBatchPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	settings, err := store.GetSettings(ctx, db)
 	if err != nil {
-		return fmt.Errorf("csv wizard: get settings: %w", err)
+		return fmt.Errorf("menu batch: get settings: %w", err)
 	}
 
 	cats, err := store.ListCategories(ctx, db)
 	if err != nil {
-		return fmt.Errorf("csv wizard: list categories: %w", err)
+		return fmt.Errorf("menu batch: list categories: %w", err)
 	}
 
-	data := CSVWizardPageData{
+	data := MenuBatchPageData{
 		User:              user,
 		Categories:        cats,
 		Settings:          settings,
@@ -92,12 +92,12 @@ func (h *Handler) CSVWizardPage(w http.ResponseWriter, r *http.Request) error {
 		LowBalanceWarning: isLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "admin_csv", data)
+	h.Renderer.Page(w, r, "admin_menu_batch", data)
 	return nil
 }
 
-// CSVExportItems exports menu items as a semicolon-separated CSV file.
-func (h *Handler) CSVExportItems(w http.ResponseWriter, r *http.Request) error {
+// MenuBatchExport exports menu items as a semicolon-separated CSV file.
+func (h *Handler) MenuBatchExport(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -105,7 +105,7 @@ func (h *Handler) CSVExportItems(w http.ResponseWriter, r *http.Request) error {
 
 	cats, err := store.ListCategories(ctx, db)
 	if err != nil {
-		return fmt.Errorf("csv export: list categories: %w", err)
+		return fmt.Errorf("menu batch export: list categories: %w", err)
 	}
 
 	// Build a map of category ID → name.
@@ -120,7 +120,7 @@ func (h *Handler) CSVExportItems(w http.ResponseWriter, r *http.Request) error {
 		for _, c := range cats {
 			catItems, err := store.ListItemsByCategory(ctx, db, c.ID)
 			if err != nil {
-				return fmt.Errorf("csv export: list items for category %d: %w", c.ID, err)
+				return fmt.Errorf("menu batch export: list items for category %d: %w", c.ID, err)
 			}
 			items = append(items, catItems...)
 		}
@@ -131,7 +131,7 @@ func (h *Handler) CSVExportItems(w http.ResponseWriter, r *http.Request) error {
 		}
 		items, err = store.ListItemsByCategory(ctx, db, catID)
 		if err != nil {
-			return fmt.Errorf("csv export: list items: %w", err)
+			return fmt.Errorf("menu batch export: list items: %w", err)
 		}
 	}
 
@@ -162,13 +162,13 @@ func (h *Handler) CSVExportItems(w http.ResponseWriter, r *http.Request) error {
 	return cw.Error()
 }
 
-// CSVUploadItems parses an uploaded CSV, computes a diff, and shows a preview.
-func (h *Handler) CSVUploadItems(w http.ResponseWriter, r *http.Request) error {
+// MenuBatchUpload parses an uploaded CSV, computes a diff, and shows a preview.
+func (h *Handler) MenuBatchUpload(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
 	// Clean up expired sessions.
-	h.cleanupCSVSessions()
+	h.cleanupMenuBatchSessions()
 
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		return &ValidationError{Message: "Datei zu groß (max. 1 MB)"}
@@ -202,7 +202,7 @@ func (h *Handler) CSVUploadItems(w http.ResponseWriter, r *http.Request) error {
 	// Build category name map for display.
 	cats, err := store.ListCategories(ctx, db)
 	if err != nil {
-		return fmt.Errorf("csv upload: list categories: %w", err)
+		return fmt.Errorf("menu batch upload: list categories: %w", err)
 	}
 	catMap := make(map[int64]string, len(cats))
 	for _, c := range cats {
@@ -234,7 +234,7 @@ func (h *Handler) CSVUploadItems(w http.ResponseWriter, r *http.Request) error {
 			continue
 		}
 
-		priceBarteamer, err := parseCSVPrice(row[3])
+		priceBarteamer, err := parseMenuBatchPrice(row[3])
 		if err != nil {
 			warnings = append(warnings, fmt.Sprintf("Zeile %d: Ungültiger Preis '%s'", lineNum, strings.TrimSpace(row[3])))
 			continue
@@ -244,7 +244,7 @@ func (h *Handler) CSVUploadItems(w http.ResponseWriter, r *http.Request) error {
 			continue
 		}
 
-		priceHelfer, err := parseCSVPrice(row[4])
+		priceHelfer, err := parseMenuBatchPrice(row[4])
 		if err != nil {
 			warnings = append(warnings, fmt.Sprintf("Zeile %d: Ungültiger Preis '%s'", lineNum, strings.TrimSpace(row[4])))
 			continue
@@ -261,7 +261,7 @@ func (h *Handler) CSVUploadItems(w http.ResponseWriter, r *http.Request) error {
 				warnings = append(warnings, fmt.Sprintf("Zeile %d: Unbekannte ID %d", lineNum, itemID))
 				continue
 			}
-			return fmt.Errorf("csv upload: get item %d: %w", itemID, err)
+			return fmt.Errorf("menu batch upload: get item %d: %w", itemID, err)
 		}
 
 		if item.DeletedAt != nil {
@@ -271,17 +271,17 @@ func (h *Handler) CSVUploadItems(w http.ResponseWriter, r *http.Request) error {
 
 		// Compute diff.
 		change := ItemChange{
-			ItemID:              itemID,
-			CategoryName:        catMap[item.CategoryID],
-			OldName:             item.Name,
-			NewName:             name,
-			NameChanged:         item.Name != name,
-			OldPriceBarteamer:   item.PriceBarteamer,
-			NewPriceBarteamer:   priceBarteamer,
+			ItemID:                itemID,
+			CategoryName:          catMap[item.CategoryID],
+			OldName:               item.Name,
+			NewName:               name,
+			NameChanged:           item.Name != name,
+			OldPriceBarteamer:     item.PriceBarteamer,
+			NewPriceBarteamer:     priceBarteamer,
 			PriceBarteamerChanged: item.PriceBarteamer != priceBarteamer,
-			OldPriceHelfer:      item.PriceHelfer,
-			NewPriceHelfer:      priceHelfer,
-			PriceHelferChanged:  item.PriceHelfer != priceHelfer,
+			OldPriceHelfer:        item.PriceHelfer,
+			NewPriceHelfer:        priceHelfer,
+			PriceHelferChanged:    item.PriceHelfer != priceHelfer,
 		}
 
 		if change.NameChanged || change.PriceBarteamerChanged || change.PriceHelferChanged {
@@ -292,40 +292,40 @@ func (h *Handler) CSVUploadItems(w http.ResponseWriter, r *http.Request) error {
 	// Generate session token.
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return fmt.Errorf("csv upload: generate token: %w", err)
+		return fmt.Errorf("menu batch upload: generate token: %w", err)
 	}
 	token := fmt.Sprintf("%x", tokenBytes)
 
-	session := &CSVWizardSession{
+	session := &MenuBatchSession{
 		Token:     token,
 		CreatedAt: time.Now(),
 		Changes:   changes,
 		Warnings:  warnings,
 	}
-	h.CSVSessions.Store(token, session)
+	h.MenuBatchSessions.Store(token, session)
 
-	data := CSVDiffData{
+	data := MenuBatchDiffData{
 		SessionToken: token,
 		Changes:      changes,
 		Warnings:     warnings,
 		CSRFToken:    middleware.CSRFTokenFromContext(ctx),
 	}
 
-	h.Renderer.Fragment(w, r, "csv-diff-preview", data)
+	h.Renderer.Fragment(w, r, "menu-batch-diff-preview", data)
 	return nil
 }
 
-// CSVApplyChanges applies the changes from a CSV upload session.
-func (h *Handler) CSVApplyChanges(w http.ResponseWriter, r *http.Request) error {
+// MenuBatchApply applies the changes from a menu batch upload session.
+func (h *Handler) MenuBatchApply(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
 	token := r.FormValue("session_token")
-	val, ok := h.CSVSessions.LoadAndDelete(token)
+	val, ok := h.MenuBatchSessions.LoadAndDelete(token)
 	if !ok {
 		return &ValidationError{Message: "Sitzung abgelaufen. Bitte erneut hochladen."}
 	}
 
-	session := val.(*CSVWizardSession)
+	session := val.(*MenuBatchSession)
 
 	// Check session age.
 	if time.Since(session.CreatedAt) > 30*time.Minute {
@@ -333,11 +333,11 @@ func (h *Handler) CSVApplyChanges(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	if len(session.Changes) == 0 {
-		data := CSVResultData{
+		data := MenuBatchResultData{
 			Success:      true,
 			UpdatedCount: 0,
 		}
-		h.Renderer.Fragment(w, r, "csv-apply-result", data)
+		h.Renderer.Fragment(w, r, "menu-batch-apply-result", data)
 		return nil
 	}
 
@@ -362,24 +362,24 @@ func (h *Handler) CSVApplyChanges(w http.ResponseWriter, r *http.Request) error 
 	})
 
 	if err != nil {
-		data := CSVResultData{
+		data := MenuBatchResultData{
 			Success:      false,
 			ErrorMessage: err.Error(),
 		}
-		h.Renderer.Fragment(w, r, "csv-apply-result", data)
+		h.Renderer.Fragment(w, r, "menu-batch-apply-result", data)
 		return nil
 	}
 
-	data := CSVResultData{
+	data := MenuBatchResultData{
 		Success:      true,
 		UpdatedCount: updatedCount,
 	}
-	h.Renderer.Fragment(w, r, "csv-apply-result", data)
+	h.Renderer.Fragment(w, r, "menu-batch-apply-result", data)
 	return nil
 }
 
-// parseCSVPrice parses a German-locale price string like "1,50" into cents (150).
-func parseCSVPrice(s string) (int64, error) {
+// parseMenuBatchPrice parses a German-locale price string like "1,50" into cents (150).
+func parseMenuBatchPrice(s string) (int64, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return 0, fmt.Errorf("empty price")
@@ -392,14 +392,13 @@ func parseCSVPrice(s string) (int64, error) {
 	return int64(math.Round(f * 100)), nil
 }
 
-// cleanupCSVSessions removes sessions older than 30 minutes.
-func (h *Handler) cleanupCSVSessions() {
-	h.CSVSessions.Range(func(key, value any) bool {
-		session := value.(*CSVWizardSession)
+// cleanupMenuBatchSessions removes sessions older than 30 minutes.
+func (h *Handler) cleanupMenuBatchSessions() {
+	h.MenuBatchSessions.Range(func(key, value any) bool {
+		session := value.(*MenuBatchSession)
 		if time.Since(session.CreatedAt) > 30*time.Minute {
-			h.CSVSessions.Delete(key)
+			h.MenuBatchSessions.Delete(key)
 		}
 		return true
 	})
 }
-
