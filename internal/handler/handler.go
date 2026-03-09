@@ -8,11 +8,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/k4-bar/deckel/internal/auth"
-	"github.com/k4-bar/deckel/internal/config"
-	"github.com/k4-bar/deckel/internal/model"
-	"github.com/k4-bar/deckel/internal/render"
-	"github.com/k4-bar/deckel/internal/store"
+	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/config"
+	"github.com/schliz/deckel/internal/model"
+	"github.com/schliz/deckel/internal/render"
+	"github.com/schliz/deckel/internal/store"
 )
 
 // AppHandler is a handler function that returns an error for centralized error handling.

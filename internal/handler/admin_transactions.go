@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/k4-bar/deckel/internal/auth"
-	"github.com/k4-bar/deckel/internal/middleware"
-	"github.com/k4-bar/deckel/internal/model"
-	"github.com/k4-bar/deckel/internal/store"
+	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/middleware"
+	"github.com/schliz/deckel/internal/model"
+	"github.com/schliz/deckel/internal/store"
 )
 
 // AdminTransactionsPageData is the view model for the admin transaction list page.

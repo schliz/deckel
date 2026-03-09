@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/k4-bar/deckel/internal/auth"
-	"github.com/k4-bar/deckel/internal/middleware"
-	"github.com/k4-bar/deckel/internal/store"
+	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/middleware"
+	"github.com/schliz/deckel/internal/store"
 )
 
 // ProfilePageData is the view model for the profile page.

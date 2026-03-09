@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/k4-bar/deckel/internal/auth"
-	"github.com/k4-bar/deckel/internal/middleware"
-	"github.com/k4-bar/deckel/internal/model"
-	"github.com/k4-bar/deckel/internal/store"
+	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/middleware"
+	"github.com/schliz/deckel/internal/model"
+	"github.com/schliz/deckel/internal/store"
 )
 
 // AdminMenuPageData is the view model for the admin menu management page.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/k4-bar/deckel/internal/model"
+	"github.com/schliz/deckel/internal/model"
 )
 
 // ListCategories returns all categories ordered by sort_order.

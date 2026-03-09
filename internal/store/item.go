@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/k4-bar/deckel/internal/model"
+	"github.com/schliz/deckel/internal/model"
 )
 
 // ListItemsByCategory returns all active (non-soft-deleted) items for the given

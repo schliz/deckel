@@ -1,4 +1,4 @@
-module github.com/k4-bar/deckel
+module github.com/schliz/deckel
 
 go 1.25.0
 

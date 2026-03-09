@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/k4-bar/deckel/internal/model"
-	"github.com/k4-bar/deckel/internal/store"
+	"github.com/schliz/deckel/internal/model"
+	"github.com/schliz/deckel/internal/store"
 )
 
 // Middleware returns HTTP middleware that extracts the authenticated user from

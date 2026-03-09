@@ -10,11 +10,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/k4-bar/deckel/internal/auth"
-	"github.com/k4-bar/deckel/internal/mail"
-	"github.com/k4-bar/deckel/internal/middleware"
-	"github.com/k4-bar/deckel/internal/model"
-	"github.com/k4-bar/deckel/internal/store"
+	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/mail"
+	"github.com/schliz/deckel/internal/middleware"
+	"github.com/schliz/deckel/internal/model"
+	"github.com/schliz/deckel/internal/store"
 )
 
 // AdminSettingsPageData is the view model for the admin settings page.

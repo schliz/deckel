@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/k4-bar/deckel/internal/model"
+	"github.com/schliz/deckel/internal/model"
 )
 
 // GetSettings reads the singleton settings row (id=1).

@@ -14,13 +14,13 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/k4-bar/deckel/internal/auth"
-	"github.com/k4-bar/deckel/internal/config"
-	"github.com/k4-bar/deckel/internal/handler"
-	"github.com/k4-bar/deckel/internal/middleware"
-	"github.com/k4-bar/deckel/internal/render"
-	"github.com/k4-bar/deckel/internal/store"
-	"github.com/k4-bar/deckel/migrations"
+	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/config"
+	"github.com/schliz/deckel/internal/handler"
+	"github.com/schliz/deckel/internal/middleware"
+	"github.com/schliz/deckel/internal/render"
+	"github.com/schliz/deckel/internal/store"
+	"github.com/schliz/deckel/migrations"
 	"github.com/pressly/goose/v3"
 )
 
