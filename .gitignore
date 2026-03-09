@@ -11,7 +11,6 @@
 
 # Claude and Ralph
 .claude
-CLAUDE.md
 tasks/
 docs/*-spec.md
 scripts/ralph
