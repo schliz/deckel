@@ -14,6 +14,8 @@
 tasks/
 docs/*-spec.md
 scripts/ralph
+prd.json
+progress.txt
 
 # OS
 .DS_Store
