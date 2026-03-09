@@ -121,8 +121,6 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	// Amount is negative (purchase debits the user's tab).
 	amount := -(unitPrice * int64(quantity))
 
-	var warning bool
-
 	// Execute within a DB transaction with FOR UPDATE locking.
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
 		// Get current balance with row lock.
@@ -136,10 +134,6 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 			hardLimit := -settings.HardSpendingLimit
 			if balance <= hardLimit {
 				return &ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht. Bitte erst einzahlen."}
-			}
-			projectedBalance := balance + amount
-			if projectedBalance <= hardLimit {
-				warning = true
 			}
 		}
 
@@ -165,23 +159,19 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("place order: %w", err)
 	}
 
-	// Build response: success overlay + optional warning toast + OOB header-stats.
-	h.Renderer.Fragment(w, r, "order-success", map[string]any{
-		"Quantity":    quantity,
-		"ItemName":    item.Name,
-		"TotalAmount": -amount,
-	})
-
-	// Show additional warning toast when this order hits the spending limit.
-	if warning {
-		h.Renderer.AppendOOB(w, "toast", map[string]string{
-			"Type":    "warning",
-			"Message": "Achtung: Du hast dein Limit erreicht. Bitte zahle bald ein!",
-		})
-	}
-
 	// Render OOB header-stats update.
 	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
+
+	// Show warning overlay if the user's balance is now below the warning limit.
+	warning := newBalance < settings.WarningLimit
+
+	// Build response: success overlay + OOB header-stats.
+	h.Renderer.Fragment(w, r, "order-success", map[string]any{
+		"Title":       "Bestellung gebucht!",
+		"Subtitle":    fmt.Sprintf("%dx %s", quantity, item.Name),
+		"TotalAmount": -amount,
+		"Warning":     warning,
+	})
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
 	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
 	rank, total, _ := store.GetUserRank(ctx, db, user.ID)

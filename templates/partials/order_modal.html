@@ -2,6 +2,10 @@
 <div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
     <div class="modal-box max-w-sm">
         <h3 class="font-bold text-lg">{{.Item.Name}}</h3>
+
+        <div id="order-error" class="alert alert-error mt-3 hidden">
+            <span id="order-error-msg"></span>
+        </div>
         <p class="text-sm text-base-content/60">
             {{if .User.IsBarteamer}}{{formatCents .Item.PriceBarteamer}}{{else}}{{formatCents .Item.PriceHelfer}}{{end}} pro Stück
         </p>
@@ -61,6 +65,21 @@
         qtyInput.value = val;
         totalEl.textContent = formatCents(unitPrice * val);
     };
+
+    // Handle error responses inline in the modal.
+    var btn = document.getElementById('order-confirm-btn');
+    btn.addEventListener('htmx:beforeSwap', function(evt) {
+        if (evt.detail.xhr.status >= 400) {
+            evt.detail.shouldSwap = false;
+            var errDiv = document.getElementById('order-error');
+            var errMsg = document.getElementById('order-error-msg');
+            var tmp = document.createElement('div');
+            tmp.innerHTML = evt.detail.xhr.responseText;
+            var span = tmp.querySelector('span');
+            errMsg.textContent = span ? span.textContent : 'Ein Fehler ist aufgetreten';
+            errDiv.classList.remove('hidden');
+        }
+    });
 })();
 </script>
 {{end}}

@@ -239,14 +239,19 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 		return fmt.Errorf("create custom transaction: %w", err)
 	}
 
-	// Build response: toast + OOB header-stats + close modal.
-	h.Renderer.Fragment(w, r, "toast", map[string]string{
-		"Type":    "success",
-		"Message": "Buchung gespeichert!",
-	})
-
 	// Render OOB header-stats update.
 	newBalance, _ := store.GetUserBalance(ctx, db, user.ID)
+
+	// Show warning overlay if the user's balance is now below the warning limit.
+	warning := newBalance < settings.WarningLimit
+
+	// Build response: success overlay + OOB header-stats.
+	h.Renderer.Fragment(w, r, "order-success", map[string]any{
+		"Title":       "Buchung gespeichert!",
+		"Subtitle":    description,
+		"TotalAmount": amountCents,
+		"Warning":     warning,
+	})
 	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
 	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
 	rank, total, _ := store.GetUserRank(ctx, db, user.ID)
@@ -261,9 +266,6 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 		"User":                user,
 		"OOB":                 true,
 	})
-
-	// Close modal.
-	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))
 
 	return nil
 }
