@@ -43,7 +43,10 @@
         </div>
         {{end}}
 
-        <form method="POST" action="/kiosk/order" id="kiosk-order-form">
+        <form id="kiosk-order-form"
+              hx-post="/kiosk/order"
+              hx-target="body"
+              hx-swap="innerHTML">
             <input type="hidden" name="item_id" value="{{.Item.ID}}">
             <input type="hidden" name="user_id" value="{{.TargetUser.ID}}">
             <input type="hidden" name="quantity" value="1" id="qty-input">
