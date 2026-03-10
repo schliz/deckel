@@ -50,8 +50,9 @@ type Transaction struct {
 	Description *string
 	Type        string
 	CancelledAt *time.Time
-	CancelsID   *int64
-	CreatedAt   time.Time
+	CancelsID       *int64
+	CreatedByUserID *int64
+	CreatedAt       time.Time
 }
 
 type TransactionWithUser struct {

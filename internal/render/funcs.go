@@ -23,6 +23,11 @@ func FuncMap() template.FuncMap {
 		"withinMinutes": withinMinutes,
 		"centsToEuros":  centsToEuros,
 		"trimPrefix":    strings.TrimPrefix,
+		"negInt64":      negInt64,
+		"addInt64":      addInt64,
+		"deref":         derefString,
+		"derefInt":      derefInt,
+		"derefInt64":    derefInt64,
 	}
 }
 
@@ -99,6 +104,33 @@ func centsToEuros(cents int64) string {
 		prefix = "-"
 	}
 	return fmt.Sprintf("%s%d,%02d", prefix, cents/100, cents%100)
+}
+
+// addInt64 returns a + b for int64 values.
+func addInt64(a, b int64) int64 { return a + b }
+
+// derefString dereferences a *string, returning "" if nil.
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// derefInt dereferences a *int, returning 0 if nil.
+func derefInt(p *int) int {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+// derefInt64 dereferences a *int64, returning 0 if nil.
+func derefInt64(p *int64) int64 {
+	if p == nil {
+		return 0
+	}
+	return *p
 }
 
 // seq returns a slice of ints [0, 1, ..., n-1].

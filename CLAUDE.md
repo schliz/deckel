@@ -48,6 +48,7 @@ All monetary values are stored as cents (bigint). Items use soft-delete (`delete
 | DECKEL_LISTEN_ADDR | :8080 | Server bind address |
 | DECKEL_DEV_MODE | false | Enables template hot-reload, disables cache headers |
 | DECKEL_ADMIN_GROUP | admin | Group name that grants admin access |
+| DECKEL_KIOSK_GROUP | kiosk | Group name that grants kiosk access |
 | DECKEL_STATIC_DIR | ./static | Path to static assets |
 | DECKEL_TEMPLATE_DIR | ./templates | Path to HTML templates |
 | DECKEL_ORGANIZATION | K4-Bar | Organization name shown in navbar and page title |

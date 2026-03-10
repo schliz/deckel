@@ -12,6 +12,7 @@ type Config struct {
 	ListenAddr  string
 	DevMode     bool
 	AdminGroup  string
+	KioskGroup  string
 	StaticDir   string
 	TemplateDir string
 	Organization string
@@ -26,6 +27,7 @@ func Load() (*Config, error) {
 		ListenAddr:  envOrDefault("DECKEL_LISTEN_ADDR", ":8080"),
 		DevMode:     strings.EqualFold(os.Getenv("DECKEL_DEV_MODE"), "true"),
 		AdminGroup:  envOrDefault("DECKEL_ADMIN_GROUP", "admin"),
+		KioskGroup:  envOrDefault("DECKEL_KIOSK_GROUP", "kiosk"),
 		StaticDir:   envOrDefault("DECKEL_STATIC_DIR", "./static"),
 		TemplateDir: envOrDefault("DECKEL_TEMPLATE_DIR", "./templates"),
 		Organization: envOrDefault("DECKEL_ORGANIZATION", "K4-Bar"),

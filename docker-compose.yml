@@ -8,6 +8,7 @@ services:
       DECKEL_LISTEN_ADDR: ":8080"
       DECKEL_DEV_MODE: "false"
       DECKEL_ADMIN_GROUP: ${APP_ADMIN_GROUP:-"role:admin"}
+      DECKEL_KIOSK_GROUP: ${DECKEL_KIOSK_GROUP:-"role:kiosk"}
       DECKEL_STATIC_DIR: "/app/static"
       DECKEL_TEMPLATE_DIR: "/app/templates"
       DECKEL_ORGANIZATION: ${DECKEL_ORGANIZATION:-K4-Bar}

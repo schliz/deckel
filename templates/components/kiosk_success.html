@@ -1,0 +1,21 @@
+{{define "kiosk-success"}}
+<div id="kiosk-success-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-base-100/90"
+     onclick="window.location.href='/kiosk'">
+    <div class="card {{if .Warning}}bg-warning text-warning-content{{else}}bg-success text-success-content{{end}} shadow-xl max-w-md mx-auto">
+        <div class="card-body text-center">
+            <div class="text-5xl mb-4">✓</div>
+            <h2 class="card-title justify-center text-2xl">{{.Title}}</h2>
+            <p class="text-xl">{{.UserName}}</p>
+            <p class="text-lg">{{.Subtitle}}</p>
+            <p class="text-2xl font-bold mt-2">{{formatCents .TotalAmount}}</p>
+            <p class="text-sm mt-2">Neues Guthaben: {{formatCents .NewBalance}}</p>
+            {{if .Warning}}
+            <div class="mt-4 font-semibold">Niedriges Guthaben — bitte bald einzahlen!</div>
+            {{end}}
+        </div>
+    </div>
+</div>
+<script>
+    setTimeout(function() { window.location.href = '/kiosk'; }, 3000);
+</script>
+{{end}}

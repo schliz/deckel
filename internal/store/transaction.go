@@ -14,10 +14,10 @@ import (
 // CreateTransaction inserts a new transaction and returns it with the generated ID and timestamp.
 func CreateTransaction(ctx context.Context, db DBTX, t *model.Transaction) (*model.Transaction, error) {
 	err := db.QueryRow(ctx, `
-		INSERT INTO transactions (user_id, amount, item_title, unit_price, quantity, description, type, cancels_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO transactions (user_id, amount, item_title, unit_price, quantity, description, type, cancels_id, created_by_user_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at`,
-		t.UserID, t.Amount, t.ItemTitle, t.UnitPrice, t.Quantity, t.Description, t.Type, t.CancelsID,
+		t.UserID, t.Amount, t.ItemTitle, t.UnitPrice, t.Quantity, t.Description, t.Type, t.CancelsID, t.CreatedByUserID,
 	).Scan(&t.ID, &t.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("create transaction: %w", err)
@@ -30,10 +30,10 @@ func GetTransaction(ctx context.Context, db DBTX, id int64) (*model.Transaction,
 	var t model.Transaction
 	err := db.QueryRow(ctx, `
 		SELECT id, user_id, amount, item_title, unit_price, quantity, description,
-		       type, cancelled_at, cancels_id, created_at
+		       type, cancelled_at, cancels_id, created_by_user_id, created_at
 		FROM transactions WHERE id = $1`, id).Scan(
 		&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
-		&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+		&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedByUserID, &t.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -55,7 +55,7 @@ func ListTransactionsByUser(ctx context.Context, db DBTX, userID int64, limit, o
 
 	rows, err := db.Query(ctx, `
 		SELECT id, user_id, amount, item_title, unit_price, quantity, description,
-		       type, cancelled_at, cancels_id, created_at
+		       type, cancelled_at, cancels_id, created_by_user_id, created_at
 		FROM transactions
 		WHERE user_id = $1
 		ORDER BY created_at DESC, id DESC
@@ -70,7 +70,7 @@ func ListTransactionsByUser(ctx context.Context, db DBTX, userID int64, limit, o
 		var t model.Transaction
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
-			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedByUserID, &t.CreatedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan transaction: %w", err)
 		}
@@ -87,7 +87,7 @@ func ListTransactionsByUser(ctx context.Context, db DBTX, userID int64, limit, o
 func ListAllTransactionsByUser(ctx context.Context, db DBTX, userID int64) ([]model.Transaction, error) {
 	rows, err := db.Query(ctx, `
 		SELECT id, user_id, amount, item_title, unit_price, quantity, description,
-		       type, cancelled_at, cancels_id, created_at
+		       type, cancelled_at, cancels_id, created_by_user_id, created_at
 		FROM transactions
 		WHERE user_id = $1
 		ORDER BY created_at DESC, id DESC`, userID)
@@ -101,7 +101,7 @@ func ListAllTransactionsByUser(ctx context.Context, db DBTX, userID int64) ([]mo
 		var t model.Transaction
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
-			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedByUserID, &t.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan transaction: %w", err)
 		}
@@ -125,7 +125,7 @@ func ListAllTransactions(ctx context.Context, db DBTX, limit, offset int) ([]mod
 
 	rows, err := db.Query(ctx, `
 		SELECT t.id, t.user_id, t.amount, t.item_title, t.unit_price, t.quantity, t.description,
-		       t.type, t.cancelled_at, t.cancels_id, t.created_at,
+		       t.type, t.cancelled_at, t.cancels_id, t.created_by_user_id, t.created_at,
 		       u.full_name, u.email
 		FROM transactions t
 		JOIN users u ON u.id = t.user_id
@@ -141,7 +141,7 @@ func ListAllTransactions(ctx context.Context, db DBTX, limit, offset int) ([]mod
 		var t model.TransactionWithUser
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
-			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedAt,
+			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedByUserID, &t.CreatedAt,
 			&t.UserName, &t.UserEmail,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan transaction with user: %w", err)
@@ -210,4 +210,40 @@ func CancelTransaction(ctx context.Context, db DBTX, id int64) error {
 	}
 
 	return nil
+}
+
+// ListTransactionsByCreator returns recent transactions created by a specific user
+// (e.g., kiosk), joined with the target user's name and email.
+func ListTransactionsByCreator(ctx context.Context, db DBTX, creatorID int64, limit int) ([]model.TransactionWithUser, error) {
+	rows, err := db.Query(ctx, `
+		SELECT t.id, t.user_id, t.amount, t.item_title, t.unit_price, t.quantity, t.description,
+		       t.type, t.cancelled_at, t.cancels_id, t.created_by_user_id, t.created_at,
+		       u.full_name, u.email
+		FROM transactions t
+		JOIN users u ON u.id = t.user_id
+		WHERE t.created_by_user_id = $1
+		ORDER BY t.created_at DESC, t.id DESC
+		LIMIT $2`, creatorID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list transactions by creator: %w", err)
+	}
+	defer rows.Close()
+
+	var txns []model.TransactionWithUser
+	for rows.Next() {
+		var t model.TransactionWithUser
+		if err := rows.Scan(
+			&t.ID, &t.UserID, &t.Amount, &t.ItemTitle, &t.UnitPrice, &t.Quantity, &t.Description,
+			&t.Type, &t.CancelledAt, &t.CancelsID, &t.CreatedByUserID, &t.CreatedAt,
+			&t.UserName, &t.UserEmail,
+		); err != nil {
+			return nil, fmt.Errorf("scan transaction by creator: %w", err)
+		}
+		txns = append(txns, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate transactions by creator: %w", err)
+	}
+
+	return txns, nil
 }

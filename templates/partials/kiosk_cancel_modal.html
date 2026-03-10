@@ -1,0 +1,21 @@
+{{define "kiosk-cancel-modal"}}
+<div id="modal" class="modal modal-open" style="display:flex">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Buchung stornieren?</h3>
+        <p class="py-4">
+            {{.Transaction.UserName}}: {{if .Transaction.ItemTitle}}{{deref .Transaction.ItemTitle}}{{else if .Transaction.Description}}{{deref .Transaction.Description}}{{end}}
+            — {{formatCents .Transaction.Amount}}
+        </p>
+        <div class="modal-action">
+            <button class="btn btn-ghost" onclick="document.getElementById('modal').style.display='none'; document.getElementById('modal').innerHTML='';">Abbrechen</button>
+            <button class="btn btn-error"
+                    hx-post="/kiosk/transactions/{{.Transaction.ID}}/cancel"
+                    hx-target="#kiosk-history-list"
+                    hx-swap="outerHTML">
+                Stornieren
+            </button>
+        </div>
+    </div>
+    <div class="modal-backdrop" onclick="document.getElementById('modal').style.display='none'; document.getElementById('modal').innerHTML='';"></div>
+</div>
+{{end}}

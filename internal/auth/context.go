@@ -13,6 +13,7 @@ type RequestUser struct {
 	FamilyName            string
 	Groups                []string
 	IsAdmin               bool
+	IsKiosk               bool
 	ID                    int64
 	Balance               int64
 	IsBarteamer           bool

@@ -77,7 +77,7 @@ func main() {
 	base := middleware.Chain(
 		middleware.Logging(),
 		middleware.Recovery(),
-		auth.Middleware(s, cfg.AdminGroup, cfg.Organization, cfg.AppName),
+		auth.Middleware(s, cfg.AdminGroup, cfg.KioskGroup, cfg.Organization, cfg.AppName),
 	)
 	withCSRF := middleware.Chain(
 		base,
@@ -101,7 +101,13 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", staticCacheHandler(staticFS, cfg.DevMode)))
 
 	// Menu page (GET / and GET /menu).
-	mux.Handle("GET /{$}", withCSRF(h.Wrap(h.MenuPage)))
+	mux.Handle("GET /{$}", withCSRF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if user := auth.UserFromContext(r.Context()); user != nil && user.IsKiosk {
+			http.Redirect(w, r, "/kiosk", http.StatusFound)
+			return
+		}
+		h.Wrap(h.MenuPage)(w, r)
+	})))
 	mux.Handle("GET /menu", withCSRF(h.Wrap(h.MenuPage)))
 
 	// Order modal (GET /menu/items/{id}/order).
@@ -121,6 +127,18 @@ func main() {
 	mux.Handle("POST /transactions/custom", withCSRF(h.Wrap(h.CreateCustomTransaction)))
 	mux.Handle("GET /transactions/{id}/cancel", withCSRF(h.Wrap(h.CancelModal)))
 	mux.Handle("POST /transactions/{id}/cancel", withCSRF(h.Wrap(h.CancelTransaction)))
+
+	// Kiosk routes with CSRF + RequireKiosk.
+	kioskOnly := func(h http.Handler) http.Handler {
+		return withCSRF(auth.RequireKiosk(h))
+	}
+	mux.Handle("GET /kiosk", kioskOnly(h.Wrap(h.KioskMenuPage)))
+	mux.Handle("GET /kiosk/items/{id}/users", kioskOnly(h.Wrap(h.KioskUserSelect)))
+	mux.Handle("GET /kiosk/items/{id}/confirm/{uid}", kioskOnly(h.Wrap(h.KioskConfirm)))
+	mux.Handle("POST /kiosk/order", kioskOnly(h.Wrap(h.KioskPlaceOrder)))
+	mux.Handle("GET /kiosk/history", kioskOnly(h.Wrap(h.KioskHistory)))
+	mux.Handle("GET /kiosk/transactions/{id}/cancel", kioskOnly(h.Wrap(h.KioskCancelModal)))
+	mux.Handle("POST /kiosk/transactions/{id}/cancel", kioskOnly(h.Wrap(h.KioskCancelTransaction)))
 
 	// Admin routes with CSRF + RequireAdmin.
 	adminOnly := func(h http.Handler) http.Handler {

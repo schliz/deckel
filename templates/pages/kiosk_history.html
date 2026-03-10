@@ -1,0 +1,51 @@
+{{define "layout"}}{{template "kiosk-chrome" .}}{{end}}
+
+{{define "content"}}
+<div class="flex items-center gap-4 mb-6">
+    <a href="/kiosk" class="btn btn-ghost btn-sm">← Zurück</a>
+    <h1 class="text-2xl font-bold">Letzte Buchungen</h1>
+</div>
+
+<div id="kiosk-history-list">
+{{template "kiosk-history-list" .}}
+</div>
+{{end}}
+
+{{define "kiosk-history-list"}}
+<div id="kiosk-history-list" {{if .OOB}}hx-swap-oob="outerHTML"{{end}}>
+{{if .Transactions}}
+<ul class="list bg-base-200 rounded-box shadow-sm">
+    {{range .Transactions}}
+    <li class="list-row {{if .CancelledAt}}opacity-50 line-through{{end}}">
+        <div class="list-col-grow">
+            <div class="font-semibold">{{.UserName}}</div>
+            <div class="text-sm opacity-70">
+                {{if .ItemTitle}}{{deref .ItemTitle}}{{else if .Description}}{{deref .Description}}{{else}}{{.Type}}{{end}}
+                {{if .Quantity}}× {{derefInt .Quantity}}{{end}}
+            </div>
+            <div class="text-xs opacity-50">{{formatTime .CreatedAt}}</div>
+        </div>
+        <div class="text-right">
+            <div class="font-semibold {{if lt .Amount 0}}text-error{{else}}text-success{{end}}">
+                {{formatCents .Amount}}
+            </div>
+            {{if and (not .CancelledAt) (ne .Type "cancellation") (withinMinutes .CreatedAt $.Settings.CancellationMinutes)}}
+                {{if .CreatedByUserID}}
+                    {{if eq (derefInt64 .CreatedByUserID) $.KioskUserID}}
+                    <button class="btn btn-error btn-xs mt-1"
+                            hx-get="/kiosk/transactions/{{.ID}}/cancel"
+                            hx-target="#modal">
+                        Stornieren
+                    </button>
+                    {{end}}
+                {{end}}
+            {{end}}
+        </div>
+    </li>
+    {{end}}
+</ul>
+{{else}}
+<div class="text-center opacity-50 py-8">Keine Buchungen vorhanden.</div>
+{{end}}
+</div>
+{{end}}

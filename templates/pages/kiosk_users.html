@@ -1,0 +1,47 @@
+{{define "layout"}}{{template "kiosk-chrome" .}}{{end}}
+
+{{define "content"}}
+<div class="flex items-center gap-4 mb-6">
+    <a href="/kiosk" class="btn btn-ghost btn-sm">← Zurück</a>
+    <h1 class="text-2xl font-bold">{{.Item.Name}} — Wer bestellt?</h1>
+</div>
+
+<div class="mb-4">
+    <input type="search" id="user-search" placeholder="Name suchen..."
+           inputmode="search" autocomplete="off"
+           class="input input-bordered w-full text-lg"
+           oninput="filterUsers(this.value)">
+</div>
+
+<div id="user-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    {{range .Users}}
+    <a href="/kiosk/items/{{$.Item.ID}}/confirm/{{.ID}}"
+       class="card bg-base-200 shadow-sm hover:shadow-md active:scale-[0.97] transition-all cursor-pointer user-card"
+       data-name="{{.FullName}}"
+       style="min-height: 4rem; touch-action: manipulation;">
+        <div class="card-body p-4 flex flex-col items-center justify-center text-center">
+            <span class="font-semibold text-lg">{{.FullName}}</span>
+            <span class="text-sm {{if lt .Balance 0}}text-error{{else}}text-success{{end}}">
+                {{formatCents .Balance}}
+            </span>
+            {{if and $.Settings.HardLimitEnabled (not .SpendingLimitDisabled)}}
+                {{if le .Balance (negInt64 $.Settings.HardSpendingLimit)}}
+                    <span class="badge badge-warning badge-sm mt-1">Limit erreicht</span>
+                {{end}}
+            {{end}}
+        </div>
+    </a>
+    {{end}}
+</div>
+
+<script>
+function filterUsers(query) {
+    var cards = document.querySelectorAll('.user-card');
+    var q = query.toLowerCase();
+    cards.forEach(function(card) {
+        var name = card.getAttribute('data-name').toLowerCase();
+        card.style.display = name.indexOf(q) !== -1 ? '' : 'none';
+    });
+}
+</script>
+{{end}}

@@ -1,0 +1,57 @@
+{{define "kiosk-chrome"}}<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="{{.CSRFToken}}">
+    <title>{{orgName}} {{appName}} — Kiosk</title>
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'business2' : 'corporate2');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="{{cssFile}}">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body class="min-h-screen bg-base-100 text-lg">
+    <div class="navbar bg-base-200 shadow-sm px-4">
+        <div class="flex-1">
+            <a href="/kiosk" class="text-xl font-bold">{{orgName}}</a>
+        </div>
+        <div class="flex-none">
+            <a href="/kiosk/history" class="btn btn-ghost">Letzte Buchungen</a>
+        </div>
+    </div>
+
+    <main class="container mx-auto px-4 py-6">
+        {{block "content" .}}{{end}}
+    </main>
+
+    <div id="modal" style="display:none"></div>
+    <div id="toast-zone" class="toast toast-end toast-top z-50"></div>
+
+    <script>
+        document.body.addEventListener('htmx:configRequest', function(event) {
+            var token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            event.detail.headers['X-CSRF-Token'] = token;
+        });
+    </script>
+    <script>
+        (function() {
+            var timeout;
+            var delay = 60000;
+            function resetTimer() {
+                clearTimeout(timeout);
+                if (window.location.pathname !== '/kiosk') {
+                    timeout = setTimeout(function() { window.location.href = '/kiosk'; }, delay);
+                }
+            }
+            ['touchstart', 'click', 'keydown', 'scroll'].forEach(function(evt) {
+                document.addEventListener(evt, resetTimer, true);
+            });
+            resetTimer();
+        })();
+    </script>
+</body>
+</html>{{end}}

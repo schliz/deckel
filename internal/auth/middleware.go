@@ -15,7 +15,7 @@ import (
 
 // Middleware returns HTTP middleware that extracts the authenticated user from
 // oauth2-proxy forwarded headers, enriches with DB data, and stores in context.
-func Middleware(s *store.Store, adminGroup, orgName, appName string) func(http.Handler) http.Handler {
+func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			email := r.Header.Get("X-Forwarded-Email")
@@ -43,6 +43,14 @@ func Middleware(s *store.Store, adminGroup, orgName, appName string) func(http.H
 			for _, g := range groups {
 				if g == adminGroup {
 					isAdmin = true
+					break
+				}
+			}
+
+			isKiosk := false
+			for _, g := range groups {
+				if g == kioskGroup {
+					isKiosk = true
 					break
 				}
 			}
@@ -106,6 +114,7 @@ func Middleware(s *store.Store, adminGroup, orgName, appName string) func(http.H
 				FamilyName:            user.FamilyName,
 				Groups:                groups,
 				IsAdmin:               user.IsAdmin,
+				IsKiosk:               isKiosk,
 				ID:                    user.ID,
 				Balance:               balance,
 				IsBarteamer:           user.IsBarteamer,
