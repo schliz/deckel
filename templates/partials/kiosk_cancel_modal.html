@@ -1,5 +1,5 @@
 {{define "kiosk-cancel-modal"}}
-<div id="modal" class="modal modal-open" style="display:flex">
+<div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
     <div class="modal-box">
         <h3 class="font-bold text-lg">Buchung stornieren?</h3>
         <p class="py-4">
@@ -7,7 +7,7 @@
             — {{formatCents .Transaction.Amount}}
         </p>
         <div class="modal-action">
-            <button class="btn btn-ghost" onclick="document.getElementById('modal').style.display='none'; document.getElementById('modal').innerHTML='';">Abbrechen</button>
+            <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">Abbrechen</button>
             <button class="btn btn-error"
                     hx-post="/kiosk/transactions/{{.Transaction.ID}}/cancel"
                     hx-target="#kiosk-history-list"
@@ -16,6 +16,11 @@
             </button>
         </div>
     </div>
-    <div class="modal-backdrop" onclick="document.getElementById('modal').style.display='none'; document.getElementById('modal').innerHTML='';"></div>
 </div>
+
+<script>
+(function() {
+    document.getElementById('modal').style.display = '';
+})();
+</script>
 {{end}}
