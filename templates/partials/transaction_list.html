@@ -13,8 +13,9 @@
         <tbody>
             {{$cancelMin := .CancellationMinutes}}
             {{$csrf := .CSRFToken}}
+            {{$currentUserID := .User.ID}}
             {{range .Transactions}}
-            {{template "transaction-row" (map "Tx" . "CancellationMinutes" $cancelMin "CSRFToken" $csrf)}}
+            {{template "transaction-row" (map "Tx" . "CancellationMinutes" $cancelMin "CSRFToken" $csrf "CurrentUserID" $currentUserID)}}
             {{end}}
             {{if not .Transactions}}
             <tr>

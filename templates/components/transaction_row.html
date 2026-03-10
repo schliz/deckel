@@ -2,6 +2,7 @@
 {{$tx := index . "Tx"}}
 {{$cancelMin := index . "CancellationMinutes"}}
 {{$csrf := index . "CSRFToken"}}
+{{$currentUserID := index . "CurrentUserID"}}
 <tr class="{{if $tx.CancelledAt}}opacity-50{{end}}">
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">{{formatTime $tx.CreatedAt}}</td>
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">
@@ -18,12 +19,14 @@
         {{formatCents $tx.Amount}}
     </td>
     <td class="text-right">
-        {{if and (not $tx.CancelledAt) (ne $tx.Type "cancellation") (withinMinutes $tx.CreatedAt $cancelMin)}}
-        <button class="btn btn-error btn-xs"
-            hx-get="/transactions/{{$tx.ID}}/cancel"
-            hx-target="#modal">
-            Stornieren
-        </button>
+        {{if and (not $tx.CancelledAt) (ne $tx.Type "cancellation") (withinMinutes $tx.CreatedAt $cancelMin) $tx.CreatedByUserID}}
+            {{if eq (derefInt64 $tx.CreatedByUserID) $currentUserID}}
+            <button class="btn btn-error btn-xs"
+                hx-get="/transactions/{{$tx.ID}}/cancel"
+                hx-target="#modal">
+                Stornieren
+            </button>
+            {{end}}
         {{end}}
     </td>
 </tr>

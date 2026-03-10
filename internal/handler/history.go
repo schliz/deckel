@@ -156,6 +156,11 @@ func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
 		return &ForbiddenError{Message: "Zugriff verweigert"}
 	}
 
+	// Only self-created transactions can be cancelled by the user.
+	if txn.CreatedByUserID == nil || *txn.CreatedByUserID != user.ID {
+		return &ForbiddenError{Message: "Diese Transaktion kann nur vom Ersteller storniert werden."}
+	}
+
 	// Verify not already cancelled.
 	if txn.CancelledAt != nil {
 		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
@@ -224,11 +229,13 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 	}
 
 	// Create transaction (amount is negative = debit).
+	createdBy := user.ID
 	txn := &model.Transaction{
-		UserID:      user.ID,
-		Amount:      -amountCents,
-		Description: &description,
-		Type:        "custom",
+		UserID:          user.ID,
+		Amount:          -amountCents,
+		Description:     &description,
+		Type:            "custom",
+		CreatedByUserID: &createdBy,
 	}
 
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
@@ -307,6 +314,11 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 		return &ForbiddenError{Message: "Zugriff verweigert"}
 	}
 
+	// Only self-created transactions can be cancelled by the user.
+	if txn.CreatedByUserID == nil || *txn.CreatedByUserID != user.ID {
+		return &ForbiddenError{Message: "Diese Transaktion kann nur vom Ersteller storniert werden."}
+	}
+
 	// Verify not already cancelled.
 	if txn.CancelledAt != nil {
 		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
@@ -330,7 +342,7 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 
 	// Execute cancellation within a DB transaction.
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
-		return store.CancelTransaction(ctx, tx, id)
+		return store.CancelTransaction(ctx, tx, id, user.ID)
 	})
 	if err != nil {
 		return fmt.Errorf("cancel transaction: %w", err)

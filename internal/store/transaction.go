@@ -169,7 +169,7 @@ func CountTransactionsByUser(ctx context.Context, db DBTX, userID int64) (int, e
 // CancelTransaction sets cancelled_at on the original transaction and inserts a
 // counter-transaction with type=cancellation, amount=-original.amount, and cancels_id pointing
 // to the original. Both the original and counter-transaction get cancelled_at = NOW().
-func CancelTransaction(ctx context.Context, db DBTX, id int64) error {
+func CancelTransaction(ctx context.Context, db DBTX, id, cancellerID int64) error {
 	now := time.Now()
 
 	// Set cancelled_at on original transaction.
@@ -202,9 +202,9 @@ func CancelTransaction(ctx context.Context, db DBTX, id int64) error {
 
 	// Insert counter-transaction (no cancelled_at — it's the active reversal record).
 	_, err = db.Exec(ctx, `
-		INSERT INTO transactions (user_id, amount, description, type, cancels_id)
-		VALUES ($1, $2, $3, 'cancellation', $4)`,
-		userID, -amount, stornoDesc, id)
+		INSERT INTO transactions (user_id, amount, description, type, cancels_id, created_by_user_id)
+		VALUES ($1, $2, $3, 'cancellation', $4, $5)`,
+		userID, -amount, stornoDesc, id, cancellerID)
 	if err != nil {
 		return fmt.Errorf("cancel transaction: insert counter: %w", err)
 	}

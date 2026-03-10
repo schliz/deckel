@@ -347,11 +347,13 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	// Create deposit transaction (positive amount = credit).
+	createdBy := reqUser.ID
 	txn := &model.Transaction{
-		UserID:      id,
-		Amount:      amountCents,
-		Description: &note,
-		Type:        "deposit",
+		UserID:          id,
+		Amount:          amountCents,
+		Description:     &note,
+		Type:            "deposit",
+		CreatedByUserID: &createdBy,
 	}
 
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {

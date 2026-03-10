@@ -411,7 +411,7 @@ func (h *Handler) KioskCancelTransaction(w http.ResponseWriter, r *http.Request)
 	}
 
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
-		return store.CancelTransaction(ctx, tx, id)
+		return store.CancelTransaction(ctx, tx, id, user.ID)
 	})
 	if err != nil {
 		return fmt.Errorf("kiosk cancel: %w", err)
