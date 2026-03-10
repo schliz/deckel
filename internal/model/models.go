@@ -10,6 +10,7 @@ type User struct {
 	FamilyName           string
 	IsBarteamer          bool
 	IsAdmin              bool
+	IsKiosk              bool
 	IsActive             bool
 	SpendingLimitDisabled bool
 	CreatedAt            time.Time

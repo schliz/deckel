@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -8,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/schliz/deckel/internal/auth"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
-	"github.com/jackc/pgx/v5"
 )
 
 // AdminUsersPageData is the view model for the admin user list page.
@@ -25,6 +26,21 @@ type AdminUsersPageData struct {
 	Page              int
 	TotalPages        int
 	LowBalanceWarning bool
+}
+
+// rejectKioskTarget returns a ForbiddenError if the target user is a kiosk account.
+func rejectKioskTarget(ctx context.Context, db store.DBTX, id int64) error {
+	u, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+		}
+		return fmt.Errorf("check kiosk target: %w", err)
+	}
+	if u.IsKiosk {
+		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+	}
+	return nil
 }
 
 // userRowData builds the template data map for a user-row fragment.
@@ -138,6 +154,10 @@ func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) er
 		return &ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
+	if err := rejectKioskTarget(ctx, db, id); err != nil {
+		return err
+	}
+
 	if err := store.ToggleSpendingLimit(ctx, db, id); err != nil {
 		return fmt.Errorf("toggle spending limit: %w", err)
 	}
@@ -164,6 +184,10 @@ func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	if err := rejectKioskTarget(ctx, db, id); err != nil {
+		return err
 	}
 
 	if err := store.ToggleBarteamer(ctx, db, id); err != nil {
@@ -207,6 +231,11 @@ func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) err
 
 	var title, message, postURL string
 	isSelf := id == reqUser.ID
+
+	// Block barteamer/spending-limit/deposit actions for kiosk users.
+	if ub.IsKiosk && action != "active" {
+		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+	}
 
 	switch action {
 	case "active":
@@ -273,6 +302,9 @@ func (h *Handler) DepositModal(w http.ResponseWriter, r *http.Request) error {
 		}
 		return fmt.Errorf("deposit modal: get user: %w", err)
 	}
+	if user.IsKiosk {
+		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+	}
 
 	data := map[string]any{
 		"User":      user,
@@ -292,6 +324,10 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		return &ValidationError{Message: "ungültige Benutzer-ID"}
+	}
+
+	if err := rejectKioskTarget(ctx, db, id); err != nil {
+		return err
 	}
 
 	// Parse Euro amount string to cents (accepts both comma and period).

@@ -79,6 +79,7 @@ func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName string)
 					GivenName:  givenName,
 					FamilyName: familyName,
 					IsAdmin:    isAdmin,
+					IsKiosk:    isKiosk,
 					IsActive:   true,
 				}
 				user, err = store.CreateUser(ctx, db, user)
@@ -89,7 +90,7 @@ func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName string)
 				}
 			} else {
 				// Update profile on every request (upsert pattern)
-				if err := store.UpdateUserProfile(ctx, db, user.ID, fullName, givenName, familyName, isAdmin); err != nil {
+				if err := store.UpdateUserProfile(ctx, db, user.ID, fullName, givenName, familyName, isAdmin, isKiosk); err != nil {
 					slog.Error("auth: failed to update user profile", "email", email, "error", err)
 					// Non-fatal: continue with existing data
 				} else {
@@ -97,6 +98,7 @@ func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName string)
 					user.GivenName = givenName
 					user.FamilyName = familyName
 					user.IsAdmin = isAdmin
+					user.IsKiosk = isKiosk
 				}
 			}
 

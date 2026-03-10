@@ -2,12 +2,15 @@
 {{$u := .User}}
 {{$isSelf := eq $u.ID .CurrentUserID}}
 <tr id="user-row-{{$u.ID}}"{{if .OOB}} hx-swap-oob="outerHTML"{{end}}>
-    <td>{{$u.FullName}}{{if $u.IsAdmin}} <span class="badge badge-info badge-sm">Admin</span>{{end}}</td>
+    <td>{{$u.FullName}}{{if $u.IsAdmin}} <span class="badge badge-info badge-sm">Admin</span>{{end}}{{if $u.IsKiosk}} <span class="badge badge-secondary badge-sm">Kiosk</span>{{end}}</td>
     <td>{{$u.Email}}</td>
     <td class="text-right {{if lt $u.Balance 0}}text-error{{else}}text-success{{end}}">
-        {{formatCents $u.Balance}}
+        {{if $u.IsKiosk}}—{{else}}{{formatCents $u.Balance}}{{end}}
     </td>
     <td>
+        {{if $u.IsKiosk}}
+        <span class="text-xs opacity-50">—</span>
+        {{else}}
         <label class="label cursor-pointer gap-2 justify-start p-0">
             <input type="checkbox" class="toggle toggle-sm toggle-primary"
                 {{if $u.IsBarteamer}}checked{{end}}
@@ -17,6 +20,7 @@
                 onclick="event.preventDefault()">
             <span class="text-xs">{{if $u.IsBarteamer}}Barteamer{{else}}Helfer{{end}}</span>
         </label>
+        {{end}}
     </td>
     <td>
         <label class="label cursor-pointer gap-2 justify-start p-0">
@@ -31,6 +35,9 @@
         </label>
     </td>
     <td>
+        {{if $u.IsKiosk}}
+        <span class="text-xs opacity-50">—</span>
+        {{else}}
         <label class="label cursor-pointer gap-2 justify-start p-0">
             <input type="checkbox" class="toggle toggle-sm toggle-warning"
                 {{if $u.SpendingLimitDisabled}}checked{{end}}
@@ -40,11 +47,16 @@
                 onclick="event.preventDefault()">
             <span class="text-xs">{{if $u.SpendingLimitDisabled}}Aufgehoben{{else}}Aktiv{{end}}</span>
         </label>
+        {{end}}
     </td>
     <td>
+        {{if $u.IsKiosk}}
+        <span class="text-xs opacity-50">—</span>
+        {{else}}
         <button class="btn btn-primary btn-xs"
             hx-get="/admin/users/{{$u.ID}}/deposit"
             hx-target="#modal">Einzahlung</button>
+        {{end}}
     </td>
 </tr>
 {{end}}

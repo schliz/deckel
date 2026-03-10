@@ -18,11 +18,11 @@ func GetUserByEmail(ctx context.Context, db DBTX, email string) (*model.User, er
 	var u model.User
 	err := db.QueryRow(ctx, `
 		SELECT id, email, full_name, given_name, family_name,
-		       is_barteamer, is_admin, is_active, spending_limit_disabled,
+		       is_barteamer, is_admin, is_kiosk, is_active, spending_limit_disabled,
 		       created_at, updated_at
 		FROM users WHERE email = $1`, email).Scan(
 		&u.ID, &u.Email, &u.FullName, &u.GivenName, &u.FamilyName,
-		&u.IsBarteamer, &u.IsAdmin, &u.IsActive, &u.SpendingLimitDisabled,
+		&u.IsBarteamer, &u.IsAdmin, &u.IsKiosk, &u.IsActive, &u.SpendingLimitDisabled,
 		&u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
@@ -37,11 +37,11 @@ func GetUserByEmail(ctx context.Context, db DBTX, email string) (*model.User, er
 // CreateUser inserts a new user and returns it with the generated ID and timestamps.
 func CreateUser(ctx context.Context, db DBTX, u *model.User) (*model.User, error) {
 	err := db.QueryRow(ctx, `
-		INSERT INTO users (email, full_name, given_name, family_name, is_barteamer, is_admin, is_active, spending_limit_disabled)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO users (email, full_name, given_name, family_name, is_barteamer, is_admin, is_kiosk, is_active, spending_limit_disabled)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at, updated_at`,
 		u.Email, u.FullName, u.GivenName, u.FamilyName,
-		u.IsBarteamer, u.IsAdmin, u.IsActive, u.SpendingLimitDisabled,
+		u.IsBarteamer, u.IsAdmin, u.IsKiosk, u.IsActive, u.SpendingLimitDisabled,
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
@@ -50,12 +50,12 @@ func CreateUser(ctx context.Context, db DBTX, u *model.User) (*model.User, error
 }
 
 // UpdateUserProfile updates a user's profile fields and updated_at timestamp.
-func UpdateUserProfile(ctx context.Context, db DBTX, id int64, fullName, givenName, familyName string, isAdmin bool) error {
+func UpdateUserProfile(ctx context.Context, db DBTX, id int64, fullName, givenName, familyName string, isAdmin, isKiosk bool) error {
 	_, err := db.Exec(ctx, `
 		UPDATE users
-		SET full_name = $2, given_name = $3, family_name = $4, is_admin = $5, updated_at = NOW()
+		SET full_name = $2, given_name = $3, family_name = $4, is_admin = $5, is_kiosk = $6, updated_at = NOW()
 		WHERE id = $1`,
-		id, fullName, givenName, familyName, isAdmin,
+		id, fullName, givenName, familyName, isAdmin, isKiosk,
 	)
 	if err != nil {
 		return fmt.Errorf("update user profile: %w", err)
@@ -167,7 +167,7 @@ func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]mo
 
 	rows, err := db.Query(ctx, `
 		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
-		       u.is_barteamer, u.is_admin, u.is_active, u.spending_limit_disabled,
+		       u.is_barteamer, u.is_admin, u.is_kiosk, u.is_active, u.spending_limit_disabled,
 		       u.created_at, u.updated_at,
 		       COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
@@ -185,7 +185,7 @@ func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]mo
 		var ub model.UserWithBalance
 		if err := rows.Scan(
 			&ub.ID, &ub.Email, &ub.FullName, &ub.GivenName, &ub.FamilyName,
-			&ub.IsBarteamer, &ub.IsAdmin, &ub.IsActive, &ub.SpendingLimitDisabled,
+			&ub.IsBarteamer, &ub.IsAdmin, &ub.IsKiosk, &ub.IsActive, &ub.SpendingLimitDisabled,
 			&ub.CreatedAt, &ub.UpdatedAt,
 			&ub.Balance,
 		); err != nil {
@@ -204,7 +204,7 @@ func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]mo
 func ListActiveUsersWithBalance(ctx context.Context, db DBTX) ([]model.UserWithBalance, error) {
 	rows, err := db.Query(ctx, `
 		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
-		       u.is_barteamer, u.is_admin, u.is_active, u.spending_limit_disabled,
+		       u.is_barteamer, u.is_admin, u.is_kiosk, u.is_active, u.spending_limit_disabled,
 		       u.created_at, u.updated_at,
 		       COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
@@ -222,7 +222,7 @@ func ListActiveUsersWithBalance(ctx context.Context, db DBTX) ([]model.UserWithB
 		var ub model.UserWithBalance
 		if err := rows.Scan(
 			&ub.ID, &ub.Email, &ub.FullName, &ub.GivenName, &ub.FamilyName,
-			&ub.IsBarteamer, &ub.IsAdmin, &ub.IsActive, &ub.SpendingLimitDisabled,
+			&ub.IsBarteamer, &ub.IsAdmin, &ub.IsKiosk, &ub.IsActive, &ub.SpendingLimitDisabled,
 			&ub.CreatedAt, &ub.UpdatedAt,
 			&ub.Balance,
 		); err != nil {
@@ -287,7 +287,7 @@ func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWith
 	var ub model.UserWithBalance
 	err := db.QueryRow(ctx, `
 		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
-		       u.is_barteamer, u.is_admin, u.is_active, u.spending_limit_disabled,
+		       u.is_barteamer, u.is_admin, u.is_kiosk, u.is_active, u.spending_limit_disabled,
 		       u.created_at, u.updated_at,
 		       COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
@@ -295,7 +295,7 @@ func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWith
 		WHERE u.id = $1
 		GROUP BY u.id`, id).Scan(
 		&ub.ID, &ub.Email, &ub.FullName, &ub.GivenName, &ub.FamilyName,
-		&ub.IsBarteamer, &ub.IsAdmin, &ub.IsActive, &ub.SpendingLimitDisabled,
+		&ub.IsBarteamer, &ub.IsAdmin, &ub.IsKiosk, &ub.IsActive, &ub.SpendingLimitDisabled,
 		&ub.CreatedAt, &ub.UpdatedAt,
 		&ub.Balance,
 	)

@@ -1,0 +1,5 @@
+-- +goose Up
+ALTER TABLE users ADD COLUMN is_kiosk BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- +goose Down
+ALTER TABLE users DROP COLUMN IF EXISTS is_kiosk;
