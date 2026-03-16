@@ -35,6 +35,57 @@ test.describe('Transactions & Profile', () => {
     ).toBeVisible({ timeout: 5000 });
   });
 
+  test('Eigene Buchung: Fehler bei leerer Beschreibung', async ({ page }) => {
+    await page.goto('/');
+
+    const trigger = page.locator('li', { hasText: 'Eigene Buchung' });
+    await trigger.click();
+
+    const modal = page.locator('#modal .modal-open');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+
+    await page.fill('#custom-tx-amount', '2.50');
+    await page.click('#custom-tx-confirm-btn');
+
+    // Modal stays open with inline error
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('.alert-error')).toContainText('Beschreibung ist erforderlich');
+  });
+
+  test('Eigene Buchung: Fehler bei ungültigem Betrag', async ({ page }) => {
+    await page.goto('/');
+
+    const trigger = page.locator('li', { hasText: 'Eigene Buchung' });
+    await trigger.click();
+
+    const modal = page.locator('#modal .modal-open');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+
+    await page.fill('#custom-tx-description', 'Test');
+    await page.fill('#custom-tx-amount', '0');
+    await page.click('#custom-tx-confirm-btn');
+
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('.alert-error')).toContainText('Ungültiger Betrag');
+  });
+
+  test('Eigene Buchung: Fehler bei Betrag über Maximum', async ({ page }) => {
+    await page.goto('/');
+
+    const trigger = page.locator('li', { hasText: 'Eigene Buchung' });
+    await trigger.click();
+
+    const modal = page.locator('#modal .modal-open');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+
+    await page.fill('#custom-tx-description', 'Test');
+    await page.fill('#custom-tx-amount', '99.99');
+    await page.click('#custom-tx-confirm-btn');
+
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('.alert-error')).toContainText('Maximalbetrag');
+  });
+
   test('Transaktion stornieren', async ({ page }) => {
     await page.goto('/transactions');
 
