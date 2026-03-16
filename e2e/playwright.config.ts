@@ -14,7 +14,7 @@ export default defineConfig({
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
     {
       name: 'user-tests',
-      testIgnore: /admin-/,
+      testIgnore: /admin-|kiosk-/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/user.json',
@@ -27,6 +27,15 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/admin.json',
+      },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'kiosk-tests',
+      testMatch: /kiosk-/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/kiosk.json',
       },
       dependencies: ['setup'],
     },

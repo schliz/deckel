@@ -9,6 +9,10 @@
       {
         "name": "admin",
         "description": "Administrator role"
+      },
+      {
+        "name": "kiosk",
+        "description": "Kiosk role"
       }
     ]
   },
@@ -74,6 +78,24 @@
       ],
       "realmRoles": [
         "admin"
+      ]
+    },
+    {
+      "username": "testkiosk",
+      "email": "testkiosk@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Test",
+      "lastName": "Kiosk",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "testpass",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "kiosk"
       ]
     }
   ]
