@@ -16,9 +16,9 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 
 - [x] Karte ansehen: Ein Benutzer öffnet die Getränkekarte. Er sieht alle Kategorien mit deren Getränken und den für seinen Status (Barteamer/Helfer) gültigen Preisen.
 - [x] Getränk bestellen: Ein Benutzer klickt auf ein Getränk, wählt im Modal die Menge (1 bis Maximalwert aus Einstellungen) und bestätigt die Bestellung. Das Guthaben verringert sich um den Gesamtbetrag und eine Erfolgsmeldung erscheint.
-- [ ] Bestellung bei niedrigem Guthaben: Ein Benutzer bestellt ein Getränk und unterschreitet dabei das Warnlimit. Die Bestellung wird durchgeführt, aber es erscheint eine Warnung ("Ausgabelimit erreicht — bitte bald einzahlen!").
-- [ ] Bestellung bei Ausgabelimit: Ein Benutzer hat das harte Ausgabelimit erreicht. Die Getränke auf der Karte sind ausgegraut und nicht klickbar. Bestellungen werden serverseitig abgelehnt.
-- [ ] Bestellung bei deaktiviertem Limit: Ein Benutzer, dessen Ausgabelimit vom Admin aufgehoben wurde, kann trotz negativem Guthaben weiterhin bestellen.
+- [x] Bestellung bei niedrigem Guthaben: Ein Benutzer bestellt ein Getränk und unterschreitet dabei das Warnlimit. Die Bestellung wird durchgeführt, aber es erscheint eine Warnung ("Ausgabelimit erreicht — bitte bald einzahlen!").
+- [x] Bestellung bei Ausgabelimit: Ein Benutzer hat das harte Ausgabelimit erreicht. Die Getränke auf der Karte sind ausgegraut und nicht klickbar. Bestellungen werden serverseitig abgelehnt.
+- [x] Bestellung bei deaktiviertem Limit: Ein Benutzer, dessen Ausgabelimit vom Admin aufgehoben wurde, kann trotz negativem Guthaben weiterhin bestellen.
 
 ## Eigene Buchung
 
@@ -92,7 +92,7 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 
 - [ ] Kiosk-Anmeldung: Ein Kiosk-Benutzer meldet sich an. Er wird automatisch zur Kiosk-Ansicht weitergeleitet.
 - [ ] Getränk am Kiosk bestellen: Am Kiosk wird ein Getränk ausgewählt, dann ein Benutzer. Eine Bestätigungsseite zeigt Getränk, Benutzer, Preis und Guthaben. Nach Bestätigung wird die Buchung erstellt.
-- [ ] Kiosk-Bestellung bei niedrigem Guthaben: Eine Bestellung wird für einen Benutzer mit niedrigem Guthaben am Kiosk durchgeführt. Die Buchung wird erstellt, aber eine Warnung erscheint.
-- [ ] Kiosk-Bestellung bei Ausgabelimit: Am Kiosk wird ein Benutzer mit erreichtem Ausgabelimit ausgewählt. Die Bestätigung ist nicht möglich, ein Hinweis erscheint.
+- [x] Kiosk-Bestellung bei niedrigem Guthaben: Eine Bestellung wird für einen Benutzer mit niedrigem Guthaben am Kiosk durchgeführt. Die Buchung wird erstellt, aber eine Warnung erscheint.
+- [x] Kiosk-Bestellung bei Ausgabelimit: Am Kiosk wird ein Benutzer mit erreichtem Ausgabelimit ausgewählt. Die Bestätigung ist nicht möglich, ein Hinweis erscheint.
 - [ ] Kiosk-Stornierung: Am Kiosk wird eine selbst erstellte Buchung innerhalb des Zeitfensters storniert. Die Transaktion wird rückgängig gemacht.
 - [ ] Kiosk-Stornierung fremder Buchungen: Am Kiosk kann nur eine vom Kiosk erstellte Buchung storniert werden, nicht die Buchungen der Benutzer selbst.

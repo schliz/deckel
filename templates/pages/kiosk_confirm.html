@@ -89,7 +89,7 @@
         var projected = balance - total;
         document.getElementById('projected-balance').textContent = formatCents(projected);
 
-        var blocked = hardLimitEnabled && !spendingLimitDisabled && (projected <= -hardLimit);
+        var blocked = hardLimitEnabled && !spendingLimitDisabled && (balance <= -hardLimit);
         document.getElementById('confirm-btn').disabled = blocked;
     };
 })();
