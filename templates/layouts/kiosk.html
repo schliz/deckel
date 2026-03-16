@@ -12,6 +12,11 @@
         })();
     </script>
     <link rel="stylesheet" href="{{cssFile}}">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1f2937">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <script src="/static/js/htmx.min.js"></script>
 </head>
 <body class="min-h-screen bg-base-100 text-lg">
@@ -52,6 +57,11 @@
             });
             resetTimer();
         })();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
     </script>
 </body>
 </html>{{end}}

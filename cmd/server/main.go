@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -99,6 +100,20 @@ func main() {
 	// Static file server - outside auth middleware.
 	staticFS := http.FileServer(http.Dir(cfg.StaticDir))
 	mux.Handle("/static/", http.StripPrefix("/static/", staticCacheHandler(staticFS, cfg.DevMode)))
+
+	// PWA assets served from root - must bypass auth (see OAUTH2_PROXY_SKIP_AUTH_REGEX).
+	mux.HandleFunc("GET /sw.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeFile(w, r, filepath.Join(cfg.StaticDir, "js", "sw.js"))
+	})
+	mux.HandleFunc("GET /manifest.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		http.ServeFile(w, r, filepath.Join(cfg.StaticDir, "manifest.json"))
+	})
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		http.ServeFile(w, r, filepath.Join(cfg.StaticDir, "icons", "favicon.ico"))
+	})
 
 	// Menu page (GET / and GET /menu).
 	mux.Handle("GET /{$}", withCSRF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -219,6 +234,8 @@ func staticCacheHandler(next http.Handler, devMode bool) http.Handler {
 			case strings.HasSuffix(path, ".css"):
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			case strings.HasSuffix(path, ".js"):
+				w.Header().Set("Cache-Control", "public, max-age=86400")
+			case strings.HasSuffix(path, ".png"), strings.HasSuffix(path, ".json"):
 				w.Header().Set("Cache-Control", "public, max-age=86400")
 			}
 		}

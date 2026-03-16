@@ -68,6 +68,7 @@ services:
       OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
       OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      OAUTH2_PROXY_SKIP_AUTH_ROUTES: "GET=^/(static/|sw\\.js$|static/icons/\\.png$|static/screenshots\\.png$|manifest\\.json$|favicon\\.ico$|healthz$)"
 
 volumes:
   pgdata:

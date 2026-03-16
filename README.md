@@ -39,3 +39,5 @@ services:
     environment:
       OAUTH2_PROXY_COOKIE_SECURE: "false"
 ```
+
+Beer icon used in logo from [https://github.com/cyberalien/RemixIcon/blob/master/License](RemixIcon) licensed under the Apache 2.0 License.
