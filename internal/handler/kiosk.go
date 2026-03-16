@@ -238,8 +238,8 @@ func (h *Handler) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error 
 		}
 
 		if settings.HardLimitEnabled && !targetUser.SpendingLimitDisabled {
-			if balance+amount <= -settings.HardSpendingLimit {
-				return &ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht."}
+			if balance <= -settings.HardSpendingLimit {
+				return &ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht. Bitte erst einzahlen."}
 			}
 		}
 
