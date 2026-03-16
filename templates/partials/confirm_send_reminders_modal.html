@@ -1,0 +1,30 @@
+{{define "confirm-send-reminders-modal"}}
+<div class="modal modal-open" onclick="if(event.target===this){this.parentElement.style.display='none';this.remove();}">
+    <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg">{{.Title}}</h3>
+        <p class="py-4">{{.Message}}</p>
+
+        <div class="modal-action">
+            <button class="btn btn-ghost" onclick="this.closest('.modal').parentElement.style.display='none';this.closest('.modal').remove();">
+                Abbrechen
+            </button>
+            {{if gt .Count 0}}
+            <button class="btn btn-warning"
+                hx-post="{{.PostURL}}"
+                hx-target="#toast-zone"
+                hx-swap="afterbegin"
+                hx-headers='{"X-CSRF-Token": "{{.CSRFToken}}"}'
+                hx-on::after-request="if(event.detail.successful){var m=document.getElementById('modal');m.innerHTML='';m.style.display='none';}">
+                Senden ({{.Count}} Nutzer)
+            </button>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    document.getElementById('modal').style.display = '';
+})();
+</script>
+{{end}}

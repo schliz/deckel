@@ -15,13 +15,13 @@ func GetSettings(ctx context.Context, db DBTX) (*model.Settings, error) {
 		       custom_tx_min, custom_tx_max, max_item_quantity,
 		       cancellation_minutes, pagination_size,
 		       smtp_host, smtp_port, smtp_user, smtp_password, smtp_from,
-		       email_template, updated_at
+		       smtp_from_name, email_subject, email_template, updated_at
 		FROM settings WHERE id = 1`).Scan(
 		&s.ID, &s.WarningLimit, &s.HardSpendingLimit, &s.HardLimitEnabled,
 		&s.CustomTxMin, &s.CustomTxMax, &s.MaxItemQuantity,
 		&s.CancellationMinutes, &s.PaginationSize,
 		&s.SMTPHost, &s.SMTPPort, &s.SMTPUser, &s.SMTPPassword, &s.SMTPFrom,
-		&s.EmailTemplate, &s.UpdatedAt,
+		&s.SMTPFromName, &s.EmailSubject, &s.EmailTemplate, &s.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get settings: %w", err)
@@ -46,14 +46,16 @@ func UpdateSettings(ctx context.Context, db DBTX, s *model.Settings) error {
 			smtp_user = $11,
 			smtp_password = $12,
 			smtp_from = $13,
-			email_template = $14,
+			smtp_from_name = $14,
+			email_subject = $15,
+			email_template = $16,
 			updated_at = NOW()
 		WHERE id = 1`,
 		s.WarningLimit, s.HardSpendingLimit, s.HardLimitEnabled,
 		s.CustomTxMin, s.CustomTxMax, s.MaxItemQuantity,
 		s.CancellationMinutes, s.PaginationSize,
 		s.SMTPHost, s.SMTPPort, s.SMTPUser, s.SMTPPassword, s.SMTPFrom,
-		s.EmailTemplate,
+		s.SMTPFromName, s.EmailSubject, s.EmailTemplate,
 	)
 	if err != nil {
 		return fmt.Errorf("update settings: %w", err)
