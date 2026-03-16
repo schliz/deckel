@@ -101,7 +101,7 @@ func GetUserRank(ctx context.Context, db DBTX, userID int64) (rank int, total in
 			SELECT u.id, COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
 			LEFT JOIN transactions t ON t.user_id = u.id
-			WHERE u.is_active = TRUE
+			WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
 			GROUP BY u.id
 			HAVING COALESCE(SUM(t.amount), 0) > (
 				SELECT COALESCE(SUM(amount), 0) FROM transactions
@@ -113,7 +113,7 @@ func GetUserRank(ctx context.Context, db DBTX, userID int64) (rank int, total in
 	}
 
 	err = db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM users WHERE is_active = TRUE`).Scan(&total)
+		SELECT COUNT(*) FROM users WHERE is_active = TRUE AND is_kiosk = FALSE`).Scan(&total)
 	if err != nil {
 		return 0, 0, fmt.Errorf("get total active users: %w", err)
 	}
@@ -129,7 +129,7 @@ func GetAllBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 			SELECT COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
 			LEFT JOIN transactions t ON t.user_id = u.id
-			WHERE u.is_active = TRUE
+			WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
 			GROUP BY u.id
 		) sub`).Scan(&sum)
 	if err != nil {
@@ -146,7 +146,7 @@ func GetNegativeBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 			SELECT COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
 			LEFT JOIN transactions t ON t.user_id = u.id
-			WHERE u.is_active = TRUE
+			WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
 			GROUP BY u.id
 			HAVING COALESCE(SUM(t.amount), 0) < 0
 		) sub`).Scan(&sum)
@@ -209,7 +209,7 @@ func ListActiveUsersWithBalance(ctx context.Context, db DBTX) ([]model.UserWithB
 		       COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
 		LEFT JOIN transactions t ON t.user_id = u.id
-		WHERE u.is_active = TRUE
+		WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
 		GROUP BY u.id
 		ORDER BY u.full_name ASC`)
 	if err != nil {

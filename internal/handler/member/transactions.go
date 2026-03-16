@@ -163,10 +163,25 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 	}
 
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
-		_, err := store.CreateTransaction(ctx, tx, txn)
+		balance, err := store.GetUserBalanceForUpdate(ctx, tx, user.ID)
+		if err != nil {
+			return fmt.Errorf("get balance for update: %w", err)
+		}
+
+		if settings.HardLimitEnabled && !user.SpendingLimitDisabled {
+			if balance <= -settings.HardSpendingLimit {
+				return &handler.ValidationError{Message: "Buchung nicht möglich: Ausgabenlimit erreicht. Bitte erst einzahlen."}
+			}
+		}
+
+		_, err = store.CreateTransaction(ctx, tx, txn)
 		return err
 	})
 	if err != nil {
+		var valErr *handler.ValidationError
+		if errors.As(err, &valErr) {
+			return valErr
+		}
 		return fmt.Errorf("create custom transaction: %w", err)
 	}
 
