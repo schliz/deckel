@@ -115,6 +115,14 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 	if err := validateTextLen(smtpFrom, 255, "SMTP From"); err != nil {
 		return err
 	}
+	smtpFromName := strings.TrimSpace(r.FormValue("smtp_from_name"))
+	if err := validateTextLen(smtpFromName, 255, "Absender-Name"); err != nil {
+		return err
+	}
+	emailSubject := strings.TrimSpace(r.FormValue("email_subject"))
+	if err := validateTextLen(emailSubject, 255, "Betreff"); err != nil {
+		return err
+	}
 	emailTemplate := strings.TrimSpace(r.FormValue("email_template"))
 	if err := validateTextLen(emailTemplate, 10000, "E-Mail-Template"); err != nil {
 		return err
@@ -135,6 +143,8 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 		SMTPUser:            smtpUser,
 		SMTPPassword:        r.FormValue("smtp_password"),
 		SMTPFrom:            smtpFrom,
+		SMTPFromName:        smtpFromName,
+		EmailSubject:        emailSubject,
 		EmailTemplate:       emailTemplate,
 	}
 
@@ -152,10 +162,66 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// SendReminders sends balance reminder emails to all active users.
+// SendRemindersModal renders a confirmation modal showing how many users would receive reminders.
+func (h *Handler) SendRemindersModal(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	db := h.Store.DB()
+
+	limitType := r.URL.Query().Get("type")
+	if limitType != "warning" && limitType != "hard" {
+		return &ValidationError{Message: "Ungültiger Typ"}
+	}
+
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("send reminders modal: get settings: %w", err)
+	}
+
+	users, err := store.ListActiveUsersWithBalance(ctx, db)
+	if err != nil {
+		return fmt.Errorf("send reminders modal: list users: %w", err)
+	}
+
+	var threshold int64
+	var title, description string
+	if limitType == "warning" {
+		threshold = settings.WarningLimit
+		title = "Erinnerung: Warnlimit"
+		description = fmt.Sprintf("unter dem Warnlimit (%s)", formatCentsToEuro(settings.WarningLimit))
+	} else {
+		threshold = -settings.HardSpendingLimit
+		title = "Erinnerung: Ausgabelimit"
+		description = fmt.Sprintf("unter dem Ausgabelimit (%s)", formatCentsToEuro(-settings.HardSpendingLimit))
+	}
+
+	var count int
+	for _, u := range users {
+		if u.Balance < threshold {
+			count++
+		}
+	}
+
+	data := map[string]any{
+		"Title":     title,
+		"Message":   fmt.Sprintf("Erinnerungsmail an %d Nutzer %s senden?", count, description),
+		"PostURL":   "/admin/settings/send-reminders?type=" + limitType,
+		"CSRFToken": middleware.CSRFTokenFromContext(ctx),
+		"Count":     count,
+	}
+
+	h.Renderer.Fragment(w, r, "confirm-send-reminders-modal", data)
+	return nil
+}
+
+// SendReminders sends balance reminder emails to active users below the specified limit.
 func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
+
+	limitType := r.URL.Query().Get("type")
+	if limitType != "warning" && limitType != "hard" {
+		return &ValidationError{Message: "Ungültiger Typ"}
+	}
 
 	users, err := store.ListActiveUsersWithBalance(ctx, db)
 	if err != nil {
@@ -165,6 +231,13 @@ func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
 	settings, err := store.GetSettings(ctx, db)
 	if err != nil {
 		return fmt.Errorf("send reminders: get settings: %w", err)
+	}
+
+	var threshold int64
+	if limitType == "warning" {
+		threshold = settings.WarningLimit
+	} else {
+		threshold = -settings.HardSpendingLimit
 	}
 
 	tmpl, err := template.New("email").Parse(settings.EmailTemplate)
@@ -178,15 +251,20 @@ func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
 		Username: settings.SMTPUser,
 		Password: settings.SMTPPassword,
 		From:     settings.SMTPFrom,
+		FromName: settings.SMTPFromName,
 	}
 
 	var successes, failures int
 	for _, u := range users {
-		// Render per-user email body.
+		if u.Balance >= threshold {
+			continue
+		}
+
 		var buf bytes.Buffer
 		data := map[string]string{
-			"Name":    u.FullName,
-			"Balance": formatCentsToEuro(u.Balance),
+			"Name":      u.FullName,
+			"FirstName": u.GivenName,
+			"Balance":   formatCentsToEuro(u.Balance),
 		}
 		if err := tmpl.Execute(&buf, data); err != nil {
 			log.Printf("send reminders: render template for %s: %v", u.Email, err)
@@ -194,7 +272,7 @@ func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
 			continue
 		}
 
-		if err := mailer.Send(u.Email, "Kontostand-Erinnerung", buf.String()); err != nil {
+		if err := mailer.Send(u.Email, settings.EmailSubject, buf.String()); err != nil {
 			log.Printf("send reminders: send to %s: %v", u.Email, err)
 			failures++
 			continue
@@ -202,9 +280,16 @@ func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
 		successes++
 	}
 
+	toastType := "success"
+	if successes == 0 && failures > 0 {
+		toastType = "error"
+	} else if failures > 0 {
+		toastType = "warning"
+	}
+
 	msg := fmt.Sprintf("%d Emails gesendet, %d Fehler", successes, failures)
 	h.Renderer.Fragment(w, r, "toast", map[string]string{
-		"Type":    "success",
+		"Type":    toastType,
 		"Message": msg,
 	})
 	return nil

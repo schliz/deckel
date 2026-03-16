@@ -77,6 +77,8 @@ type Settings struct {
 	SMTPUser           string
 	SMTPPassword       string
 	SMTPFrom           string
+	SMTPFromName       string
+	EmailSubject       string
 	EmailTemplate      string
 	UpdatedAt          time.Time
 }
