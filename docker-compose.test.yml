@@ -9,6 +9,7 @@ services:
       DECKEL_DATABASE_URL: "postgres://deckel:deckel@postgres:5432/deckel_test?sslmode=disable"
       DECKEL_LISTEN_ADDR: ":8080"
       DECKEL_ADMIN_GROUP: "role:admin"
+      DECKEL_KIOSK_GROUP: "role:kiosk"
       DECKEL_STATIC_DIR: "/app/static"
       DECKEL_TEMPLATE_DIR: "/app/templates"
       DECKEL_ORGANIZATION: "K4-Bar"
@@ -19,6 +20,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    ports:
+      - "8080:8080"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
       interval: 10s
@@ -64,15 +67,14 @@ services:
 
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
-    extra_hosts:
-      - "localhost:host-gateway"
+    network_mode: host
     command:
       - --provider=keycloak-oidc
       - --client-id=deckel
       - --client-secret=test-client-secret
       - --oidc-issuer-url=http://localhost:8181/realms/deckel-test
       - --redirect-url=http://localhost:4181/oauth2/callback
-      - --upstream=http://app:8080
+      - --upstream=http://localhost:8080
       - --http-address=0.0.0.0:4181
       - --cookie-secret=super-secret-32-character-string
       - --cookie-secure=false
@@ -82,8 +84,6 @@ services:
       - --email-domain=*
       - --skip-provider-button=true
       - --backend-logout-url=http://localhost:8181/realms/deckel-test/protocol/openid-connect/logout?id_token_hint={id_token}
-    ports:
-      - "4181:4181"
     depends_on:
       keycloak:
         condition: service_healthy
