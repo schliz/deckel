@@ -100,8 +100,9 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 
 // CustomTransactionModalData is the view model for the custom transaction modal.
 type CustomTransactionModalData struct {
-	Settings  *model.Settings
-	CSRFToken string
+	Settings     *model.Settings
+	CSRFToken    string
+	ErrorMessage string
 }
 
 // CustomTransactionModal renders the custom transaction modal.
@@ -197,35 +198,50 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
+	// Fetch settings early — needed for both validation and error re-rendering.
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("create custom transaction: get settings: %w", err)
+	}
+
+	// Re-render the modal with an inline error message.
+	renderError := func(msg string) error {
+		data := CustomTransactionModalData{
+			Settings:     settings,
+			CSRFToken:    middleware.CSRFTokenFromContext(ctx),
+			ErrorMessage: msg,
+		}
+		h.Renderer.Fragment(w, r, "custom-transaction-modal", data)
+		return nil
+	}
+
 	// Parse form data.
 	description := strings.TrimSpace(r.FormValue("description"))
 
 	if description == "" {
-		return &ValidationError{Message: "Beschreibung ist erforderlich"}
+		return renderError("Beschreibung ist erforderlich")
 	}
 	if err := validateTextLen(description, 500, "Beschreibung"); err != nil {
+		var ve *ValidationError
+		if errors.As(err, &ve) {
+			return renderError(ve.Message)
+		}
 		return err
 	}
 
 	// Parse Euro amount string to cents (accepts both comma and period).
 	amountFloat, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("amount")), 64)
 	if err != nil || amountFloat <= 0 {
-		return &ValidationError{Message: "Ungültiger Betrag"}
+		return renderError("Ungültiger Betrag")
 	}
 	amountCents := int64(math.Round(amountFloat * 100))
 
-	// Fetch settings for custom_tx_min/max.
-	settings, err := store.GetSettings(ctx, db)
-	if err != nil {
-		return fmt.Errorf("create custom transaction: get settings: %w", err)
-	}
-
 	// Validate amount within allowed range.
 	if amountCents < settings.CustomTxMin {
-		return &ValidationError{Message: fmt.Sprintf("Mindestbetrag: %s", formatEuroCents(settings.CustomTxMin))}
+		return renderError(fmt.Sprintf("Mindestbetrag: %s", formatEuroCents(settings.CustomTxMin)))
 	}
 	if amountCents > settings.CustomTxMax {
-		return &ValidationError{Message: fmt.Sprintf("Maximalbetrag: %s", formatEuroCents(settings.CustomTxMax))}
+		return renderError(fmt.Sprintf("Maximalbetrag: %s", formatEuroCents(settings.CustomTxMax)))
 	}
 
 	// Create transaction (amount is negative = debit).
