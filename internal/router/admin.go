@@ -42,5 +42,6 @@ func RegisterAdmin(mux *http.ServeMux, h *admin.Handler, withCSRF func(http.Hand
 	mux.Handle("GET /admin/stats", adminOnly(h.Wrap(h.AdminStatsPage)))
 	mux.Handle("GET /admin/settings", adminOnly(h.Wrap(h.AdminSettingsPage)))
 	mux.Handle("POST /admin/settings", adminOnly(h.Wrap(h.SaveSettings)))
+	mux.Handle("GET /admin/settings/send-reminders", adminOnly(h.Wrap(h.SendRemindersModal)))
 	mux.Handle("POST /admin/settings/send-reminders", adminOnly(h.Wrap(h.SendReminders)))
 }

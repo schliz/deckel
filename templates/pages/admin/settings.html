@@ -101,7 +101,14 @@
                             value="{{.Settings.SMTPPassword}}"
                             class="input input-sm w-full">
                     </fieldset>
-                    <fieldset class="fieldset sm:col-span-2">
+                    <fieldset class="fieldset">
+                        <label class="label">Absender-Name</label>
+                        <input type="text" name="smtp_from_name"
+                            value="{{.Settings.SMTPFromName}}"
+                            placeholder="z.B. K4-Bar"
+                            class="input input-sm w-full">
+                    </fieldset>
+                    <fieldset class="fieldset">
                         <label class="label">Absender-Email</label>
                         <input type="text" name="smtp_from"
                             value="{{.Settings.SMTPFrom}}"
@@ -116,9 +123,22 @@
             <div class="card-body p-4 space-y-4">
                 <h2 class="card-title text-lg">Email-Vorlage</h2>
                 <fieldset class="fieldset">
+                    <label class="label">Betreff</label>
+                    <input type="text" name="email_subject"
+                        value="{{.Settings.EmailSubject}}"
+                        class="input input-sm w-full">
+                </fieldset>
+                <fieldset class="fieldset">
+                    <label class="label">Inhalt</label>
                     <textarea name="email_template" rows="8"
                         class="textarea w-full font-mono text-sm">{{.Settings.EmailTemplate}}</textarea>
                 </fieldset>
+                <div class="text-xs text-base-content/50">
+                    Verfügbare Variablen:
+                    <code class="bg-base-300 px-1 rounded">{{"{{"}} .Name {{"}}"}}</code> (vollständiger Name),
+                    <code class="bg-base-300 px-1 rounded">{{"{{"}} .FirstName {{"}}"}}</code> (Vorname),
+                    <code class="bg-base-300 px-1 rounded">{{"{{"}} .Balance {{"}}"}}</code> (Kontostand, z.B. &ldquo;-3.50 EUR&rdquo;)
+                </div>
             </div>
         </div>
 
@@ -131,15 +151,20 @@
     <div class="card bg-base-200 shadow-sm">
         <div class="card-body p-4">
             <h2 class="card-title text-lg">Erinnerungsmails</h2>
-            <p class="text-sm text-base-content/60">Sendet Erinnerungsmails an alle Nutzer mit negativem Kontostand.</p>
-            <div class="card-actions mt-2">
+            <p class="text-sm text-base-content/60">Sendet Erinnerungsmails an Nutzer unterhalb des gewählten Limits.</p>
+            <div class="card-actions mt-2 flex-wrap gap-2">
                 <button class="btn btn-warning btn-sm"
-                    hx-post="/admin/settings/send-reminders"
-                    hx-target="#toast-zone"
-                    hx-swap="afterbegin"
-                    hx-confirm="Wirklich Erinnerungsmails an alle Nutzer mit negativem Kontostand senden?">
-                    Erinnerungsmails senden
+                    hx-get="/admin/settings/send-reminders?type=warning"
+                    hx-target="#modal">
+                    Unter Warnlimit
                 </button>
+                {{if .Settings.HardLimitEnabled}}
+                <button class="btn btn-error btn-sm"
+                    hx-get="/admin/settings/send-reminders?type=hard"
+                    hx-target="#modal">
+                    Unter Ausgabelimit
+                </button>
+                {{end}}
             </div>
         </div>
     </div>
