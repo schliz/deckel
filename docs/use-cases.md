@@ -23,6 +23,7 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 ## Eigene Buchung
 
 - [x] Eigene Buchung erstellen: Ein Benutzer klickt auf "Eigene Buchung", gibt eine Beschreibung und einen Betrag (innerhalb der konfigurierten Grenzen) ein und bestätigt. Eine Transaktion wird erstellt und das Guthaben entsprechend angepasst.
+- [x] Eigene Buchung Validierungsfehler: Ein Benutzer gibt ungültige Daten ein (leere Beschreibung, ungültiger Betrag, Betrag außerhalb der Grenzen). Das Modal bleibt offen und zeigt die Fehlermeldung inline an.
 - Eigene Buchung bei Ausgabelimit: Ein Benutzer mit erreichtem Ausgabelimit kann keine eigene Buchung erstellen — der Button ist deaktiviert.
 
 ## Transaktionshistorie
