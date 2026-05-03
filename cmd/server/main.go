@@ -8,23 +8,20 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/schliz/deckel/internal/auth"
 	"github.com/schliz/deckel/internal/config"
 	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/handler/admin"
 	"github.com/schliz/deckel/internal/handler/kiosk"
 	"github.com/schliz/deckel/internal/handler/member"
 	"github.com/schliz/deckel/internal/handler/shared"
-	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/render"
+	"github.com/schliz/deckel/internal/router"
 	"github.com/schliz/deckel/internal/store"
 	"github.com/schliz/deckel/migrations"
 )
@@ -82,123 +79,17 @@ func main() {
 		log.Fatalf("Failed to generate CSRF secret: %v", err)
 	}
 
-	// Middleware chains.
-	base := middleware.Chain(
-		middleware.Logging(),
-		middleware.Recovery(),
-		auth.Middleware(s, cfg.AdminGroup, cfg.KioskGroup, cfg.Organization, cfg.AppName),
-	)
-	withCSRF := middleware.Chain(
-		base,
-		middleware.CSRF(csrfSecret),
-	)
-	mux := http.NewServeMux()
-
-	// Health check - outside middleware (no auth needed).
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		if err := dbpool.Ping(r.Context()); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("database unreachable"))
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+	mux := router.New(router.Deps{
+		Base:       h,
+		Admin:      adminH,
+		Kiosk:      kioskH,
+		Member:     memberH,
+		Shared:     sharedH,
+		Store:      s,
+		DBPool:     dbpool,
+		Config:     cfg,
+		CSRFSecret: csrfSecret,
 	})
-
-	// Static file server - outside auth middleware.
-	staticFS := http.FileServer(http.Dir(cfg.StaticDir))
-	mux.Handle("/static/", http.StripPrefix("/static/", staticCacheHandler(staticFS, cfg.DevMode)))
-
-	// PWA assets served from root - must bypass auth (see OAUTH2_PROXY_SKIP_AUTH_REGEX).
-	mux.HandleFunc("GET /sw.js", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeFile(w, r, filepath.Join(cfg.StaticDir, "js", "sw.js"))
-	})
-	mux.HandleFunc("GET /manifest.json", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=86400")
-		http.ServeFile(w, r, filepath.Join(cfg.StaticDir, "manifest.json"))
-	})
-	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=86400")
-		http.ServeFile(w, r, filepath.Join(cfg.StaticDir, "icons", "favicon.ico"))
-	})
-
-	// Menu page (GET / and GET /menu).
-	mux.Handle("GET /{$}", withCSRF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if user := auth.UserFromContext(r.Context()); user != nil && user.IsKiosk {
-			http.Redirect(w, r, "/kiosk", http.StatusFound)
-			return
-		}
-		memberH.Wrap(memberH.MenuPage)(w, r)
-	})))
-	mux.Handle("GET /menu", withCSRF(memberH.Wrap(memberH.MenuPage)))
-
-	// Order modal (GET /menu/items/{id}/order).
-	mux.Handle("GET /menu/items/{id}/order", withCSRF(memberH.Wrap(memberH.OrderModal)))
-
-	// Place order (POST /menu/order).
-	mux.Handle("POST /menu/order", withCSRF(memberH.Wrap(memberH.PlaceOrder)))
-
-	// Header stats (lazy-loaded on page init).
-	mux.Handle("GET /header-stats", base(sharedH.Wrap(sharedH.HeaderStats)))
-
-	// Placeholder routes with base middleware (auth, no CSRF for GET).
-	mux.Handle("GET /profile", withCSRF(memberH.Wrap(memberH.ProfilePage)))
-	mux.Handle("POST /profile/export", withCSRF(memberH.Wrap(memberH.ExportData)))
-	mux.Handle("GET /transactions", withCSRF(memberH.Wrap(memberH.TransactionHistory)))
-	mux.Handle("GET /transactions/custom", withCSRF(memberH.Wrap(memberH.CustomTransactionModal)))
-	mux.Handle("POST /transactions/custom", withCSRF(memberH.Wrap(memberH.CreateCustomTransaction)))
-	mux.Handle("GET /transactions/{id}/cancel", withCSRF(memberH.Wrap(memberH.CancelModal)))
-	mux.Handle("POST /transactions/{id}/cancel", withCSRF(memberH.Wrap(memberH.CancelTransaction)))
-
-	// Kiosk routes with CSRF + RequireKiosk.
-	kioskOnly := func(h http.Handler) http.Handler {
-		return withCSRF(auth.RequireKiosk(h))
-	}
-	mux.Handle("GET /kiosk", kioskOnly(kioskH.Wrap(kioskH.KioskMenuPage)))
-	mux.Handle("GET /kiosk/items/{id}/users", kioskOnly(kioskH.Wrap(kioskH.KioskUserSelect)))
-	mux.Handle("GET /kiosk/items/{id}/confirm/{uid}", kioskOnly(kioskH.Wrap(kioskH.KioskConfirm)))
-	mux.Handle("POST /kiosk/order", kioskOnly(kioskH.Wrap(kioskH.KioskPlaceOrder)))
-	mux.Handle("GET /kiosk/history", kioskOnly(kioskH.Wrap(kioskH.KioskHistory)))
-	mux.Handle("GET /kiosk/transactions/{id}/cancel", kioskOnly(kioskH.Wrap(kioskH.KioskCancelModal)))
-	mux.Handle("POST /kiosk/transactions/{id}/cancel", kioskOnly(kioskH.Wrap(kioskH.KioskCancelTransaction)))
-
-	// Admin routes with CSRF + RequireAdmin.
-	adminOnly := func(h http.Handler) http.Handler {
-		return withCSRF(auth.RequireAdmin(h))
-	}
-	mux.Handle("GET /admin/menu", adminOnly(adminH.Wrap(adminH.AdminMenuPage)))
-	mux.Handle("GET /admin/menu/batch", adminOnly(adminH.Wrap(adminH.MenuBatchPage)))
-	mux.Handle("GET /admin/menu/batch/export", adminOnly(adminH.Wrap(adminH.MenuBatchExport)))
-	mux.Handle("POST /admin/menu/batch/upload", adminOnly(adminH.Wrap(adminH.MenuBatchUpload)))
-	mux.Handle("POST /admin/menu/batch/apply", adminOnly(adminH.Wrap(adminH.MenuBatchApply)))
-	mux.Handle("POST /admin/categories", adminOnly(adminH.Wrap(adminH.CreateCategory)))
-	mux.Handle("GET /admin/categories/{id}/edit", adminOnly(adminH.Wrap(adminH.EditCategoryForm)))
-	mux.Handle("POST /admin/categories/{id}/update", adminOnly(adminH.Wrap(adminH.UpdateCategory)))
-	mux.Handle("POST /admin/categories/{id}/reorder", adminOnly(adminH.Wrap(adminH.ReorderCategory)))
-	mux.Handle("DELETE /admin/categories/{id}", adminOnly(adminH.Wrap(adminH.DeleteCategory)))
-	mux.Handle("POST /admin/categories/{id}/items", adminOnly(adminH.Wrap(adminH.CreateItem)))
-	mux.Handle("GET /admin/items/{id}/edit", adminOnly(adminH.Wrap(adminH.EditItemForm)))
-	mux.Handle("POST /admin/items/{id}/update", adminOnly(adminH.Wrap(adminH.UpdateItem)))
-	mux.Handle("POST /admin/items/{id}/reorder", adminOnly(adminH.Wrap(adminH.ReorderItem)))
-	mux.Handle("POST /admin/items/{id}/delete", adminOnly(adminH.Wrap(adminH.SoftDeleteItem)))
-	mux.Handle("GET /admin/users", adminOnly(adminH.Wrap(adminH.AdminUserList)))
-	mux.Handle("GET /admin/users/{id}/confirm-toggle", adminOnly(adminH.Wrap(adminH.ConfirmToggleModal)))
-	mux.Handle("POST /admin/users/{id}/toggle-barteamer", adminOnly(adminH.Wrap(adminH.ToggleBarteamer)))
-	mux.Handle("POST /admin/users/{id}/toggle-active", adminOnly(adminH.Wrap(adminH.ToggleActive)))
-	mux.Handle("POST /admin/users/{id}/toggle-spending-limit", adminOnly(adminH.Wrap(adminH.ToggleSpendingLimit)))
-	mux.Handle("GET /admin/users/{id}/deposit", adminOnly(adminH.Wrap(adminH.DepositModal)))
-	mux.Handle("POST /admin/users/{id}/deposit", adminOnly(adminH.Wrap(adminH.RegisterDeposit)))
-	mux.Handle("GET /admin/transactions", adminOnly(adminH.Wrap(adminH.AdminTransactionList)))
-	mux.Handle("GET /admin/transactions/{id}/cancel", adminOnly(adminH.Wrap(adminH.AdminCancelModal)))
-	mux.Handle("POST /admin/transactions/{id}/cancel", adminOnly(adminH.Wrap(adminH.AdminCancelTransaction)))
-	mux.Handle("GET /admin/stats", adminOnly(adminH.Wrap(adminH.AdminStatsPage)))
-	mux.Handle("GET /admin/settings", adminOnly(adminH.Wrap(adminH.AdminSettingsPage)))
-	mux.Handle("POST /admin/settings", adminOnly(adminH.Wrap(adminH.SaveSettings)))
-	mux.Handle("POST /admin/settings/send-reminders", adminOnly(adminH.Wrap(adminH.SendReminders)))
-
-	// Catch-all: styled 404 for unmatched routes.
-	mux.Handle("/", base(h.NotFoundHandler()))
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,
@@ -228,36 +119,6 @@ func main() {
 	}
 
 	log.Println("Server stopped gracefully")
-}
-
-// staticCacheHandler wraps a file server handler to add cache headers based on file type.
-// In dev mode, cache headers are set to no-cache.
-func staticCacheHandler(next http.Handler, devMode bool) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if devMode {
-			w.Header().Set("Cache-Control", "no-cache")
-		} else {
-			path := r.URL.Path
-			switch {
-			case strings.HasSuffix(path, ".css"):
-				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-			case strings.HasSuffix(path, ".js"):
-				w.Header().Set("Cache-Control", "public, max-age=86400")
-			case strings.HasSuffix(path, ".png"), strings.HasSuffix(path, ".json"):
-				w.Header().Set("Cache-Control", "public, max-age=86400")
-			}
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// placeholderHandler returns a simple handler that responds with the route name.
-func placeholderHandler(name string) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("placeholder: " + name))
-	}
 }
 
 func runMigrations(databaseURL string) error {
