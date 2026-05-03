@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"crypto/rand"
@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -89,10 +90,10 @@ func (h *Handler) MenuBatchPage(w http.ResponseWriter, r *http.Request) error {
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-menu",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "admin_menu_batch", data)
+	h.Renderer.Page(w, r, "admin/menu_batch", data)
 	return nil
 }
 
@@ -127,7 +128,7 @@ func (h *Handler) MenuBatchExport(w http.ResponseWriter, r *http.Request) error 
 	} else {
 		catID, err := strconv.ParseInt(categoryFilter, 10, 64)
 		if err != nil {
-			return &ValidationError{Message: "Ungültige Kategorie-ID"}
+			return &handler.ValidationError{Message: "Ungültige Kategorie-ID"}
 		}
 		items, err = store.ListItemsByCategory(ctx, db, catID)
 		if err != nil {
@@ -153,8 +154,8 @@ func (h *Handler) MenuBatchExport(w http.ResponseWriter, r *http.Request) error 
 			strconv.FormatInt(item.ID, 10),
 			catName,
 			item.Name,
-			formatEuroCentsExport(item.PriceBarteamer),
-			formatEuroCentsExport(item.PriceHelfer),
+			handler.FormatEuroCentsExport(item.PriceBarteamer),
+			handler.FormatEuroCentsExport(item.PriceHelfer),
 		})
 	}
 
@@ -171,12 +172,12 @@ func (h *Handler) MenuBatchUpload(w http.ResponseWriter, r *http.Request) error 
 	h.cleanupMenuBatchSessions()
 
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
-		return &ValidationError{Message: "Datei zu groß (max. 1 MB)"}
+		return &handler.ValidationError{Message: "Datei zu groß (max. 1 MB)"}
 	}
 
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		return &ValidationError{Message: "Keine Datei ausgewählt"}
+		return &handler.ValidationError{Message: "Keine Datei ausgewählt"}
 	}
 	defer file.Close()
 
@@ -186,17 +187,17 @@ func (h *Handler) MenuBatchUpload(w http.ResponseWriter, r *http.Request) error 
 
 	records, err := cr.ReadAll()
 	if err != nil {
-		return &ValidationError{Message: "CSV konnte nicht gelesen werden: " + err.Error()}
+		return &handler.ValidationError{Message: "CSV konnte nicht gelesen werden: " + err.Error()}
 	}
 
 	if len(records) < 2 {
-		return &ValidationError{Message: "CSV-Datei ist leer oder enthält nur die Kopfzeile"}
+		return &handler.ValidationError{Message: "CSV-Datei ist leer oder enthält nur die Kopfzeile"}
 	}
 
 	// Validate header.
 	header := records[0]
 	if len(header) < 5 {
-		return &ValidationError{Message: "CSV-Kopfzeile muss mindestens 5 Spalten haben (id;kategorie;name;preis_barteamer;preis_helfer)"}
+		return &handler.ValidationError{Message: "CSV-Kopfzeile muss mindestens 5 Spalten haben (id;kategorie;name;preis_barteamer;preis_helfer)"}
 	}
 
 	// Build category name map for display.
@@ -322,14 +323,14 @@ func (h *Handler) MenuBatchApply(w http.ResponseWriter, r *http.Request) error {
 	token := r.FormValue("session_token")
 	val, ok := h.MenuBatchSessions.LoadAndDelete(token)
 	if !ok {
-		return &ValidationError{Message: "Sitzung abgelaufen. Bitte erneut hochladen."}
+		return &handler.ValidationError{Message: "Sitzung abgelaufen. Bitte erneut hochladen."}
 	}
 
 	session := val.(*MenuBatchSession)
 
 	// Check session age.
 	if time.Since(session.CreatedAt) > 30*time.Minute {
-		return &ValidationError{Message: "Sitzung abgelaufen. Bitte erneut hochladen."}
+		return &handler.ValidationError{Message: "Sitzung abgelaufen. Bitte erneut hochladen."}
 	}
 
 	if len(session.Changes) == 0 {
@@ -384,7 +385,7 @@ func parseMenuBatchPrice(s string) (int64, error) {
 	if s == "" {
 		return 0, fmt.Errorf("empty price")
 	}
-	s = normalizeDecimal(s)
+	s = handler.NormalizeDecimal(s)
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return 0, err

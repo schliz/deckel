@@ -1,4 +1,4 @@
-package handler
+package member
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -31,21 +32,21 @@ func (h *Handler) OrderModal(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	// Fetch item from DB.
 	item, err := store.GetItem(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("order modal: get item: %w", err)
 	}
 
 	// Return 404 if soft-deleted.
 	if item.DeletedAt != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	// Fetch settings for max_item_quantity.
@@ -77,12 +78,12 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 
 	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "Ungültige Artikel-ID"}
+		return &handler.ValidationError{Message: "Ungültige Artikel-ID"}
 	}
 
 	quantity, err := strconv.Atoi(qtyStr)
 	if err != nil || quantity < 1 {
-		return &ValidationError{Message: "Ungültige Menge"}
+		return &handler.ValidationError{Message: "Ungültige Menge"}
 	}
 
 	db := h.Store.DB()
@@ -91,12 +92,12 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	item, err := store.GetItem(ctx, db, itemID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("place order: get item: %w", err)
 	}
 	if item.DeletedAt != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	// Fetch settings for max quantity and spending limits.
@@ -107,7 +108,7 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 
 	// Validate quantity against max.
 	if quantity > settings.MaxItemQuantity {
-		return &ValidationError{Message: fmt.Sprintf("Maximal %d Stück erlaubt", settings.MaxItemQuantity)}
+		return &handler.ValidationError{Message: fmt.Sprintf("Maximal %d Stück erlaubt", settings.MaxItemQuantity)}
 	}
 
 	// Determine price tier based on user role.
@@ -133,7 +134,7 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 		if settings.HardLimitEnabled && !user.SpendingLimitDisabled {
 			hardLimit := -settings.HardSpendingLimit
 			if balance <= hardLimit {
-				return &ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht. Bitte erst einzahlen."}
+				return &handler.ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht. Bitte erst einzahlen."}
 			}
 		}
 
@@ -154,7 +155,7 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	})
 	if err != nil {
 		// Check if it's a ValidationError from inside the tx.
-		var valErr *ValidationError
+		var valErr *handler.ValidationError
 		if errors.As(err, &valErr) {
 			return valErr
 		}

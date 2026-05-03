@@ -1,4 +1,4 @@
-package handler
+package member
 
 import (
 	"archive/zip"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/store"
 )
@@ -33,10 +34,10 @@ func (h *Handler) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 		User:              user,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "profile",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "profile", data)
+	h.Renderer.Page(w, r, "member/profile", data)
 	return nil
 }
 
@@ -85,7 +86,7 @@ func (h *Handler) ExportData(w http.ResponseWriter, r *http.Request) error {
 			menge = fmt.Sprintf("%d", *t.Quantity)
 		}
 
-		betrag := formatEuroCentsExport(t.Amount)
+		betrag := handler.FormatEuroCentsExport(t.Amount)
 
 		status := "Aktiv"
 		if t.CancelledAt != nil {
@@ -125,19 +126,6 @@ func (h *Handler) ExportData(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return nil
-}
-
-// formatEuroCentsExport formats cents as "X,YY" for CSV export.
-func formatEuroCentsExport(cents int64) string {
-	negative := cents < 0
-	if negative {
-		cents = -cents
-	}
-	prefix := ""
-	if negative {
-		prefix = "-"
-	}
-	return fmt.Sprintf("%s%d,%02d", prefix, cents/100, cents%100)
 }
 
 // escapeSemicolon wraps a string in quotes if it contains semicolons.

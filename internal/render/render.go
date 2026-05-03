@@ -3,9 +3,11 @@ package render
 import (
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -195,10 +197,10 @@ func isHTMX(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
 }
 
-// globHTML returns all .html files in the given directory (non-recursive).
+// globHTML returns all .html files under the given directory, descending into
+// sub-directories. Results are sorted by full path for deterministic ordering.
 func globHTML(dir string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
+	if _, err := os.Stat(dir); err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
@@ -206,11 +208,23 @@ func globHTML(dir string) ([]string, error) {
 	}
 
 	var files []string
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".html") {
-			files = append(files, filepath.Join(dir, e.Name()))
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
+		if d.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(d.Name(), ".html") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	sort.Strings(files)
 	return files, nil
 }
 

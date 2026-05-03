@@ -1,16 +1,19 @@
-package handler
+package admin
+
+// Admin user-state management: list view plus toggles for active / spending
+// limit / barteamer flags, including the shared confirmation modal. Helpers
+// for kiosk-target rejection and user-row rendering live here too because
+// they are also reused by the deposit handlers in deposits.go.
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -33,12 +36,12 @@ func rejectKioskTarget(ctx context.Context, db store.DBTX, id int64) error {
 	u, err := store.GetUserWithBalance(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 		}
 		return fmt.Errorf("check kiosk target: %w", err)
 	}
 	if u.IsKiosk {
-		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+		return &handler.ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
 	}
 	return nil
 }
@@ -99,15 +102,15 @@ func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 		ActivePage:        "admin-users",
 		Page:              page,
 		TotalPages:        totalPages,
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
-	if isHTMX(r) {
+	if handler.IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "user-list", data)
 		return nil
 	}
 
-	h.Renderer.Page(w, r, "admin_users", data)
+	h.Renderer.Page(w, r, "admin/users", data)
 	return nil
 }
 
@@ -119,11 +122,11 @@ func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	if id == reqUser.ID {
-		return &ForbiddenError{Message: "Du kannst deinen eigenen Account nicht deaktivieren."}
+		return &handler.ForbiddenError{Message: "Du kannst deinen eigenen Account nicht deaktivieren."}
 	}
 
 	if err := store.ToggleActive(ctx, db, id); err != nil {
@@ -151,7 +154,7 @@ func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) er
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	if err := rejectKioskTarget(ctx, db, id); err != nil {
@@ -183,7 +186,7 @@ func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error 
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	if err := rejectKioskTarget(ctx, db, id); err != nil {
@@ -216,7 +219,7 @@ func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) err
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	action := r.URL.Query().Get("action")
@@ -224,7 +227,7 @@ func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) err
 	ub, err := store.GetUserWithBalance(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 		}
 		return fmt.Errorf("confirm toggle modal: get user: %w", err)
 	}
@@ -234,7 +237,7 @@ func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) err
 
 	// Block barteamer/spending-limit/deposit actions for kiosk users.
 	if ub.IsKiosk && action != "active" {
-		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+		return &handler.ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
 	}
 
 	switch action {
@@ -269,7 +272,7 @@ func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) err
 			message = fmt.Sprintf("Möchtest du das Ausgabelimit für %s aufheben?", ub.FullName)
 		}
 	default:
-		return &ValidationError{Message: "ungültige Aktion"}
+		return &handler.ValidationError{Message: "ungültige Aktion"}
 	}
 
 	data := map[string]any{
@@ -282,126 +285,5 @@ func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) err
 	}
 
 	h.Renderer.Fragment(w, r, "confirm-toggle-modal", data)
-	return nil
-}
-
-// DepositModal handles GET /admin/users/{id}/deposit.
-func (h *Handler) DepositModal(w http.ResponseWriter, r *http.Request) error {
-	ctx := r.Context()
-	db := h.Store.DB()
-
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
-	}
-
-	user, err := store.GetUserWithBalance(ctx, db, id)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
-		}
-		return fmt.Errorf("deposit modal: get user: %w", err)
-	}
-	if user.IsKiosk {
-		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
-	}
-
-	data := map[string]any{
-		"User":      user,
-		"CSRFToken": middleware.CSRFTokenFromContext(ctx),
-	}
-
-	h.Renderer.Fragment(w, r, "payment-modal", data)
-	return nil
-}
-
-// RegisterDeposit handles POST /admin/users/{id}/deposit.
-func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
-	ctx := r.Context()
-	reqUser := auth.UserFromContext(ctx)
-	db := h.Store.DB()
-
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
-	}
-
-	if err := rejectKioskTarget(ctx, db, id); err != nil {
-		return err
-	}
-
-	// Parse Euro amount string to cents (accepts both comma and period).
-	amountFloat, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("amount")), 64)
-	if err != nil || amountFloat <= 0 {
-		return &ValidationError{Message: "Ungültiger Betrag"}
-	}
-	amountCents := int64(math.Round(amountFloat * 100))
-
-	// Optional note, default to "Einzahlung".
-	note := strings.TrimSpace(r.FormValue("note"))
-	if note == "" {
-		note = "Einzahlung"
-	}
-	if err := validateTextLen(note, 500, "Notiz"); err != nil {
-		return err
-	}
-
-	// Create deposit transaction (positive amount = credit).
-	createdBy := reqUser.ID
-	txn := &model.Transaction{
-		UserID:          id,
-		Amount:          amountCents,
-		Description:     &note,
-		Type:            "deposit",
-		CreatedByUserID: &createdBy,
-	}
-
-	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {
-		_, err := store.CreateTransaction(ctx, tx, txn)
-		return err
-	})
-	if err != nil {
-		return fmt.Errorf("register deposit: %w", err)
-	}
-
-	// Build response: user-row as primary body + OOB toast + OOB header-stats.
-	// Modal is closed client-side via hx-on::after-request on the button.
-
-	// Render user row as primary body (swapped into hx-target via outerHTML).
-	ub, err := store.GetUserWithBalance(ctx, db, id)
-	if err != nil {
-		return fmt.Errorf("register deposit: fetch user: %w", err)
-	}
-	h.Renderer.Fragment(w, r, "user-row", userRowData(*ub, reqUser.ID))
-
-	// OOB toast.
-	h.Renderer.AppendOOB(w, "toast", map[string]string{
-		"Type":    "success",
-		"Message": "Einzahlung gebucht!",
-	})
-
-	// Fetch settings for header-stats.
-	settings, err := store.GetSettings(ctx, db)
-	if err != nil {
-		return fmt.Errorf("register deposit: get settings: %w", err)
-	}
-
-	// OOB header-stats update.
-	newBalance, _ := store.GetUserBalance(ctx, db, reqUser.ID)
-	totalBalance, _ := store.GetAllBalancesSum(ctx, db)
-	negativeSum, _ := store.GetNegativeBalancesSum(ctx, db)
-	rank, total, _ := store.GetUserRank(ctx, db, reqUser.ID)
-
-	h.Renderer.AppendOOB(w, "header-stats", map[string]any{
-		"UserBalance":         newBalance,
-		"TotalBalance":        totalBalance,
-		"NegativeBalancesSum": negativeSum,
-		"UserRank":            rank,
-		"TotalUsers":          total,
-		"Settings":            settings,
-		"User":                reqUser,
-		"OOB":                 true,
-	})
-
 	return nil
 }

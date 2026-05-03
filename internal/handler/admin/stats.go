@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -103,15 +104,15 @@ func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		From:              from.Format("2006-01-02"),
 		To:                to.Format("2006-01-02"),
 		ActivePage:        "admin-stats",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 	}
 
-	if isHTMX(r) {
+	if handler.IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "admin-stats-panel", data)
 		return nil
 	}
 
-	h.Renderer.Page(w, r, "admin_stats", data)
+	h.Renderer.Page(w, r, "admin/stats", data)
 	return nil
 }

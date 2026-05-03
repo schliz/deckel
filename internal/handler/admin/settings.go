@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/mail"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
@@ -42,17 +43,17 @@ func (h *Handler) AdminSettingsPage(w http.ResponseWriter, r *http.Request) erro
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-settings",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "admin_settings", data)
+	h.Renderer.Page(w, r, "admin/settings", data)
 	return nil
 }
 
 // parseEuroToCents parses a Euro string (e.g. "12.50" or "12,50") and returns cents as int64.
 // Accepts both period and comma as decimal separator.
 func parseEuroToCents(s string) (int64, error) {
-	f, err := strconv.ParseFloat(normalizeDecimal(s), 64)
+	f, err := strconv.ParseFloat(handler.NormalizeDecimal(s), 64)
 	if err != nil {
 		return 0, err
 	}
@@ -64,39 +65,39 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 	// Parse Euro fields to cents.
 	warningLimit, err := parseEuroToCents(r.FormValue("warning_limit"))
 	if err != nil {
-		return &ValidationError{Message: "Ungültiger Wert für Warnlimit"}
+		return &handler.ValidationError{Message: "Ungültiger Wert für Warnlimit"}
 	}
 	hardSpendingLimit, err := parseEuroToCents(r.FormValue("hard_spending_limit"))
 	if err != nil {
-		return &ValidationError{Message: "Ungültiger Wert für Ausgabelimit"}
+		return &handler.ValidationError{Message: "Ungültiger Wert für Ausgabelimit"}
 	}
 	customTxMin, err := parseEuroToCents(r.FormValue("custom_tx_min"))
 	if err != nil {
-		return &ValidationError{Message: "Ungültiger Wert für Eigenbuchung Min"}
+		return &handler.ValidationError{Message: "Ungültiger Wert für Eigenbuchung Min"}
 	}
 	customTxMax, err := parseEuroToCents(r.FormValue("custom_tx_max"))
 	if err != nil {
-		return &ValidationError{Message: "Ungültiger Wert für Eigenbuchung Max"}
+		return &handler.ValidationError{Message: "Ungültiger Wert für Eigenbuchung Max"}
 	}
 
 	// Parse integer fields.
 	maxItemQuantity, err := strconv.Atoi(r.FormValue("max_item_quantity"))
 	if err != nil || maxItemQuantity < 1 || maxItemQuantity > 100 {
-		return &ValidationError{Message: "Max Anzahl muss zwischen 1 und 100 liegen"}
+		return &handler.ValidationError{Message: "Max Anzahl muss zwischen 1 und 100 liegen"}
 	}
 	cancellationMinutes, err := strconv.Atoi(r.FormValue("cancellation_minutes"))
 	if err != nil || cancellationMinutes < 0 || cancellationMinutes > 10080 {
-		return &ValidationError{Message: "Stornofrist muss zwischen 0 und 10080 Minuten liegen"}
+		return &handler.ValidationError{Message: "Stornofrist muss zwischen 0 und 10080 Minuten liegen"}
 	}
 	paginationSize, err := strconv.Atoi(r.FormValue("pagination_size"))
 	if err != nil || paginationSize < 1 || paginationSize > 500 {
-		return &ValidationError{Message: "Seitengröße muss zwischen 1 und 500 liegen"}
+		return &handler.ValidationError{Message: "Seitengröße muss zwischen 1 und 500 liegen"}
 	}
 
 	// Parse SMTP fields.
 	smtpPort, err := strconv.Atoi(r.FormValue("smtp_port"))
 	if err != nil || smtpPort < 1 || smtpPort > 65535 {
-		return &ValidationError{Message: "SMTP Port muss zwischen 1 und 65535 liegen"}
+		return &handler.ValidationError{Message: "SMTP Port muss zwischen 1 und 65535 liegen"}
 	}
 
 	// Checkbox: present means true, absent means false.
@@ -104,27 +105,27 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 
 	// Parse and validate text fields.
 	smtpHost := strings.TrimSpace(r.FormValue("smtp_host"))
-	if err := validateTextLen(smtpHost, 255, "SMTP Host"); err != nil {
+	if err := handler.ValidateTextLen(smtpHost, 255, "SMTP Host"); err != nil {
 		return err
 	}
 	smtpUser := strings.TrimSpace(r.FormValue("smtp_user"))
-	if err := validateTextLen(smtpUser, 255, "SMTP User"); err != nil {
+	if err := handler.ValidateTextLen(smtpUser, 255, "SMTP User"); err != nil {
 		return err
 	}
 	smtpFrom := strings.TrimSpace(r.FormValue("smtp_from"))
-	if err := validateTextLen(smtpFrom, 255, "SMTP From"); err != nil {
+	if err := handler.ValidateTextLen(smtpFrom, 255, "SMTP From"); err != nil {
 		return err
 	}
 	smtpFromName := strings.TrimSpace(r.FormValue("smtp_from_name"))
-	if err := validateTextLen(smtpFromName, 255, "Absender-Name"); err != nil {
+	if err := handler.ValidateTextLen(smtpFromName, 255, "Absender-Name"); err != nil {
 		return err
 	}
 	emailSubject := strings.TrimSpace(r.FormValue("email_subject"))
-	if err := validateTextLen(emailSubject, 255, "Betreff"); err != nil {
+	if err := handler.ValidateTextLen(emailSubject, 255, "Betreff"); err != nil {
 		return err
 	}
 	emailTemplate := strings.TrimSpace(r.FormValue("email_template"))
-	if err := validateTextLen(emailTemplate, 10000, "E-Mail-Template"); err != nil {
+	if err := handler.ValidateTextLen(emailTemplate, 10000, "E-Mail-Template"); err != nil {
 		return err
 	}
 
@@ -169,7 +170,7 @@ func (h *Handler) SendRemindersModal(w http.ResponseWriter, r *http.Request) err
 
 	limitType := r.URL.Query().Get("type")
 	if limitType != "warning" && limitType != "hard" {
-		return &ValidationError{Message: "Ungültiger Typ"}
+		return &handler.ValidationError{Message: "Ungültiger Typ"}
 	}
 
 	settings, err := store.GetSettings(ctx, db)
@@ -220,7 +221,7 @@ func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
 
 	limitType := r.URL.Query().Get("type")
 	if limitType != "warning" && limitType != "hard" {
-		return &ValidationError{Message: "Ungültiger Typ"}
+		return &handler.ValidationError{Message: "Ungültiger Typ"}
 	}
 
 	users, err := store.ListActiveUsersWithBalance(ctx, db)
@@ -242,7 +243,7 @@ func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
 
 	tmpl, err := template.New("email").Parse(settings.EmailTemplate)
 	if err != nil {
-		return &ValidationError{Message: "E-Mail-Template ist ungültig: " + err.Error()}
+		return &handler.ValidationError{Message: "E-Mail-Template ist ungültig: " + err.Error()}
 	}
 
 	mailer := &mail.Mailer{
