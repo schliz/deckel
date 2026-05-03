@@ -31,6 +31,9 @@ static/css/styles.*.css
 # Build output
 /tmp/
 
+# Git worktrees
+.worktrees/
+
 # Secrets
 .env
 
