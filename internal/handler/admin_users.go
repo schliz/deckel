@@ -107,7 +107,7 @@ func (h *Base) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	h.Renderer.Page(w, r, "admin_users", data)
+	h.Renderer.Page(w, r, "admin/users", data)
 	return nil
 }
 

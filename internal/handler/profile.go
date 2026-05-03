@@ -36,7 +36,7 @@ func (h *Base) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "profile", data)
+	h.Renderer.Page(w, r, "member/profile", data)
 	return nil
 }
 

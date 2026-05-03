@@ -77,6 +77,6 @@ func (h *Base) MenuPage(w http.ResponseWriter, r *http.Request) error {
 		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "menu", data)
+	h.Renderer.Page(w, r, "member/menu", data)
 	return nil
 }

@@ -45,7 +45,7 @@ func (h *Base) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
 		"User":       user,
 	}
 
-	h.Renderer.Page(w, r, "kiosk_menu", data)
+	h.Renderer.Page(w, r, "kiosk/menu", data)
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (h *Base) KioskUserSelect(w http.ResponseWriter, r *http.Request) error {
 		"CSRFToken": middleware.CSRFTokenFromContext(ctx),
 	}
 
-	h.Renderer.Page(w, r, "kiosk_users", data)
+	h.Renderer.Page(w, r, "kiosk/users", data)
 	return nil
 }
 
@@ -164,7 +164,7 @@ func (h *Base) KioskConfirm(w http.ResponseWriter, r *http.Request) error {
 		"IsLowBalance": isLowBalance,
 	}
 
-	h.Renderer.Page(w, r, "kiosk_confirm", data)
+	h.Renderer.Page(w, r, "kiosk/confirm", data)
 	return nil
 }
 
@@ -307,7 +307,7 @@ func (h *Base) KioskHistory(w http.ResponseWriter, r *http.Request) error {
 		"KioskUserID":  user.ID,
 	}
 
-	h.Renderer.Page(w, r, "kiosk_history", data)
+	h.Renderer.Page(w, r, "kiosk/history", data)
 	return nil
 }
 

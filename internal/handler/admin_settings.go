@@ -45,7 +45,7 @@ func (h *Base) AdminSettingsPage(w http.ResponseWriter, r *http.Request) error {
 		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "admin_settings", data)
+	h.Renderer.Page(w, r, "admin/settings", data)
 	return nil
 }
 

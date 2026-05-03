@@ -112,6 +112,6 @@ func (h *Base) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	h.Renderer.Page(w, r, "admin_stats", data)
+	h.Renderer.Page(w, r, "admin/stats", data)
 	return nil
 }

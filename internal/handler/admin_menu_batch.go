@@ -92,7 +92,7 @@ func (h *Base) MenuBatchPage(w http.ResponseWriter, r *http.Request) error {
 		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
-	h.Renderer.Page(w, r, "admin_menu_batch", data)
+	h.Renderer.Page(w, r, "admin/menu_batch", data)
 	return nil
 }
 

@@ -82,7 +82,7 @@ func (h *Base) AdminTransactionList(w http.ResponseWriter, r *http.Request) erro
 		return nil
 	}
 
-	h.Renderer.Page(w, r, "admin_transactions", data)
+	h.Renderer.Page(w, r, "admin/transactions", data)
 	return nil
 }
 

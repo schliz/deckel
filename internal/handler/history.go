@@ -94,7 +94,7 @@ func (h *Base) TransactionHistory(w http.ResponseWriter, r *http.Request) error 
 		return nil
 	}
 
-	h.Renderer.Page(w, r, "history", data)
+	h.Renderer.Page(w, r, "member/history", data)
 	return nil
 }
 
