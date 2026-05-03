@@ -1,4 +1,4 @@
-package handler
+package kiosk
 
 import (
 	"errors"
@@ -9,13 +9,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
 )
 
 // KioskMenuPage renders the kiosk item selection grid.
-func (h *Base) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -25,14 +26,14 @@ func (h *Base) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("kiosk menu: list categories: %w", err)
 	}
 
-	var categories []CategoryWithItems
+	var categories []handler.CategoryWithItems
 	for _, cat := range cats {
 		items, err := store.ListItemsByCategory(ctx, db, cat.ID)
 		if err != nil {
 			return fmt.Errorf("kiosk menu: list items for category %d: %w", cat.ID, err)
 		}
 		if len(items) > 0 {
-			categories = append(categories, CategoryWithItems{
+			categories = append(categories, handler.CategoryWithItems{
 				Category: cat,
 				Items:    items,
 			})
@@ -50,7 +51,7 @@ func (h *Base) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskUserSelect renders the user selection page for a kiosk order.
-func (h *Base) KioskUserSelect(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) KioskUserSelect(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -58,18 +59,18 @@ func (h *Base) KioskUserSelect(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	itemID, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	item, err := store.GetItem(ctx, db, itemID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("kiosk user select: get item: %w", err)
 	}
 	if item.DeletedAt != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	users, err := store.ListActiveUsersWithBalance(ctx, db)
@@ -102,35 +103,35 @@ func (h *Base) KioskUserSelect(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskConfirm renders the order confirmation page for a kiosk order.
-func (h *Base) KioskConfirm(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) KioskConfirm(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
 	itemID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	userID, err := strconv.ParseInt(r.PathValue("uid"), 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Benutzer nicht gefunden"}
+		return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 	}
 
 	item, err := store.GetItem(ctx, db, itemID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("kiosk confirm: get item: %w", err)
 	}
 	if item.DeletedAt != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	targetUser, err := store.GetUserWithBalance(ctx, db, userID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 		}
 		return fmt.Errorf("kiosk confirm: get user: %w", err)
 	}
@@ -169,47 +170,47 @@ func (h *Base) KioskConfirm(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskPlaceOrder processes a kiosk order submission.
-func (h *Base) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	kioskUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	itemID, err := strconv.ParseInt(r.FormValue("item_id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "Ungültige Artikel-ID"}
+		return &handler.ValidationError{Message: "Ungültige Artikel-ID"}
 	}
 
 	userID, err := strconv.ParseInt(r.FormValue("user_id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "Ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "Ungültige Benutzer-ID"}
 	}
 
 	quantity, err := strconv.Atoi(r.FormValue("quantity"))
 	if err != nil || quantity < 1 {
-		return &ValidationError{Message: "Ungültige Menge"}
+		return &handler.ValidationError{Message: "Ungültige Menge"}
 	}
 
 	item, err := store.GetItem(ctx, db, itemID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("kiosk place order: get item: %w", err)
 	}
 	if item.DeletedAt != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	targetUser, err := store.GetUserWithBalance(ctx, db, userID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 		}
 		return fmt.Errorf("kiosk place order: get user: %w", err)
 	}
 
 	if !targetUser.IsActive {
-		return &ValidationError{Message: "Benutzer ist deaktiviert"}
+		return &handler.ValidationError{Message: "Benutzer ist deaktiviert"}
 	}
 
 	settings, err := store.GetSettings(ctx, db)
@@ -218,7 +219,7 @@ func (h *Base) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if quantity > settings.MaxItemQuantity {
-		return &ValidationError{Message: fmt.Sprintf("Maximal %d Stück erlaubt", settings.MaxItemQuantity)}
+		return &handler.ValidationError{Message: fmt.Sprintf("Maximal %d Stück erlaubt", settings.MaxItemQuantity)}
 	}
 
 	var unitPrice int64
@@ -239,7 +240,7 @@ func (h *Base) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
 
 		if settings.HardLimitEnabled && !targetUser.SpendingLimitDisabled {
 			if balance+amount <= -settings.HardSpendingLimit {
-				return &ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht."}
+				return &handler.ValidationError{Message: "Bestellung nicht möglich: Ausgabenlimit erreicht."}
 			}
 		}
 
@@ -263,7 +264,7 @@ func (h *Base) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	})
 	if err != nil {
-		var valErr *ValidationError
+		var valErr *handler.ValidationError
 		if errors.As(err, &valErr) {
 			return valErr
 		}
@@ -285,7 +286,7 @@ func (h *Base) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskHistory renders the recent kiosk transaction history.
-func (h *Base) KioskHistory(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) KioskHistory(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -312,35 +313,35 @@ func (h *Base) KioskHistory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskCancelModal renders the cancel confirmation modal for a kiosk transaction.
-func (h *Base) KioskCancelModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) KioskCancelModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 	}
 
 	txn, err := store.GetTransaction(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+			return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 		}
 		return fmt.Errorf("kiosk cancel modal: get transaction: %w", err)
 	}
 
 	// Verify this transaction was created by the kiosk user.
 	if txn.CreatedByUserID == nil || *txn.CreatedByUserID != user.ID {
-		return &ForbiddenError{Message: "Zugriff verweigert"}
+		return &handler.ForbiddenError{Message: "Zugriff verweigert"}
 	}
 
 	if txn.CancelledAt != nil {
-		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+		return &handler.ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
 	if txn.Type == "cancellation" {
-		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+		return &handler.ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	settings, err := store.GetSettings(ctx, db)
@@ -349,7 +350,7 @@ func (h *Base) KioskCancelModal(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
-		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
 	// We need the user name for the modal display - fetch it.
@@ -371,34 +372,34 @@ func (h *Base) KioskCancelModal(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskCancelTransaction processes the cancellation of a kiosk-created transaction.
-func (h *Base) KioskCancelTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) KioskCancelTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 	}
 
 	txn, err := store.GetTransaction(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+			return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 		}
 		return fmt.Errorf("kiosk cancel: get transaction: %w", err)
 	}
 
 	if txn.CreatedByUserID == nil || *txn.CreatedByUserID != user.ID {
-		return &ForbiddenError{Message: "Zugriff verweigert"}
+		return &handler.ForbiddenError{Message: "Zugriff verweigert"}
 	}
 
 	if txn.CancelledAt != nil {
-		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+		return &handler.ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
 	if txn.Type == "cancellation" {
-		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+		return &handler.ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	settings, err := store.GetSettings(ctx, db)
@@ -407,7 +408,7 @@ func (h *Base) KioskCancelTransaction(w http.ResponseWriter, r *http.Request) er
 	}
 
 	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
-		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {

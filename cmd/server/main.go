@@ -20,6 +20,7 @@ import (
 	"github.com/schliz/deckel/internal/config"
 	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/handler/admin"
+	"github.com/schliz/deckel/internal/handler/kiosk"
 	"github.com/schliz/deckel/internal/handler/shared"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/render"
@@ -71,6 +72,7 @@ func main() {
 	}
 	sharedH := &shared.Handler{Base: h}
 	adminH := &admin.Handler{Base: h}
+	kioskH := &kiosk.Handler{Base: h}
 
 	// Generate CSRF secret (random 32 bytes).
 	csrfSecret := make([]byte, 32)
@@ -151,13 +153,13 @@ func main() {
 	kioskOnly := func(h http.Handler) http.Handler {
 		return withCSRF(auth.RequireKiosk(h))
 	}
-	mux.Handle("GET /kiosk", kioskOnly(h.Wrap(h.KioskMenuPage)))
-	mux.Handle("GET /kiosk/items/{id}/users", kioskOnly(h.Wrap(h.KioskUserSelect)))
-	mux.Handle("GET /kiosk/items/{id}/confirm/{uid}", kioskOnly(h.Wrap(h.KioskConfirm)))
-	mux.Handle("POST /kiosk/order", kioskOnly(h.Wrap(h.KioskPlaceOrder)))
-	mux.Handle("GET /kiosk/history", kioskOnly(h.Wrap(h.KioskHistory)))
-	mux.Handle("GET /kiosk/transactions/{id}/cancel", kioskOnly(h.Wrap(h.KioskCancelModal)))
-	mux.Handle("POST /kiosk/transactions/{id}/cancel", kioskOnly(h.Wrap(h.KioskCancelTransaction)))
+	mux.Handle("GET /kiosk", kioskOnly(kioskH.Wrap(kioskH.KioskMenuPage)))
+	mux.Handle("GET /kiosk/items/{id}/users", kioskOnly(kioskH.Wrap(kioskH.KioskUserSelect)))
+	mux.Handle("GET /kiosk/items/{id}/confirm/{uid}", kioskOnly(kioskH.Wrap(kioskH.KioskConfirm)))
+	mux.Handle("POST /kiosk/order", kioskOnly(kioskH.Wrap(kioskH.KioskPlaceOrder)))
+	mux.Handle("GET /kiosk/history", kioskOnly(kioskH.Wrap(kioskH.KioskHistory)))
+	mux.Handle("GET /kiosk/transactions/{id}/cancel", kioskOnly(kioskH.Wrap(kioskH.KioskCancelModal)))
+	mux.Handle("POST /kiosk/transactions/{id}/cancel", kioskOnly(kioskH.Wrap(kioskH.KioskCancelTransaction)))
 
 	// Admin routes with CSRF + RequireAdmin.
 	adminOnly := func(h http.Handler) http.Handler {
