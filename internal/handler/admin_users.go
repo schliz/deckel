@@ -52,7 +52,7 @@ func userRowData(ub model.UserWithBalance, currentUserID int64) map[string]any {
 }
 
 // AdminUserList renders the paginated admin user list sorted by balance ascending.
-func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -99,10 +99,10 @@ func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 		ActivePage:        "admin-users",
 		Page:              page,
 		TotalPages:        totalPages,
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
-	if isHTMX(r) {
+	if IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "user-list", data)
 		return nil
 	}
@@ -112,7 +112,7 @@ func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ToggleActive handles POST /admin/users/{id}/toggle-active.
-func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -144,7 +144,7 @@ func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ToggleSpendingLimit handles POST /admin/users/{id}/toggle-spending-limit.
-func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -176,7 +176,7 @@ func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) er
 }
 
 // ToggleBarteamer handles POST /admin/users/{id}/toggle-barteamer.
-func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -209,7 +209,7 @@ func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error 
 
 // ConfirmToggleModal handles GET /admin/users/{id}/confirm-toggle?action=...
 // and returns a confirmation modal fragment.
-func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -286,7 +286,7 @@ func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) err
 }
 
 // DepositModal handles GET /admin/users/{id}/deposit.
-func (h *Handler) DepositModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) DepositModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -316,7 +316,7 @@ func (h *Handler) DepositModal(w http.ResponseWriter, r *http.Request) error {
 }
 
 // RegisterDeposit handles POST /admin/users/{id}/deposit.
-func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -331,7 +331,7 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	// Parse Euro amount string to cents (accepts both comma and period).
-	amountFloat, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("amount")), 64)
+	amountFloat, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("amount")), 64)
 	if err != nil || amountFloat <= 0 {
 		return &ValidationError{Message: "Ungültiger Betrag"}
 	}
@@ -342,7 +342,7 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 	if note == "" {
 		note = "Einzahlung"
 	}
-	if err := validateTextLen(note, 500, "Notiz"); err != nil {
+	if err := ValidateTextLen(note, 500, "Notiz"); err != nil {
 		return err
 	}
 

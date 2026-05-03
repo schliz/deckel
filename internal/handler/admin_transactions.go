@@ -27,7 +27,7 @@ type AdminTransactionsPageData struct {
 }
 
 // AdminTransactionList renders the paginated admin transaction list (newest first).
-func (h *Handler) AdminTransactionList(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) AdminTransactionList(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -74,10 +74,10 @@ func (h *Handler) AdminTransactionList(w http.ResponseWriter, r *http.Request) e
 		ActivePage:        "admin-transactions",
 		Page:              page,
 		TotalPages:        totalPages,
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
-	if isHTMX(r) {
+	if IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "admin-transaction-list", data)
 		return nil
 	}
@@ -94,7 +94,7 @@ type AdminCancelModalData struct {
 }
 
 // AdminCancelModal renders the cancel confirmation modal for an admin cancelling any transaction.
-func (h *Handler) AdminCancelModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) AdminCancelModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -147,7 +147,7 @@ func (h *Handler) AdminCancelModal(w http.ResponseWriter, r *http.Request) error
 }
 
 // AdminCancelTransaction processes the cancellation of any transaction by an admin.
-func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) AdminCancelTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()

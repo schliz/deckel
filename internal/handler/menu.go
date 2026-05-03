@@ -28,7 +28,7 @@ type MenuPageData struct {
 }
 
 // MenuPage renders the drinks menu organized by category.
-func (h *Handler) MenuPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) MenuPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 
@@ -74,7 +74,7 @@ func (h *Handler) MenuPage(w http.ResponseWriter, r *http.Request) error {
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		IsBlocked:         isBlocked,
 		ActivePage:        "menu",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "menu", data)

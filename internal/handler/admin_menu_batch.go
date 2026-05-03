@@ -68,7 +68,7 @@ type MenuBatchResultData struct {
 }
 
 // MenuBatchPage renders the menu batch edit wizard page.
-func (h *Handler) MenuBatchPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) MenuBatchPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -89,7 +89,7 @@ func (h *Handler) MenuBatchPage(w http.ResponseWriter, r *http.Request) error {
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-menu",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin_menu_batch", data)
@@ -97,7 +97,7 @@ func (h *Handler) MenuBatchPage(w http.ResponseWriter, r *http.Request) error {
 }
 
 // MenuBatchExport exports menu items as a semicolon-separated CSV file.
-func (h *Handler) MenuBatchExport(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) MenuBatchExport(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -163,7 +163,7 @@ func (h *Handler) MenuBatchExport(w http.ResponseWriter, r *http.Request) error 
 }
 
 // MenuBatchUpload parses an uploaded CSV, computes a diff, and shows a preview.
-func (h *Handler) MenuBatchUpload(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) MenuBatchUpload(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -316,7 +316,7 @@ func (h *Handler) MenuBatchUpload(w http.ResponseWriter, r *http.Request) error 
 }
 
 // MenuBatchApply applies the changes from a menu batch upload session.
-func (h *Handler) MenuBatchApply(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) MenuBatchApply(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 
 	token := r.FormValue("session_token")
@@ -384,7 +384,7 @@ func parseMenuBatchPrice(s string) (int64, error) {
 	if s == "" {
 		return 0, fmt.Errorf("empty price")
 	}
-	s = normalizeDecimal(s)
+	s = NormalizeDecimal(s)
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return 0, err
@@ -393,7 +393,7 @@ func parseMenuBatchPrice(s string) (int64, error) {
 }
 
 // cleanupMenuBatchSessions removes sessions older than 30 minutes.
-func (h *Handler) cleanupMenuBatchSessions() {
+func (h *Base) cleanupMenuBatchSessions() {
 	h.MenuBatchSessions.Range(func(key, value any) bool {
 		session := value.(*MenuBatchSession)
 		if time.Since(session.CreatedAt) > 30*time.Minute {

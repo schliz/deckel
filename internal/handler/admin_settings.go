@@ -27,7 +27,7 @@ type AdminSettingsPageData struct {
 }
 
 // AdminSettingsPage renders the admin settings page.
-func (h *Handler) AdminSettingsPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) AdminSettingsPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -42,7 +42,7 @@ func (h *Handler) AdminSettingsPage(w http.ResponseWriter, r *http.Request) erro
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-settings",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin_settings", data)
@@ -52,7 +52,7 @@ func (h *Handler) AdminSettingsPage(w http.ResponseWriter, r *http.Request) erro
 // parseEuroToCents parses a Euro string (e.g. "12.50" or "12,50") and returns cents as int64.
 // Accepts both period and comma as decimal separator.
 func parseEuroToCents(s string) (int64, error) {
-	f, err := strconv.ParseFloat(normalizeDecimal(s), 64)
+	f, err := strconv.ParseFloat(NormalizeDecimal(s), 64)
 	if err != nil {
 		return 0, err
 	}
@@ -60,7 +60,7 @@ func parseEuroToCents(s string) (int64, error) {
 }
 
 // SaveSettings handles POST /admin/settings to update all settings.
-func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 	// Parse Euro fields to cents.
 	warningLimit, err := parseEuroToCents(r.FormValue("warning_limit"))
 	if err != nil {
@@ -104,19 +104,19 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 
 	// Parse and validate text fields.
 	smtpHost := strings.TrimSpace(r.FormValue("smtp_host"))
-	if err := validateTextLen(smtpHost, 255, "SMTP Host"); err != nil {
+	if err := ValidateTextLen(smtpHost, 255, "SMTP Host"); err != nil {
 		return err
 	}
 	smtpUser := strings.TrimSpace(r.FormValue("smtp_user"))
-	if err := validateTextLen(smtpUser, 255, "SMTP User"); err != nil {
+	if err := ValidateTextLen(smtpUser, 255, "SMTP User"); err != nil {
 		return err
 	}
 	smtpFrom := strings.TrimSpace(r.FormValue("smtp_from"))
-	if err := validateTextLen(smtpFrom, 255, "SMTP From"); err != nil {
+	if err := ValidateTextLen(smtpFrom, 255, "SMTP From"); err != nil {
 		return err
 	}
 	emailTemplate := strings.TrimSpace(r.FormValue("email_template"))
-	if err := validateTextLen(emailTemplate, 10000, "E-Mail-Template"); err != nil {
+	if err := ValidateTextLen(emailTemplate, 10000, "E-Mail-Template"); err != nil {
 		return err
 	}
 
@@ -153,7 +153,7 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 }
 
 // SendReminders sends balance reminder emails to all active users.
-func (h *Handler) SendReminders(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) SendReminders(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 

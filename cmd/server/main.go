@@ -62,7 +62,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize renderer: %v", err)
 	}
-	h := &handler.Handler{
+	h := &handler.Base{
 		Store:    s,
 		Renderer: rndr,
 		Config:   cfg,

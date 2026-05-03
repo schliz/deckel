@@ -28,7 +28,7 @@ type StatsPageData struct {
 }
 
 // AdminStatsPage renders the admin statistics page for a selected time range.
-func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -103,11 +103,11 @@ func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		From:              from.Format("2006-01-02"),
 		To:                to.Format("2006-01-02"),
 		ActivePage:        "admin-stats",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 	}
 
-	if isHTMX(r) {
+	if IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "admin-stats-panel", data)
 		return nil
 	}

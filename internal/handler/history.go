@@ -31,7 +31,7 @@ type TransactionHistoryData struct {
 }
 
 // TransactionHistory renders the paginated transaction history for the current user.
-func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) TransactionHistory(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -85,11 +85,11 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 		CancellationMinutes: settings.CancellationMinutes,
 		Page:                page,
 		TotalPages:          totalPages,
-		LowBalanceWarning:   isLowBalance(user, settings),
+		LowBalanceWarning:   IsLowBalance(user, settings),
 		IsBlocked:           isBlocked,
 	}
 
-	if isHTMX(r) {
+	if IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "transaction-list", data)
 		return nil
 	}
@@ -105,7 +105,7 @@ type CustomTransactionModalData struct {
 }
 
 // CustomTransactionModal renders the custom transaction modal.
-func (h *Handler) CustomTransactionModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) CustomTransactionModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -130,7 +130,7 @@ type CancelModalData struct {
 }
 
 // CancelModal renders the cancel confirmation modal for a given transaction.
-func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) CancelModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -192,7 +192,7 @@ func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
 }
 
 // CreateCustomTransaction processes a custom transaction submission.
-func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) CreateCustomTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -203,12 +203,12 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 	if description == "" {
 		return &ValidationError{Message: "Beschreibung ist erforderlich"}
 	}
-	if err := validateTextLen(description, 500, "Beschreibung"); err != nil {
+	if err := ValidateTextLen(description, 500, "Beschreibung"); err != nil {
 		return err
 	}
 
 	// Parse Euro amount string to cents (accepts both comma and period).
-	amountFloat, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("amount")), 64)
+	amountFloat, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("amount")), 64)
 	if err != nil || amountFloat <= 0 {
 		return &ValidationError{Message: "Ungültiger Betrag"}
 	}
@@ -288,7 +288,7 @@ func formatEuroCents(cents int64) string {
 }
 
 // CancelTransaction processes the cancellation of a transaction.
-func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) CancelTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()

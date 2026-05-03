@@ -15,7 +15,7 @@ import (
 )
 
 // KioskMenuPage renders the kiosk item selection grid.
-func (h *Handler) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -50,7 +50,7 @@ func (h *Handler) KioskMenuPage(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskUserSelect renders the user selection page for a kiosk order.
-func (h *Handler) KioskUserSelect(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) KioskUserSelect(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -102,7 +102,7 @@ func (h *Handler) KioskUserSelect(w http.ResponseWriter, r *http.Request) error 
 }
 
 // KioskConfirm renders the order confirmation page for a kiosk order.
-func (h *Handler) KioskConfirm(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) KioskConfirm(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -169,7 +169,7 @@ func (h *Handler) KioskConfirm(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskPlaceOrder processes a kiosk order submission.
-func (h *Handler) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	kioskUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -285,7 +285,7 @@ func (h *Handler) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error 
 }
 
 // KioskHistory renders the recent kiosk transaction history.
-func (h *Handler) KioskHistory(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) KioskHistory(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -312,7 +312,7 @@ func (h *Handler) KioskHistory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // KioskCancelModal renders the cancel confirmation modal for a kiosk transaction.
-func (h *Handler) KioskCancelModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) KioskCancelModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -371,7 +371,7 @@ func (h *Handler) KioskCancelModal(w http.ResponseWriter, r *http.Request) error
 }
 
 // KioskCancelTransaction processes the cancellation of a kiosk-created transaction.
-func (h *Handler) KioskCancelTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) KioskCancelTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()

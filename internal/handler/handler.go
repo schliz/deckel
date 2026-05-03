@@ -18,8 +18,8 @@ import (
 // AppHandler is a handler function that returns an error for centralized error handling.
 type AppHandler func(w http.ResponseWriter, r *http.Request) error
 
-// Handler holds shared dependencies for all HTTP handlers.
-type Handler struct {
+// Base holds shared dependencies for all HTTP handlers.
+type Base struct {
 	Store       *store.Store
 	Renderer    *render.Renderer
 	Config      *config.Config
@@ -64,7 +64,7 @@ func (e *ValidationError) Error() string {
 
 // Wrap converts an AppHandler into a standard http.HandlerFunc.
 // If the handler returns an error, it is mapped to an appropriate HTTP response.
-func (h *Handler) Wrap(fn AppHandler) http.HandlerFunc {
+func (h *Base) Wrap(fn AppHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
 			h.handleError(w, r, err)
@@ -73,7 +73,7 @@ func (h *Handler) Wrap(fn AppHandler) http.HandlerFunc {
 }
 
 // handleError maps error types to HTTP status codes and renders an appropriate response.
-func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *Base) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	code := http.StatusInternalServerError
 	msg := "Interner Serverfehler"
 	title := "Interner Fehler"
@@ -99,7 +99,7 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error)
 		log.Printf("ERROR: %v", err)
 	}
 
-	if isHTMX(r) {
+	if IsHTMX(r) {
 		w.WriteHeader(code)
 		h.Renderer.Fragment(w, r, "toast", map[string]string{
 			"Type":    "error",
@@ -113,7 +113,7 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error)
 }
 
 // RenderErrorPage renders a styled error page for non-HTMX requests.
-func (h *Handler) RenderErrorPage(w http.ResponseWriter, r *http.Request, code int, title, message string) {
+func (h *Base) RenderErrorPage(w http.ResponseWriter, r *http.Request, code int, title, message string) {
 	data := map[string]any{
 		"ErrorCode":    code,
 		"ErrorTitle":   title,
@@ -123,9 +123,9 @@ func (h *Handler) RenderErrorPage(w http.ResponseWriter, r *http.Request, code i
 }
 
 // NotFoundHandler returns a handler for unmatched routes.
-func (h *Handler) NotFoundHandler() http.HandlerFunc {
+func (h *Base) NotFoundHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if isHTMX(r) {
+		if IsHTMX(r) {
 			w.WriteHeader(http.StatusNotFound)
 			h.Renderer.Fragment(w, r, "toast", map[string]string{
 				"Type":    "error",
@@ -138,28 +138,28 @@ func (h *Handler) NotFoundHandler() http.HandlerFunc {
 	}
 }
 
-// normalizeDecimal replaces comma with period so that German-locale decimal
+// NormalizeDecimal replaces comma with period so that German-locale decimal
 // inputs like "1,50" are accepted by strconv.ParseFloat.
-func normalizeDecimal(s string) string {
+func NormalizeDecimal(s string) string {
 	return strings.ReplaceAll(strings.TrimSpace(s), ",", ".")
 }
 
-// maxTextLen validates that s is at most maxLen bytes. Returns a
+// ValidateTextLen validates that s is at most maxLen bytes. Returns a
 // ValidationError with the given message if exceeded.
-func validateTextLen(s string, maxLen int, field string) error {
+func ValidateTextLen(s string, maxLen int, field string) error {
 	if len(s) > maxLen {
 		return &ValidationError{Message: fmt.Sprintf("%s darf maximal %d Zeichen lang sein", field, maxLen)}
 	}
 	return nil
 }
 
-// isHTMX checks if the request was made by HTMX.
-func isHTMX(r *http.Request) bool {
+// IsHTMX checks if the request was made by HTMX.
+func IsHTMX(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
 }
 
-// isLowBalance returns true if the user's balance is below the warning limit.
-func isLowBalance(user *auth.RequestUser, settings *model.Settings) bool {
+// IsLowBalance returns true if the user's balance is below the warning limit.
+func IsLowBalance(user *auth.RequestUser, settings *model.Settings) bool {
 	if user == nil || settings == nil {
 		return false
 	}
@@ -167,7 +167,7 @@ func isLowBalance(user *auth.RequestUser, settings *model.Settings) bool {
 }
 
 // HeaderStats renders the header-stats component for initial page load.
-func (h *Handler) HeaderStats(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) HeaderStats(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()

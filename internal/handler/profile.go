@@ -20,7 +20,7 @@ type ProfilePageData struct {
 }
 
 // ProfilePage renders the user profile page.
-func (h *Handler) ProfilePage(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 
@@ -33,7 +33,7 @@ func (h *Handler) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 		User:              user,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "profile",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "profile", data)
@@ -41,7 +41,7 @@ func (h *Handler) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ExportData generates a GDPR data export as a ZIP file containing profile.json and transactions.csv.
-func (h *Handler) ExportData(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ExportData(w http.ResponseWriter, r *http.Request) error {
 	user := auth.UserFromContext(r.Context())
 	ctx := r.Context()
 

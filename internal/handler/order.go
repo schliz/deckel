@@ -22,7 +22,7 @@ type OrderModalData struct {
 }
 
 // OrderModal renders the order confirmation modal for a given item.
-func (h *Handler) OrderModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) OrderModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -67,7 +67,7 @@ func (h *Handler) OrderModal(w http.ResponseWriter, r *http.Request) error {
 
 // PlaceOrder processes an order submission: validates input, checks spending limits,
 // creates a purchase transaction, and responds with toast + OOB header-stats update.
-func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 

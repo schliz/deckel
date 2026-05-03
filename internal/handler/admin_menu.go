@@ -25,7 +25,7 @@ type AdminMenuPageData struct {
 }
 
 // AdminMenuPage renders the admin menu management page with all categories and items.
-func (h *Handler) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 
@@ -62,7 +62,7 @@ func (h *Handler) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-menu",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin_menu", data)
@@ -70,7 +70,7 @@ func (h *Handler) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 }
 
 // EditCategoryForm handles GET /admin/categories/{id}/edit and returns an edit modal fragment.
-func (h *Handler) EditCategoryForm(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) EditCategoryForm(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -101,7 +101,7 @@ func (h *Handler) EditCategoryForm(w http.ResponseWriter, r *http.Request) error
 }
 
 // UpdateCategory handles POST /admin/categories/{id}/update to rename a category.
-func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -112,7 +112,7 @@ func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
 	if name == "" {
 		return &ValidationError{Message: "Kategoriename darf nicht leer sein"}
 	}
-	if err := validateTextLen(name, 255, "Kategoriename"); err != nil {
+	if err := ValidateTextLen(name, 255, "Kategoriename"); err != nil {
 		return err
 	}
 
@@ -139,12 +139,12 @@ func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // CreateCategory handles POST /admin/categories to create a new drink category.
-func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
 		return &ValidationError{Message: "Kategoriename darf nicht leer sein"}
 	}
-	if err := validateTextLen(name, 255, "Kategoriename"); err != nil {
+	if err := ValidateTextLen(name, 255, "Kategoriename"); err != nil {
 		return err
 	}
 
@@ -171,7 +171,7 @@ func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // CreateItem handles POST /admin/categories/{cat_id}/items to add a new drink item.
-func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) CreateItem(w http.ResponseWriter, r *http.Request) error {
 	catIDStr := r.PathValue("id")
 	catID, err := strconv.ParseInt(catIDStr, 10, 64)
 	if err != nil {
@@ -183,15 +183,15 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) error {
 		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
 	}
 
-	if err := validateTextLen(name, 255, "Artikelname"); err != nil {
+	if err := ValidateTextLen(name, 255, "Artikelname"); err != nil {
 		return err
 	}
 
-	priceBarteamerF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_barteamer")), 64)
+	priceBarteamerF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_barteamer")), 64)
 	if err != nil || priceBarteamerF <= 0 {
 		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
 	}
-	priceHelferF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_helfer")), 64)
+	priceHelferF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_helfer")), 64)
 	if err != nil || priceHelferF <= 0 {
 		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
 	}
@@ -225,7 +225,7 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ReorderCategory handles POST /admin/categories/{id}/reorder to change category order.
-func (h *Handler) ReorderCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ReorderCategory(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -251,7 +251,7 @@ func (h *Handler) ReorderCategory(w http.ResponseWriter, r *http.Request) error 
 }
 
 // ReorderItem handles POST /admin/items/{id}/reorder to change item order within its category.
-func (h *Handler) ReorderItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) ReorderItem(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -277,7 +277,7 @@ func (h *Handler) ReorderItem(w http.ResponseWriter, r *http.Request) error {
 }
 
 // DeleteCategory handles DELETE /admin/categories/{id} to remove an empty category.
-func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -327,7 +327,7 @@ func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // EditItemForm handles GET /admin/items/{id}/edit and returns an edit modal fragment.
-func (h *Handler) EditItemForm(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) EditItemForm(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -361,7 +361,7 @@ func (h *Handler) EditItemForm(w http.ResponseWriter, r *http.Request) error {
 }
 
 // UpdateItem handles POST /admin/items/{id}/update to modify a drink item.
-func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -372,15 +372,15 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 	if name == "" {
 		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
 	}
-	if err := validateTextLen(name, 255, "Artikelname"); err != nil {
+	if err := ValidateTextLen(name, 255, "Artikelname"); err != nil {
 		return err
 	}
 
-	priceBarteamerF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_barteamer")), 64)
+	priceBarteamerF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_barteamer")), 64)
 	if err != nil || priceBarteamerF <= 0 {
 		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
 	}
-	priceHelferF, err := strconv.ParseFloat(normalizeDecimal(r.FormValue("price_helfer")), 64)
+	priceHelferF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_helfer")), 64)
 	if err != nil || priceHelferF <= 0 {
 		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
 	}
@@ -411,7 +411,7 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 }
 
 // SoftDeleteItem handles POST /admin/items/{id}/delete to soft-delete a drink item.
-func (h *Handler) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -454,7 +454,7 @@ func (h *Handler) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
 
 // renderAdminCategoryList re-fetches all categories with items and renders
 // the admin-category-list partial as the main response content.
-func (h *Handler) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) error {
+func (h *Base) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -487,7 +487,7 @@ func (h *Handler) renderAdminCategoryList(w http.ResponseWriter, r *http.Request
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-menu",
-		LowBalanceWarning: isLowBalance(user, settings),
+		LowBalanceWarning: IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Fragment(w, r, "admin-category-list", data)
