@@ -19,6 +19,7 @@ import (
 	"github.com/schliz/deckel/internal/auth"
 	"github.com/schliz/deckel/internal/config"
 	"github.com/schliz/deckel/internal/handler"
+	"github.com/schliz/deckel/internal/handler/shared"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/render"
 	"github.com/schliz/deckel/internal/store"
@@ -67,6 +68,7 @@ func main() {
 		Renderer: rndr,
 		Config:   cfg,
 	}
+	sharedH := &shared.Handler{Base: h}
 
 	// Generate CSRF secret (random 32 bytes).
 	csrfSecret := make([]byte, 32)
@@ -132,7 +134,7 @@ func main() {
 	mux.Handle("POST /menu/order", withCSRF(h.Wrap(h.PlaceOrder)))
 
 	// Header stats (lazy-loaded on page init).
-	mux.Handle("GET /header-stats", base(h.Wrap(h.HeaderStats)))
+	mux.Handle("GET /header-stats", base(sharedH.Wrap(sharedH.HeaderStats)))
 
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
 	mux.Handle("GET /profile", withCSRF(h.Wrap(h.ProfilePage)))
