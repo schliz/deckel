@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -33,12 +34,12 @@ func rejectKioskTarget(ctx context.Context, db store.DBTX, id int64) error {
 	u, err := store.GetUserWithBalance(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 		}
 		return fmt.Errorf("check kiosk target: %w", err)
 	}
 	if u.IsKiosk {
-		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+		return &handler.ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
 	}
 	return nil
 }
@@ -52,7 +53,7 @@ func userRowData(ub model.UserWithBalance, currentUserID int64) map[string]any {
 }
 
 // AdminUserList renders the paginated admin user list sorted by balance ascending.
-func (h *Base) AdminUserList(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -99,10 +100,10 @@ func (h *Base) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 		ActivePage:        "admin-users",
 		Page:              page,
 		TotalPages:        totalPages,
-		LowBalanceWarning: IsLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
-	if IsHTMX(r) {
+	if handler.IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "user-list", data)
 		return nil
 	}
@@ -112,18 +113,18 @@ func (h *Base) AdminUserList(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ToggleActive handles POST /admin/users/{id}/toggle-active.
-func (h *Base) ToggleActive(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	if id == reqUser.ID {
-		return &ForbiddenError{Message: "Du kannst deinen eigenen Account nicht deaktivieren."}
+		return &handler.ForbiddenError{Message: "Du kannst deinen eigenen Account nicht deaktivieren."}
 	}
 
 	if err := store.ToggleActive(ctx, db, id); err != nil {
@@ -144,14 +145,14 @@ func (h *Base) ToggleActive(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ToggleSpendingLimit handles POST /admin/users/{id}/toggle-spending-limit.
-func (h *Base) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	if err := rejectKioskTarget(ctx, db, id); err != nil {
@@ -176,14 +177,14 @@ func (h *Base) ToggleSpendingLimit(w http.ResponseWriter, r *http.Request) error
 }
 
 // ToggleBarteamer handles POST /admin/users/{id}/toggle-barteamer.
-func (h *Base) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	if err := rejectKioskTarget(ctx, db, id); err != nil {
@@ -209,14 +210,14 @@ func (h *Base) ToggleBarteamer(w http.ResponseWriter, r *http.Request) error {
 
 // ConfirmToggleModal handles GET /admin/users/{id}/confirm-toggle?action=...
 // and returns a confirmation modal fragment.
-func (h *Base) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	action := r.URL.Query().Get("action")
@@ -224,7 +225,7 @@ func (h *Base) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error 
 	ub, err := store.GetUserWithBalance(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 		}
 		return fmt.Errorf("confirm toggle modal: get user: %w", err)
 	}
@@ -234,7 +235,7 @@ func (h *Base) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error 
 
 	// Block barteamer/spending-limit/deposit actions for kiosk users.
 	if ub.IsKiosk && action != "active" {
-		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+		return &handler.ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
 	}
 
 	switch action {
@@ -269,7 +270,7 @@ func (h *Base) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error 
 			message = fmt.Sprintf("Möchtest du das Ausgabelimit für %s aufheben?", ub.FullName)
 		}
 	default:
-		return &ValidationError{Message: "ungültige Aktion"}
+		return &handler.ValidationError{Message: "ungültige Aktion"}
 	}
 
 	data := map[string]any{
@@ -286,24 +287,24 @@ func (h *Base) ConfirmToggleModal(w http.ResponseWriter, r *http.Request) error 
 }
 
 // DepositModal handles GET /admin/users/{id}/deposit.
-func (h *Base) DepositModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) DepositModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	user, err := store.GetUserWithBalance(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Benutzer nicht gefunden"}
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
 		}
 		return fmt.Errorf("deposit modal: get user: %w", err)
 	}
 	if user.IsKiosk {
-		return &ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+		return &handler.ForbiddenError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
 	}
 
 	data := map[string]any{
@@ -316,14 +317,14 @@ func (h *Base) DepositModal(w http.ResponseWriter, r *http.Request) error {
 }
 
 // RegisterDeposit handles POST /admin/users/{id}/deposit.
-func (h *Base) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	reqUser := auth.UserFromContext(ctx)
 	db := h.Store.DB()
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		return &ValidationError{Message: "ungültige Benutzer-ID"}
+		return &handler.ValidationError{Message: "ungültige Benutzer-ID"}
 	}
 
 	if err := rejectKioskTarget(ctx, db, id); err != nil {
@@ -331,9 +332,9 @@ func (h *Base) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Parse Euro amount string to cents (accepts both comma and period).
-	amountFloat, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("amount")), 64)
+	amountFloat, err := strconv.ParseFloat(handler.NormalizeDecimal(r.FormValue("amount")), 64)
 	if err != nil || amountFloat <= 0 {
-		return &ValidationError{Message: "Ungültiger Betrag"}
+		return &handler.ValidationError{Message: "Ungültiger Betrag"}
 	}
 	amountCents := int64(math.Round(amountFloat * 100))
 
@@ -342,7 +343,7 @@ func (h *Base) RegisterDeposit(w http.ResponseWriter, r *http.Request) error {
 	if note == "" {
 		note = "Einzahlung"
 	}
-	if err := ValidateTextLen(note, 500, "Notiz"); err != nil {
+	if err := handler.ValidateTextLen(note, 500, "Notiz"); err != nil {
 		return err
 	}
 

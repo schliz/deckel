@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"errors"
@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -17,7 +18,7 @@ import (
 // AdminMenuPageData is the view model for the admin menu management page.
 type AdminMenuPageData struct {
 	User              *auth.RequestUser
-	Categories        []CategoryWithItems
+	Categories        []handler.CategoryWithItems
 	Settings          *model.Settings
 	CSRFToken         string
 	ActivePage        string
@@ -25,7 +26,7 @@ type AdminMenuPageData struct {
 }
 
 // AdminMenuPage renders the admin menu management page with all categories and items.
-func (h *Base) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 
@@ -44,13 +45,13 @@ func (h *Base) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Fetch items for each category (including empty categories for admin view).
-	var categories []CategoryWithItems
+	var categories []handler.CategoryWithItems
 	for _, cat := range cats {
 		items, err := store.ListItemsByCategory(ctx, db, cat.ID)
 		if err != nil {
 			return fmt.Errorf("admin menu: list items for category %d: %w", cat.ID, err)
 		}
-		categories = append(categories, CategoryWithItems{
+		categories = append(categories, handler.CategoryWithItems{
 			Category: cat,
 			Items:    items,
 		})
@@ -62,7 +63,7 @@ func (h *Base) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-menu",
-		LowBalanceWarning: IsLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "admin/menu", data)
@@ -70,11 +71,11 @@ func (h *Base) AdminMenuPage(w http.ResponseWriter, r *http.Request) error {
 }
 
 // EditCategoryForm handles GET /admin/categories/{id}/edit and returns an edit modal fragment.
-func (h *Base) EditCategoryForm(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) EditCategoryForm(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 	}
 
 	ctx := r.Context()
@@ -83,7 +84,7 @@ func (h *Base) EditCategoryForm(w http.ResponseWriter, r *http.Request) error {
 	cat, err := store.GetCategory(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+			return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 		}
 		return fmt.Errorf("edit category form: %w", err)
 	}
@@ -101,18 +102,18 @@ func (h *Base) EditCategoryForm(w http.ResponseWriter, r *http.Request) error {
 }
 
 // UpdateCategory handles POST /admin/categories/{id}/update to rename a category.
-func (h *Base) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 	}
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		return &ValidationError{Message: "Kategoriename darf nicht leer sein"}
+		return &handler.ValidationError{Message: "Kategoriename darf nicht leer sein"}
 	}
-	if err := ValidateTextLen(name, 255, "Kategoriename"); err != nil {
+	if err := handler.ValidateTextLen(name, 255, "Kategoriename"); err != nil {
 		return err
 	}
 
@@ -121,7 +122,7 @@ func (h *Base) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
 
 	if err := store.UpdateCategory(ctx, db, id, name); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+			return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 		}
 		return fmt.Errorf("update category: %w", err)
 	}
@@ -139,12 +140,12 @@ func (h *Base) UpdateCategory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // CreateCategory handles POST /admin/categories to create a new drink category.
-func (h *Base) CreateCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		return &ValidationError{Message: "Kategoriename darf nicht leer sein"}
+		return &handler.ValidationError{Message: "Kategoriename darf nicht leer sein"}
 	}
-	if err := ValidateTextLen(name, 255, "Kategoriename"); err != nil {
+	if err := handler.ValidateTextLen(name, 255, "Kategoriename"); err != nil {
 		return err
 	}
 
@@ -171,29 +172,29 @@ func (h *Base) CreateCategory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // CreateItem handles POST /admin/categories/{cat_id}/items to add a new drink item.
-func (h *Base) CreateItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) error {
 	catIDStr := r.PathValue("id")
 	catID, err := strconv.ParseInt(catIDStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 	}
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
+		return &handler.ValidationError{Message: "Artikelname darf nicht leer sein"}
 	}
 
-	if err := ValidateTextLen(name, 255, "Artikelname"); err != nil {
+	if err := handler.ValidateTextLen(name, 255, "Artikelname"); err != nil {
 		return err
 	}
 
-	priceBarteamerF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_barteamer")), 64)
+	priceBarteamerF, err := strconv.ParseFloat(handler.NormalizeDecimal(r.FormValue("price_barteamer")), 64)
 	if err != nil || priceBarteamerF <= 0 {
-		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
+		return &handler.ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
 	}
-	priceHelferF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_helfer")), 64)
+	priceHelferF, err := strconv.ParseFloat(handler.NormalizeDecimal(r.FormValue("price_helfer")), 64)
 	if err != nil || priceHelferF <= 0 {
-		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
+		return &handler.ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
 	}
 
 	priceBarteamer := int64(math.Round(priceBarteamerF * 100))
@@ -225,11 +226,11 @@ func (h *Base) CreateItem(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ReorderCategory handles POST /admin/categories/{id}/reorder to change category order.
-func (h *Base) ReorderCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ReorderCategory(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 	}
 
 	direction := r.URL.Query().Get("direction")
@@ -242,7 +243,7 @@ func (h *Base) ReorderCategory(w http.ResponseWriter, r *http.Request) error {
 
 	if err := store.ReorderCategory(ctx, db, id, direction); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+			return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 		}
 		return fmt.Errorf("reorder category: %w", err)
 	}
@@ -251,11 +252,11 @@ func (h *Base) ReorderCategory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ReorderItem handles POST /admin/items/{id}/reorder to change item order within its category.
-func (h *Base) ReorderItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ReorderItem(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	direction := r.URL.Query().Get("direction")
@@ -268,7 +269,7 @@ func (h *Base) ReorderItem(w http.ResponseWriter, r *http.Request) error {
 
 	if err := store.ReorderItem(ctx, db, id, direction); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("reorder item: %w", err)
 	}
@@ -277,11 +278,11 @@ func (h *Base) ReorderItem(w http.ResponseWriter, r *http.Request) error {
 }
 
 // DeleteCategory handles DELETE /admin/categories/{id} to remove an empty category.
-func (h *Base) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Kategorie nicht gefunden"}
+		return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 	}
 
 	ctx := r.Context()
@@ -291,7 +292,7 @@ func (h *Base) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 	cat, err := store.GetCategory(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+			return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 		}
 		return fmt.Errorf("delete category: get: %w", err)
 	}
@@ -302,12 +303,12 @@ func (h *Base) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("delete category: list items: %w", err)
 	}
 	if len(items) > 0 {
-		return &ValidationError{Message: "Kategorie kann nicht gelöscht werden, da sie noch Artikel enthält"}
+		return &handler.ValidationError{Message: "Kategorie kann nicht gelöscht werden, da sie noch Artikel enthält"}
 	}
 
 	if err := store.DeleteCategory(ctx, db, id); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Kategorie nicht gefunden"}
+			return &handler.NotFoundError{Message: "Kategorie nicht gefunden"}
 		}
 		return fmt.Errorf("delete category: %w", err)
 	}
@@ -327,11 +328,11 @@ func (h *Base) DeleteCategory(w http.ResponseWriter, r *http.Request) error {
 }
 
 // EditItemForm handles GET /admin/items/{id}/edit and returns an edit modal fragment.
-func (h *Base) EditItemForm(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) EditItemForm(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	ctx := r.Context()
@@ -340,12 +341,12 @@ func (h *Base) EditItemForm(w http.ResponseWriter, r *http.Request) error {
 	item, err := store.GetItem(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("edit item form: %w", err)
 	}
 	if item.DeletedAt != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	data := struct {
@@ -361,28 +362,28 @@ func (h *Base) EditItemForm(w http.ResponseWriter, r *http.Request) error {
 }
 
 // UpdateItem handles POST /admin/items/{id}/update to modify a drink item.
-func (h *Base) UpdateItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		return &ValidationError{Message: "Artikelname darf nicht leer sein"}
+		return &handler.ValidationError{Message: "Artikelname darf nicht leer sein"}
 	}
-	if err := ValidateTextLen(name, 255, "Artikelname"); err != nil {
+	if err := handler.ValidateTextLen(name, 255, "Artikelname"); err != nil {
 		return err
 	}
 
-	priceBarteamerF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_barteamer")), 64)
+	priceBarteamerF, err := strconv.ParseFloat(handler.NormalizeDecimal(r.FormValue("price_barteamer")), 64)
 	if err != nil || priceBarteamerF <= 0 {
-		return &ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
+		return &handler.ValidationError{Message: "Barteamer-Preis muss größer als 0 sein"}
 	}
-	priceHelferF, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("price_helfer")), 64)
+	priceHelferF, err := strconv.ParseFloat(handler.NormalizeDecimal(r.FormValue("price_helfer")), 64)
 	if err != nil || priceHelferF <= 0 {
-		return &ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
+		return &handler.ValidationError{Message: "Helfer-Preis muss größer als 0 sein"}
 	}
 
 	priceBarteamer := int64(math.Round(priceBarteamerF * 100))
@@ -393,7 +394,7 @@ func (h *Base) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 
 	if err := store.UpdateItem(ctx, db, id, name, priceBarteamer, priceHelfer); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("update item: %w", err)
 	}
@@ -411,11 +412,11 @@ func (h *Base) UpdateItem(w http.ResponseWriter, r *http.Request) error {
 }
 
 // SoftDeleteItem handles POST /admin/items/{id}/delete to soft-delete a drink item.
-func (h *Base) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	ctx := r.Context()
@@ -425,17 +426,17 @@ func (h *Base) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
 	item, err := store.GetItem(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("soft delete item: get: %w", err)
 	}
 	if item.DeletedAt != nil {
-		return &NotFoundError{Message: "Artikel nicht gefunden"}
+		return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 	}
 
 	if err := store.SoftDeleteItem(ctx, db, id); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Artikel nicht gefunden"}
+			return &handler.NotFoundError{Message: "Artikel nicht gefunden"}
 		}
 		return fmt.Errorf("soft delete item: %w", err)
 	}
@@ -454,7 +455,7 @@ func (h *Base) SoftDeleteItem(w http.ResponseWriter, r *http.Request) error {
 
 // renderAdminCategoryList re-fetches all categories with items and renders
 // the admin-category-list partial as the main response content.
-func (h *Base) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -469,13 +470,13 @@ func (h *Base) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) e
 		return fmt.Errorf("admin category list: list categories: %w", err)
 	}
 
-	var categories []CategoryWithItems
+	var categories []handler.CategoryWithItems
 	for _, cat := range cats {
 		items, err := store.ListItemsByCategory(ctx, db, cat.ID)
 		if err != nil {
 			return fmt.Errorf("admin category list: list items for category %d: %w", cat.ID, err)
 		}
-		categories = append(categories, CategoryWithItems{
+		categories = append(categories, handler.CategoryWithItems{
 			Category: cat,
 			Items:    items,
 		})
@@ -487,7 +488,7 @@ func (h *Base) renderAdminCategoryList(w http.ResponseWriter, r *http.Request) e
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-menu",
-		LowBalanceWarning: IsLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Fragment(w, r, "admin-category-list", data)

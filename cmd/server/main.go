@@ -19,6 +19,7 @@ import (
 	"github.com/schliz/deckel/internal/auth"
 	"github.com/schliz/deckel/internal/config"
 	"github.com/schliz/deckel/internal/handler"
+	"github.com/schliz/deckel/internal/handler/admin"
 	"github.com/schliz/deckel/internal/handler/shared"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/render"
@@ -69,6 +70,7 @@ func main() {
 		Config:   cfg,
 	}
 	sharedH := &shared.Handler{Base: h}
+	adminH := &admin.Handler{Base: h}
 
 	// Generate CSRF secret (random 32 bytes).
 	csrfSecret := make([]byte, 32)
@@ -161,35 +163,35 @@ func main() {
 	adminOnly := func(h http.Handler) http.Handler {
 		return withCSRF(auth.RequireAdmin(h))
 	}
-	mux.Handle("GET /admin/menu", adminOnly(h.Wrap(h.AdminMenuPage)))
-	mux.Handle("GET /admin/menu/batch", adminOnly(h.Wrap(h.MenuBatchPage)))
-	mux.Handle("GET /admin/menu/batch/export", adminOnly(h.Wrap(h.MenuBatchExport)))
-	mux.Handle("POST /admin/menu/batch/upload", adminOnly(h.Wrap(h.MenuBatchUpload)))
-	mux.Handle("POST /admin/menu/batch/apply", adminOnly(h.Wrap(h.MenuBatchApply)))
-	mux.Handle("POST /admin/categories", adminOnly(h.Wrap(h.CreateCategory)))
-	mux.Handle("GET /admin/categories/{id}/edit", adminOnly(h.Wrap(h.EditCategoryForm)))
-	mux.Handle("POST /admin/categories/{id}/update", adminOnly(h.Wrap(h.UpdateCategory)))
-	mux.Handle("POST /admin/categories/{id}/reorder", adminOnly(h.Wrap(h.ReorderCategory)))
-	mux.Handle("DELETE /admin/categories/{id}", adminOnly(h.Wrap(h.DeleteCategory)))
-	mux.Handle("POST /admin/categories/{id}/items", adminOnly(h.Wrap(h.CreateItem)))
-	mux.Handle("GET /admin/items/{id}/edit", adminOnly(h.Wrap(h.EditItemForm)))
-	mux.Handle("POST /admin/items/{id}/update", adminOnly(h.Wrap(h.UpdateItem)))
-	mux.Handle("POST /admin/items/{id}/reorder", adminOnly(h.Wrap(h.ReorderItem)))
-	mux.Handle("POST /admin/items/{id}/delete", adminOnly(h.Wrap(h.SoftDeleteItem)))
-	mux.Handle("GET /admin/users", adminOnly(h.Wrap(h.AdminUserList)))
-	mux.Handle("GET /admin/users/{id}/confirm-toggle", adminOnly(h.Wrap(h.ConfirmToggleModal)))
-	mux.Handle("POST /admin/users/{id}/toggle-barteamer", adminOnly(h.Wrap(h.ToggleBarteamer)))
-	mux.Handle("POST /admin/users/{id}/toggle-active", adminOnly(h.Wrap(h.ToggleActive)))
-	mux.Handle("POST /admin/users/{id}/toggle-spending-limit", adminOnly(h.Wrap(h.ToggleSpendingLimit)))
-	mux.Handle("GET /admin/users/{id}/deposit", adminOnly(h.Wrap(h.DepositModal)))
-	mux.Handle("POST /admin/users/{id}/deposit", adminOnly(h.Wrap(h.RegisterDeposit)))
-	mux.Handle("GET /admin/transactions", adminOnly(h.Wrap(h.AdminTransactionList)))
-	mux.Handle("GET /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelModal)))
-	mux.Handle("POST /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelTransaction)))
-	mux.Handle("GET /admin/stats", adminOnly(h.Wrap(h.AdminStatsPage)))
-	mux.Handle("GET /admin/settings", adminOnly(h.Wrap(h.AdminSettingsPage)))
-	mux.Handle("POST /admin/settings", adminOnly(h.Wrap(h.SaveSettings)))
-	mux.Handle("POST /admin/settings/send-reminders", adminOnly(h.Wrap(h.SendReminders)))
+	mux.Handle("GET /admin/menu", adminOnly(adminH.Wrap(adminH.AdminMenuPage)))
+	mux.Handle("GET /admin/menu/batch", adminOnly(adminH.Wrap(adminH.MenuBatchPage)))
+	mux.Handle("GET /admin/menu/batch/export", adminOnly(adminH.Wrap(adminH.MenuBatchExport)))
+	mux.Handle("POST /admin/menu/batch/upload", adminOnly(adminH.Wrap(adminH.MenuBatchUpload)))
+	mux.Handle("POST /admin/menu/batch/apply", adminOnly(adminH.Wrap(adminH.MenuBatchApply)))
+	mux.Handle("POST /admin/categories", adminOnly(adminH.Wrap(adminH.CreateCategory)))
+	mux.Handle("GET /admin/categories/{id}/edit", adminOnly(adminH.Wrap(adminH.EditCategoryForm)))
+	mux.Handle("POST /admin/categories/{id}/update", adminOnly(adminH.Wrap(adminH.UpdateCategory)))
+	mux.Handle("POST /admin/categories/{id}/reorder", adminOnly(adminH.Wrap(adminH.ReorderCategory)))
+	mux.Handle("DELETE /admin/categories/{id}", adminOnly(adminH.Wrap(adminH.DeleteCategory)))
+	mux.Handle("POST /admin/categories/{id}/items", adminOnly(adminH.Wrap(adminH.CreateItem)))
+	mux.Handle("GET /admin/items/{id}/edit", adminOnly(adminH.Wrap(adminH.EditItemForm)))
+	mux.Handle("POST /admin/items/{id}/update", adminOnly(adminH.Wrap(adminH.UpdateItem)))
+	mux.Handle("POST /admin/items/{id}/reorder", adminOnly(adminH.Wrap(adminH.ReorderItem)))
+	mux.Handle("POST /admin/items/{id}/delete", adminOnly(adminH.Wrap(adminH.SoftDeleteItem)))
+	mux.Handle("GET /admin/users", adminOnly(adminH.Wrap(adminH.AdminUserList)))
+	mux.Handle("GET /admin/users/{id}/confirm-toggle", adminOnly(adminH.Wrap(adminH.ConfirmToggleModal)))
+	mux.Handle("POST /admin/users/{id}/toggle-barteamer", adminOnly(adminH.Wrap(adminH.ToggleBarteamer)))
+	mux.Handle("POST /admin/users/{id}/toggle-active", adminOnly(adminH.Wrap(adminH.ToggleActive)))
+	mux.Handle("POST /admin/users/{id}/toggle-spending-limit", adminOnly(adminH.Wrap(adminH.ToggleSpendingLimit)))
+	mux.Handle("GET /admin/users/{id}/deposit", adminOnly(adminH.Wrap(adminH.DepositModal)))
+	mux.Handle("POST /admin/users/{id}/deposit", adminOnly(adminH.Wrap(adminH.RegisterDeposit)))
+	mux.Handle("GET /admin/transactions", adminOnly(adminH.Wrap(adminH.AdminTransactionList)))
+	mux.Handle("GET /admin/transactions/{id}/cancel", adminOnly(adminH.Wrap(adminH.AdminCancelModal)))
+	mux.Handle("POST /admin/transactions/{id}/cancel", adminOnly(adminH.Wrap(adminH.AdminCancelTransaction)))
+	mux.Handle("GET /admin/stats", adminOnly(adminH.Wrap(adminH.AdminStatsPage)))
+	mux.Handle("GET /admin/settings", adminOnly(adminH.Wrap(adminH.AdminSettingsPage)))
+	mux.Handle("POST /admin/settings", adminOnly(adminH.Wrap(adminH.SaveSettings)))
+	mux.Handle("POST /admin/settings/send-reminders", adminOnly(adminH.Wrap(adminH.SendReminders)))
 
 	// Catch-all: styled 404 for unmatched routes.
 	mux.Handle("/", base(h.NotFoundHandler()))

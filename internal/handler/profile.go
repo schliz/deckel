@@ -85,7 +85,7 @@ func (h *Base) ExportData(w http.ResponseWriter, r *http.Request) error {
 			menge = fmt.Sprintf("%d", *t.Quantity)
 		}
 
-		betrag := formatEuroCentsExport(t.Amount)
+		betrag := FormatEuroCentsExport(t.Amount)
 
 		status := "Aktiv"
 		if t.CancelledAt != nil {
@@ -125,19 +125,6 @@ func (h *Base) ExportData(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return nil
-}
-
-// formatEuroCentsExport formats cents as "X,YY" for CSV export.
-func formatEuroCentsExport(cents int64) string {
-	negative := cents < 0
-	if negative {
-		cents = -cents
-	}
-	prefix := ""
-	if negative {
-		prefix = "-"
-	}
-	return fmt.Sprintf("%s%d,%02d", prefix, cents/100, cents%100)
 }
 
 // escapeSemicolon wraps a string in quotes if it contains semicolons.

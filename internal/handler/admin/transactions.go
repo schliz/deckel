@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"errors"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -27,7 +28,7 @@ type AdminTransactionsPageData struct {
 }
 
 // AdminTransactionList renders the paginated admin transaction list (newest first).
-func (h *Base) AdminTransactionList(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) AdminTransactionList(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -74,10 +75,10 @@ func (h *Base) AdminTransactionList(w http.ResponseWriter, r *http.Request) erro
 		ActivePage:        "admin-transactions",
 		Page:              page,
 		TotalPages:        totalPages,
-		LowBalanceWarning: IsLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
-	if IsHTMX(r) {
+	if handler.IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "admin-transaction-list", data)
 		return nil
 	}
@@ -94,30 +95,30 @@ type AdminCancelModalData struct {
 }
 
 // AdminCancelModal renders the cancel confirmation modal for an admin cancelling any transaction.
-func (h *Base) AdminCancelModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) AdminCancelModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 	}
 
 	txn, err := store.GetTransaction(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+			return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 		}
 		return fmt.Errorf("admin cancel modal: get transaction: %w", err)
 	}
 
 	if txn.CancelledAt != nil {
-		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+		return &handler.ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
 	if txn.Type == "cancellation" {
-		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+		return &handler.ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	settings, err := store.GetSettings(ctx, db)
@@ -126,7 +127,7 @@ func (h *Base) AdminCancelModal(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
-		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
 	// Get user name for display.
@@ -147,7 +148,7 @@ func (h *Base) AdminCancelModal(w http.ResponseWriter, r *http.Request) error {
 }
 
 // AdminCancelTransaction processes the cancellation of any transaction by an admin.
-func (h *Base) AdminCancelTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -155,23 +156,23 @@ func (h *Base) AdminCancelTransaction(w http.ResponseWriter, r *http.Request) er
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 	}
 
 	txn, err := store.GetTransaction(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+			return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 		}
 		return fmt.Errorf("admin cancel transaction: get transaction: %w", err)
 	}
 
 	if txn.CancelledAt != nil {
-		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+		return &handler.ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
 	if txn.Type == "cancellation" {
-		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+		return &handler.ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	settings, err := store.GetSettings(ctx, db)
@@ -180,7 +181,7 @@ func (h *Base) AdminCancelTransaction(w http.ResponseWriter, r *http.Request) er
 	}
 
 	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
-		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
 	err = h.Store.WithTx(ctx, func(tx pgx.Tx) error {

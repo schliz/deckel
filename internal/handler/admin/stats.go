@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -28,7 +29,7 @@ type StatsPageData struct {
 }
 
 // AdminStatsPage renders the admin statistics page for a selected time range.
-func (h *Base) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -103,11 +104,11 @@ func (h *Base) AdminStatsPage(w http.ResponseWriter, r *http.Request) error {
 		From:              from.Format("2006-01-02"),
 		To:                to.Format("2006-01-02"),
 		ActivePage:        "admin-stats",
-		LowBalanceWarning: IsLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 	}
 
-	if IsHTMX(r) {
+	if handler.IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "admin-stats-panel", data)
 		return nil
 	}

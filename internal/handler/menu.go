@@ -10,12 +10,6 @@ import (
 	"github.com/schliz/deckel/internal/store"
 )
 
-// CategoryWithItems groups a category with its active items.
-type CategoryWithItems struct {
-	Category model.Category
-	Items    []model.Item
-}
-
 // MenuPageData is the view model for the menu page.
 type MenuPageData struct {
 	User       *auth.RequestUser

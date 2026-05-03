@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/schliz/deckel/internal/auth"
 	"github.com/schliz/deckel/internal/config"
@@ -20,10 +19,16 @@ type AppHandler func(w http.ResponseWriter, r *http.Request) error
 
 // Base holds shared dependencies for all HTTP handlers.
 type Base struct {
-	Store       *store.Store
-	Renderer    *render.Renderer
-	Config      *config.Config
-	MenuBatchSessions sync.Map
+	Store    *store.Store
+	Renderer *render.Renderer
+	Config   *config.Config
+}
+
+// CategoryWithItems groups a category with its active items. It's used
+// across the menu, kiosk, and admin-menu views.
+type CategoryWithItems struct {
+	Category model.Category
+	Items    []model.Item
 }
 
 // NotFoundError indicates a resource was not found.
@@ -156,6 +161,19 @@ func ValidateTextLen(s string, maxLen int, field string) error {
 // IsHTMX checks if the request was made by HTMX.
 func IsHTMX(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
+}
+
+// FormatEuroCentsExport formats cents as "X,YY" for CSV export.
+func FormatEuroCentsExport(cents int64) string {
+	negative := cents < 0
+	if negative {
+		cents = -cents
+	}
+	prefix := ""
+	if negative {
+		prefix = "-"
+	}
+	return fmt.Sprintf("%s%d,%02d", prefix, cents/100, cents%100)
 }
 
 // IsLowBalance returns true if the user's balance is below the warning limit.
