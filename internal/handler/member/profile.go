@@ -1,4 +1,4 @@
-package handler
+package member
 
 import (
 	"archive/zip"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/store"
 )
@@ -20,7 +21,7 @@ type ProfilePageData struct {
 }
 
 // ProfilePage renders the user profile page.
-func (h *Base) ProfilePage(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 
@@ -33,7 +34,7 @@ func (h *Base) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 		User:              user,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "profile",
-		LowBalanceWarning: IsLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "member/profile", data)
@@ -41,7 +42,7 @@ func (h *Base) ProfilePage(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ExportData generates a GDPR data export as a ZIP file containing profile.json and transactions.csv.
-func (h *Base) ExportData(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) ExportData(w http.ResponseWriter, r *http.Request) error {
 	user := auth.UserFromContext(r.Context())
 	ctx := r.Context()
 
@@ -85,7 +86,7 @@ func (h *Base) ExportData(w http.ResponseWriter, r *http.Request) error {
 			menge = fmt.Sprintf("%d", *t.Quantity)
 		}
 
-		betrag := FormatEuroCentsExport(t.Amount)
+		betrag := handler.FormatEuroCentsExport(t.Amount)
 
 		status := "Aktiv"
 		if t.CancelledAt != nil {

@@ -1,4 +1,4 @@
-package handler
+package member
 
 import (
 	"errors"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -31,7 +32,7 @@ type TransactionHistoryData struct {
 }
 
 // TransactionHistory renders the paginated transaction history for the current user.
-func (h *Base) TransactionHistory(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -85,11 +86,11 @@ func (h *Base) TransactionHistory(w http.ResponseWriter, r *http.Request) error 
 		CancellationMinutes: settings.CancellationMinutes,
 		Page:                page,
 		TotalPages:          totalPages,
-		LowBalanceWarning:   IsLowBalance(user, settings),
+		LowBalanceWarning:   handler.IsLowBalance(user, settings),
 		IsBlocked:           isBlocked,
 	}
 
-	if IsHTMX(r) {
+	if handler.IsHTMX(r) {
 		h.Renderer.Fragment(w, r, "transaction-list", data)
 		return nil
 	}
@@ -105,7 +106,7 @@ type CustomTransactionModalData struct {
 }
 
 // CustomTransactionModal renders the custom transaction modal.
-func (h *Base) CustomTransactionModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) CustomTransactionModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := h.Store.DB()
 
@@ -130,7 +131,7 @@ type CancelModalData struct {
 }
 
 // CancelModal renders the cancel confirmation modal for a given transaction.
-func (h *Base) CancelModal(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -139,36 +140,36 @@ func (h *Base) CancelModal(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 	}
 
 	// Fetch transaction.
 	txn, err := store.GetTransaction(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+			return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 		}
 		return fmt.Errorf("cancel modal: get transaction: %w", err)
 	}
 
 	// Verify transaction belongs to current user.
 	if txn.UserID != user.ID {
-		return &ForbiddenError{Message: "Zugriff verweigert"}
+		return &handler.ForbiddenError{Message: "Zugriff verweigert"}
 	}
 
 	// Only self-created transactions can be cancelled by the user.
 	if txn.CreatedByUserID == nil || *txn.CreatedByUserID != user.ID {
-		return &ForbiddenError{Message: "Diese Transaktion kann nur vom Ersteller storniert werden."}
+		return &handler.ForbiddenError{Message: "Diese Transaktion kann nur vom Ersteller storniert werden."}
 	}
 
 	// Verify not already cancelled.
 	if txn.CancelledAt != nil {
-		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+		return &handler.ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
 	// Stornobuchungen cannot be voided.
 	if txn.Type == "cancellation" {
-		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+		return &handler.ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	// Fetch settings for cancellation window.
@@ -179,7 +180,7 @@ func (h *Base) CancelModal(w http.ResponseWriter, r *http.Request) error {
 
 	// Verify within cancellation window.
 	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
-		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
 	data := CancelModalData{
@@ -192,7 +193,7 @@ func (h *Base) CancelModal(w http.ResponseWriter, r *http.Request) error {
 }
 
 // CreateCustomTransaction processes a custom transaction submission.
-func (h *Base) CreateCustomTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -201,16 +202,16 @@ func (h *Base) CreateCustomTransaction(w http.ResponseWriter, r *http.Request) e
 	description := strings.TrimSpace(r.FormValue("description"))
 
 	if description == "" {
-		return &ValidationError{Message: "Beschreibung ist erforderlich"}
+		return &handler.ValidationError{Message: "Beschreibung ist erforderlich"}
 	}
-	if err := ValidateTextLen(description, 500, "Beschreibung"); err != nil {
+	if err := handler.ValidateTextLen(description, 500, "Beschreibung"); err != nil {
 		return err
 	}
 
 	// Parse Euro amount string to cents (accepts both comma and period).
-	amountFloat, err := strconv.ParseFloat(NormalizeDecimal(r.FormValue("amount")), 64)
+	amountFloat, err := strconv.ParseFloat(handler.NormalizeDecimal(r.FormValue("amount")), 64)
 	if err != nil || amountFloat <= 0 {
-		return &ValidationError{Message: "Ungültiger Betrag"}
+		return &handler.ValidationError{Message: "Ungültiger Betrag"}
 	}
 	amountCents := int64(math.Round(amountFloat * 100))
 
@@ -222,10 +223,10 @@ func (h *Base) CreateCustomTransaction(w http.ResponseWriter, r *http.Request) e
 
 	// Validate amount within allowed range.
 	if amountCents < settings.CustomTxMin {
-		return &ValidationError{Message: fmt.Sprintf("Mindestbetrag: %s", formatEuroCents(settings.CustomTxMin))}
+		return &handler.ValidationError{Message: fmt.Sprintf("Mindestbetrag: %s", formatEuroCents(settings.CustomTxMin))}
 	}
 	if amountCents > settings.CustomTxMax {
-		return &ValidationError{Message: fmt.Sprintf("Maximalbetrag: %s", formatEuroCents(settings.CustomTxMax))}
+		return &handler.ValidationError{Message: fmt.Sprintf("Maximalbetrag: %s", formatEuroCents(settings.CustomTxMax))}
 	}
 
 	// Create transaction (amount is negative = debit).
@@ -288,7 +289,7 @@ func formatEuroCents(cents int64) string {
 }
 
 // CancelTransaction processes the cancellation of a transaction.
-func (h *Base) CancelTransaction(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 	db := h.Store.DB()
@@ -297,36 +298,36 @@ func (h *Base) CancelTransaction(w http.ResponseWriter, r *http.Request) error {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return &NotFoundError{Message: "Transaktion nicht gefunden"}
+		return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 	}
 
 	// Fetch transaction.
 	txn, err := store.GetTransaction(ctx, db, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return &NotFoundError{Message: "Transaktion nicht gefunden"}
+			return &handler.NotFoundError{Message: "Transaktion nicht gefunden"}
 		}
 		return fmt.Errorf("cancel transaction: get transaction: %w", err)
 	}
 
 	// Verify transaction belongs to current user.
 	if txn.UserID != user.ID {
-		return &ForbiddenError{Message: "Zugriff verweigert"}
+		return &handler.ForbiddenError{Message: "Zugriff verweigert"}
 	}
 
 	// Only self-created transactions can be cancelled by the user.
 	if txn.CreatedByUserID == nil || *txn.CreatedByUserID != user.ID {
-		return &ForbiddenError{Message: "Diese Transaktion kann nur vom Ersteller storniert werden."}
+		return &handler.ForbiddenError{Message: "Diese Transaktion kann nur vom Ersteller storniert werden."}
 	}
 
 	// Verify not already cancelled.
 	if txn.CancelledAt != nil {
-		return &ValidationError{Message: "Transaktion wurde bereits storniert"}
+		return &handler.ValidationError{Message: "Transaktion wurde bereits storniert"}
 	}
 
 	// Stornobuchungen cannot be voided.
 	if txn.Type == "cancellation" {
-		return &ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
+		return &handler.ValidationError{Message: "Stornobuchungen können nicht storniert werden"}
 	}
 
 	// Fetch settings for cancellation window.
@@ -337,7 +338,7 @@ func (h *Base) CancelTransaction(w http.ResponseWriter, r *http.Request) error {
 
 	// Verify within cancellation window.
 	if time.Since(txn.CreatedAt) > time.Duration(settings.CancellationMinutes)*time.Minute {
-		return &ValidationError{Message: "Stornierungsfenster abgelaufen"}
+		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
 	// Execute cancellation within a DB transaction.

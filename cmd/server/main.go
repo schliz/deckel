@@ -21,6 +21,7 @@ import (
 	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/handler/admin"
 	"github.com/schliz/deckel/internal/handler/kiosk"
+	"github.com/schliz/deckel/internal/handler/member"
 	"github.com/schliz/deckel/internal/handler/shared"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/render"
@@ -73,6 +74,7 @@ func main() {
 	sharedH := &shared.Handler{Base: h}
 	adminH := &admin.Handler{Base: h}
 	kioskH := &kiosk.Handler{Base: h}
+	memberH := &member.Handler{Base: h}
 
 	// Generate CSRF secret (random 32 bytes).
 	csrfSecret := make([]byte, 32)
@@ -127,27 +129,27 @@ func main() {
 			http.Redirect(w, r, "/kiosk", http.StatusFound)
 			return
 		}
-		h.Wrap(h.MenuPage)(w, r)
+		memberH.Wrap(memberH.MenuPage)(w, r)
 	})))
-	mux.Handle("GET /menu", withCSRF(h.Wrap(h.MenuPage)))
+	mux.Handle("GET /menu", withCSRF(memberH.Wrap(memberH.MenuPage)))
 
 	// Order modal (GET /menu/items/{id}/order).
-	mux.Handle("GET /menu/items/{id}/order", withCSRF(h.Wrap(h.OrderModal)))
+	mux.Handle("GET /menu/items/{id}/order", withCSRF(memberH.Wrap(memberH.OrderModal)))
 
 	// Place order (POST /menu/order).
-	mux.Handle("POST /menu/order", withCSRF(h.Wrap(h.PlaceOrder)))
+	mux.Handle("POST /menu/order", withCSRF(memberH.Wrap(memberH.PlaceOrder)))
 
 	// Header stats (lazy-loaded on page init).
 	mux.Handle("GET /header-stats", base(sharedH.Wrap(sharedH.HeaderStats)))
 
 	// Placeholder routes with base middleware (auth, no CSRF for GET).
-	mux.Handle("GET /profile", withCSRF(h.Wrap(h.ProfilePage)))
-	mux.Handle("POST /profile/export", withCSRF(h.Wrap(h.ExportData)))
-	mux.Handle("GET /transactions", withCSRF(h.Wrap(h.TransactionHistory)))
-	mux.Handle("GET /transactions/custom", withCSRF(h.Wrap(h.CustomTransactionModal)))
-	mux.Handle("POST /transactions/custom", withCSRF(h.Wrap(h.CreateCustomTransaction)))
-	mux.Handle("GET /transactions/{id}/cancel", withCSRF(h.Wrap(h.CancelModal)))
-	mux.Handle("POST /transactions/{id}/cancel", withCSRF(h.Wrap(h.CancelTransaction)))
+	mux.Handle("GET /profile", withCSRF(memberH.Wrap(memberH.ProfilePage)))
+	mux.Handle("POST /profile/export", withCSRF(memberH.Wrap(memberH.ExportData)))
+	mux.Handle("GET /transactions", withCSRF(memberH.Wrap(memberH.TransactionHistory)))
+	mux.Handle("GET /transactions/custom", withCSRF(memberH.Wrap(memberH.CustomTransactionModal)))
+	mux.Handle("POST /transactions/custom", withCSRF(memberH.Wrap(memberH.CreateCustomTransaction)))
+	mux.Handle("GET /transactions/{id}/cancel", withCSRF(memberH.Wrap(memberH.CancelModal)))
+	mux.Handle("POST /transactions/{id}/cancel", withCSRF(memberH.Wrap(memberH.CancelTransaction)))
 
 	// Kiosk routes with CSRF + RequireKiosk.
 	kioskOnly := func(h http.Handler) http.Handler {

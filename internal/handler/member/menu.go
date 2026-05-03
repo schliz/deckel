@@ -1,10 +1,11 @@
-package handler
+package member
 
 import (
 	"fmt"
 	"net/http"
 
 	"github.com/schliz/deckel/internal/auth"
+	"github.com/schliz/deckel/internal/handler"
 	"github.com/schliz/deckel/internal/middleware"
 	"github.com/schliz/deckel/internal/model"
 	"github.com/schliz/deckel/internal/store"
@@ -13,7 +14,7 @@ import (
 // MenuPageData is the view model for the menu page.
 type MenuPageData struct {
 	User       *auth.RequestUser
-	Categories []CategoryWithItems
+	Categories []handler.CategoryWithItems
 	Settings   *model.Settings
 	CSRFToken  string
 	IsBlocked         bool
@@ -22,7 +23,7 @@ type MenuPageData struct {
 }
 
 // MenuPage renders the drinks menu organized by category.
-func (h *Base) MenuPage(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) MenuPage(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	user := auth.UserFromContext(ctx)
 
@@ -41,14 +42,14 @@ func (h *Base) MenuPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Fetch items for each category.
-	var categories []CategoryWithItems
+	var categories []handler.CategoryWithItems
 	for _, cat := range cats {
 		items, err := store.ListItemsByCategory(ctx, db, cat.ID)
 		if err != nil {
 			return fmt.Errorf("menu: list items for category %d: %w", cat.ID, err)
 		}
 		if len(items) > 0 {
-			categories = append(categories, CategoryWithItems{
+			categories = append(categories, handler.CategoryWithItems{
 				Category: cat,
 				Items:    items,
 			})
@@ -68,7 +69,7 @@ func (h *Base) MenuPage(w http.ResponseWriter, r *http.Request) error {
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		IsBlocked:         isBlocked,
 		ActivePage:        "menu",
-		LowBalanceWarning: IsLowBalance(user, settings),
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
 	}
 
 	h.Renderer.Page(w, r, "member/menu", data)
