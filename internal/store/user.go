@@ -34,19 +34,30 @@ func GetUserByEmail(ctx context.Context, db DBTX, email string) (*model.User, er
 	return &u, nil
 }
 
-// CreateUser inserts a new user and returns it with the generated ID and timestamps.
+// CreateUser inserts a new user and returns it with the generated ID and
+// timestamps. If a user with the same email is created concurrently (e.g.
+// two simultaneous first logins), the INSERT is made idempotent via
+// ON CONFLICT so callers get the existing row back instead of an error.
 func CreateUser(ctx context.Context, db DBTX, u *model.User) (*model.User, error) {
+	var out model.User
 	err := db.QueryRow(ctx, `
 		INSERT INTO users (email, full_name, given_name, family_name, is_barteamer, is_admin, is_kiosk, is_active, spending_limit_disabled)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, created_at, updated_at`,
+		ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+		RETURNING id, email, full_name, given_name, family_name,
+		          is_barteamer, is_admin, is_kiosk, is_active, spending_limit_disabled,
+		          created_at, updated_at`,
 		u.Email, u.FullName, u.GivenName, u.FamilyName,
 		u.IsBarteamer, u.IsAdmin, u.IsKiosk, u.IsActive, u.SpendingLimitDisabled,
-	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(
+		&out.ID, &out.Email, &out.FullName, &out.GivenName, &out.FamilyName,
+		&out.IsBarteamer, &out.IsAdmin, &out.IsKiosk, &out.IsActive, &out.SpendingLimitDisabled,
+		&out.CreatedAt, &out.UpdatedAt,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
-	return u, nil
+	return &out, nil
 }
 
 // UpdateUserProfile updates a user's profile fields and updated_at timestamp.

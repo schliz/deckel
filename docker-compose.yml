@@ -49,17 +49,13 @@ services:
   #   - X-Forwarded-Preferred-Username: display name
   # Example configuration (adjust for your OAuth provider):
   oauth2_proxy:
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM quay.io/oauth2-proxy/oauth2-proxy:latest
-        EXPOSE 4180
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
     environment:
       OAUTH2_PROXY_PROVIDER: ${OAUTH2_PROXY_PROVIDER:?OAuth2 Proxy must be set up}
       OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID:?OAuth2 Proxy must be set up}
       OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET?OAuth2 Proxy must be set up}
       OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL:?OAuth2 Proxy must be set up}
-      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET:-super-secret-32-character-string}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET:?OAuth2 Proxy cookie secret must be set}
       OAUTH2_PROXY_BACKEND_LOGOUT_URL: ${OAUTH2_PROXY_BACKEND_LOGOUT_URL:?OAuth2 Proxy must be set up}
       OAUTH2_PROXY_UPSTREAMS: http://${X_SERVICE_NAME_APP}:8080
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180

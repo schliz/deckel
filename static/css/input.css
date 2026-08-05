@@ -75,6 +75,7 @@
 }
 
 @source "../../templates/**/*.html";
+@source "../../internal/**/*.go";
 
 /*!
  * Author: Dachi — https://github.com/dachinat

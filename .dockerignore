@@ -1,7 +1,13 @@
 .git
 .claude
-node_modules
+**/node_modules
 docs
 scripts
 tasks
 *.md
+e2e/
+.env
+coverage/
+coverage.out
+/server
+.github/

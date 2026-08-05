@@ -34,7 +34,7 @@ func New(d Deps) http.Handler {
 	base := middleware.Chain(
 		middleware.Logging(),
 		middleware.Recovery(),
-		auth.Middleware(d.Store, d.Config.AdminGroup, d.Config.KioskGroup, d.Config.Organization, d.Config.AppName),
+		auth.Middleware(d.Store, d.Config.AdminGroup, d.Config.KioskGroup, d.Config.Organization, d.Config.AppName, d.Config.TrustedProxySecret),
 	)
 	withCSRF := middleware.Chain(base, middleware.CSRF(d.CSRFSecret))
 

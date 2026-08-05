@@ -109,5 +109,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npm install semantic-release @semantic-release/exec
+          npm install semantic-release@^25 @semantic-release/exec@^7
           npx semantic-release

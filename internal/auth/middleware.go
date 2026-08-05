@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,9 +16,23 @@ import (
 
 // Middleware returns HTTP middleware that extracts the authenticated user from
 // oauth2-proxy forwarded headers, enriches with DB data, and stores in context.
-func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName string) func(http.Handler) http.Handler {
+//
+// If trustedProxySecret is non-empty, incoming requests must carry an
+// X-Proxy-Auth header matching it (compared in constant time) before any
+// forwarded-auth headers are trusted. This provides defense-in-depth against
+// clients reaching the app directly and bypassing oauth2-proxy. When empty,
+// behavior is unchanged.
+func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName, trustedProxySecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if trustedProxySecret != "" {
+				got := r.Header.Get("X-Proxy-Auth")
+				if subtle.ConstantTimeCompare([]byte(got), []byte(trustedProxySecret)) != 1 {
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					return
+				}
+			}
+
 			email := r.Header.Get("X-Forwarded-Email")
 			if email == "" {
 				if r.Header.Get("HX-Request") == "true" {
@@ -89,16 +104,23 @@ func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName string)
 					return
 				}
 			} else {
+				// The access token may be absent (or unparsable) on some requests;
+				// don't let that wipe out previously stored names.
+				updateFullName, updateGivenName, updateFamilyName := fullName, givenName, familyName
+				if updateFullName == "" && updateGivenName == "" && updateFamilyName == "" {
+					updateFullName = user.FullName
+					updateGivenName = user.GivenName
+					updateFamilyName = user.FamilyName
+				}
+
 				// Update profile on every request (upsert pattern)
-				if err := store.UpdateUserProfile(ctx, db, user.ID, fullName, givenName, familyName, isAdmin, isKiosk); err != nil {
+				if err := store.UpdateUserProfile(ctx, db, user.ID, updateFullName, updateGivenName, updateFamilyName, isAdmin, isKiosk); err != nil {
 					slog.Error("auth: failed to update user profile", "email", email, "error", err)
 					// Non-fatal: continue with existing data
 				} else {
-					user.FullName = fullName
-					user.GivenName = givenName
-					user.FamilyName = familyName
-					user.IsAdmin = isAdmin
-					user.IsKiosk = isKiosk
+					user.FullName = updateFullName
+					user.GivenName = updateGivenName
+					user.FamilyName = updateFamilyName
 				}
 			}
 
@@ -115,7 +137,7 @@ func Middleware(s *store.Store, adminGroup, kioskGroup, orgName, appName string)
 				GivenName:             user.GivenName,
 				FamilyName:            user.FamilyName,
 				Groups:                groups,
-				IsAdmin:               user.IsAdmin,
+				IsAdmin:               isAdmin,
 				IsKiosk:               isKiosk,
 				ID:                    user.ID,
 				Balance:               balance,
@@ -156,7 +178,7 @@ const deactivatedPageHTML = `<!DOCTYPE html>
 </div>
 </div>
 </body>
-</html>`	
+</html>`
 
 // parseJWTNames extracts name, given_name, family_name from a JWT's payload.
 // It base64-decodes the payload segment without verifying the signature.

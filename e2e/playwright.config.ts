@@ -8,7 +8,7 @@ export default defineConfig({
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:4181',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
   },
   projects: [
     { name: 'setup', testMatch: /.*\.setup\.ts/ },

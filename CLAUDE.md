@@ -53,6 +53,8 @@ All monetary values are stored as cents (bigint). Items use soft-delete (`delete
 | DECKEL_TEMPLATE_DIR | ./templates | Path to HTML templates |
 | DECKEL_ORGANIZATION | K4-Bar | Organization name shown in navbar and page title |
 | DECKEL_APP_NAME | Deckel | App name shown in page title |
+| DECKEL_TRUSTED_PROXY_SECRET | (empty) | If set, requests must carry a matching X-Proxy-Auth header (defense against direct backend access bypassing oauth2-proxy) |
+| DECKEL_CSRF_SECRET | (empty) | If set, used as the CSRF signing secret so tokens survive restarts and are shared across replicas; if empty, a random per-process secret is generated (invalidates open tabs on restart) |
 
 ## Pitfalls
 

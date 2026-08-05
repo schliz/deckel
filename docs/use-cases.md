@@ -95,5 +95,6 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 - [ ] Getränk am Kiosk bestellen: Am Kiosk wird ein Getränk ausgewählt, dann ein Benutzer. Eine Bestätigungsseite zeigt Getränk, Benutzer, Preis und Guthaben. Nach Bestätigung wird die Buchung erstellt.
 - [x] Kiosk-Bestellung bei niedrigem Guthaben: Eine Bestellung wird für einen Benutzer mit niedrigem Guthaben am Kiosk durchgeführt. Die Buchung wird erstellt, aber eine Warnung erscheint.
 - [x] Kiosk-Bestellung bei Ausgabelimit: Am Kiosk wird ein Benutzer mit erreichtem Ausgabelimit ausgewählt. Die Bestätigung ist nicht möglich, ein Hinweis erscheint.
+- [ ] Kiosk-Bestellung mit Kiosk-Konto als Ziel: Am Kiosk wird versucht, eine Bestellung für ein Kiosk-Benutzerkonto als Ziel zu buchen (z. B. durch manipulierte Anfrage). Die Buchung wird serverseitig abgelehnt.
 - [ ] Kiosk-Stornierung: Am Kiosk wird eine selbst erstellte Buchung innerhalb des Zeitfensters storniert. Die Transaktion wird rückgängig gemacht.
 - [ ] Kiosk-Stornierung fremder Buchungen: Am Kiosk kann nur eine vom Kiosk erstellte Buchung storniert werden, nicht die Buchungen der Benutzer selbst.

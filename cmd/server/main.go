@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -73,10 +74,18 @@ func main() {
 	kioskH := &kiosk.Handler{Base: h}
 	memberH := &member.Handler{Base: h}
 
-	// Generate CSRF secret (random 32 bytes).
-	csrfSecret := make([]byte, 32)
-	if _, err := rand.Read(csrfSecret); err != nil {
-		log.Fatalf("Failed to generate CSRF secret: %v", err)
+	// CSRF secret: prefer a stable, configured secret so tokens survive
+	// restarts and are shared across replicas. Fall back to a random
+	// per-process secret (invalidates open tabs on every restart).
+	var csrfSecret []byte
+	if cfg.CSRFSecret != "" {
+		csrfSecret = []byte(cfg.CSRFSecret)
+	} else {
+		slog.Warn("DECKEL_CSRF_SECRET not set; using a random per-process CSRF secret. Restarts and multi-replica deployments will invalidate open tabs.")
+		csrfSecret = make([]byte, 32)
+		if _, err := rand.Read(csrfSecret); err != nil {
+			log.Fatalf("Failed to generate CSRF secret: %v", err)
+		}
 	}
 
 	mux := router.New(router.Deps{

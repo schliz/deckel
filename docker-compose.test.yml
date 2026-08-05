@@ -4,7 +4,11 @@ services:
   app:
     build:
       context: .
-      dockerfile: test/Dockerfile.cover
+      dockerfile: Dockerfile
+      args:
+        GO_LDFLAGS: ""
+        GO_COVER: -cover
+    stop_grace_period: 35s
     environment:
       DECKEL_DATABASE_URL: "postgres://deckel:deckel@postgres:5432/deckel_test?sslmode=disable"
       DECKEL_LISTEN_ADDR: ":8080"

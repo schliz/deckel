@@ -127,6 +127,9 @@ func (h *Handler) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error 
 	if !targetUser.IsActive {
 		return &handler.ValidationError{Message: "Benutzer ist deaktiviert"}
 	}
+	if targetUser.IsKiosk {
+		return &handler.ValidationError{Message: "Diese Aktion ist für Kiosk-Benutzer nicht verfügbar."}
+	}
 
 	settings, err := store.GetSettings(ctx, db)
 	if err != nil {

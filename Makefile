@@ -12,10 +12,7 @@ e2e: e2e-up
 
 e2e-up:
 	mkdir -p coverage
-	docker compose -f docker-compose.test.yml up -d --build
-	@echo "Waiting for services to become healthy..."
-	@while [ "$$(docker compose -f docker-compose.test.yml ps 2>/dev/null | grep -c '(healthy)')" -lt 3 ]; do sleep 2; done
-	@while ! docker compose -f docker-compose.test.yml ps 2>/dev/null | grep oauth2-proxy | grep -q "Up"; do sleep 2; done
+	docker compose -f docker-compose.test.yml up -d --build --wait --wait-timeout 300
 	docker compose -f docker-compose.test.yml exec -T postgres \
 		psql -U deckel -d deckel_test -f /seed.sql
 
