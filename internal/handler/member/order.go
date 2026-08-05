@@ -141,8 +141,9 @@ func (h *Handler) PlaceOrder(w http.ResponseWriter, r *http.Request) error {
 		// Create purchase transaction.
 		itemTitle := item.Name
 		createdBy := user.ID
+		userID := user.ID
 		txn := &model.Transaction{
-			UserID:          user.ID,
+			UserID:          &userID,
 			Amount:          amount,
 			ItemTitle:       &itemTitle,
 			UnitPrice:       &unitPrice,

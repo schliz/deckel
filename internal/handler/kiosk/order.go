@@ -164,8 +164,9 @@ func (h *Handler) KioskPlaceOrder(w http.ResponseWriter, r *http.Request) error 
 
 		itemTitle := item.Name
 		createdBy := kioskUser.ID
+		targetUserID := targetUser.ID
 		txn := &model.Transaction{
-			UserID:          targetUser.ID,
+			UserID:          &targetUserID,
 			Amount:          amount,
 			ItemTitle:       &itemTitle,
 			UnitPrice:       &unitPrice,

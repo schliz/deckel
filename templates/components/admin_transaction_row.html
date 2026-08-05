@@ -5,8 +5,10 @@
 <tr class="{{if $tx.CancelledAt}}opacity-50{{end}}">
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">{{formatTime $tx.CreatedAt}}</td>
     <td>
+        {{if $tx.UserID}}
         <div class="{{if $tx.CancelledAt}}line-through{{end}}">{{$tx.UserName}}</div>
         <div class="text-xs text-base-content/60">{{$tx.UserEmail}}</div>
+        {{else}}<span class="badge badge-ghost badge-sm">Anonymisiert</span>{{end}}
     </td>
     <td class="{{if $tx.CancelledAt}}line-through{{end}}">
         <span class="inline-flex items-center gap-1">

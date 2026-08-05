@@ -68,6 +68,12 @@
                             value="{{.Settings.PaginationSize}}"
                             class="input input-sm w-full">
                     </fieldset>
+                    <fieldset class="fieldset">
+                        <label class="label">Anonymisierung nach (Monate, 0 = deaktiviert)</label>
+                        <input type="number" name="anonymize_after_months" min="0" max="120"
+                            value="{{.Settings.AnonymizeAfterMonths}}"
+                            class="input input-sm w-full">
+                    </fieldset>
                 </div>
             </div>
         </div>

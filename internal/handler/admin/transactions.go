@@ -130,9 +130,13 @@ func (h *Handler) AdminCancelModal(w http.ResponseWriter, r *http.Request) error
 		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
+	if txn.UserID == nil {
+		return &handler.ValidationError{Message: "Transaktion ist anonymisiert"}
+	}
+
 	// Get user name for display.
 	var userName string
-	err = db.QueryRow(ctx, `SELECT full_name FROM users WHERE id = $1`, txn.UserID).Scan(&userName)
+	err = db.QueryRow(ctx, `SELECT full_name FROM users WHERE id = $1`, *txn.UserID).Scan(&userName)
 	if err != nil {
 		return fmt.Errorf("admin cancel modal: get user name: %w", err)
 	}
@@ -188,6 +192,9 @@ func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request)
 		return store.CancelTransaction(ctx, tx, id, user.ID)
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrAnonymized) {
+			return &handler.ValidationError{Message: "Transaktion ist anonymisiert"}
+		}
 		return fmt.Errorf("admin cancel transaction: %w", err)
 	}
 

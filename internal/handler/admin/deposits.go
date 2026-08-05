@@ -83,8 +83,9 @@ func (h *Handler) RegisterDeposit(w http.ResponseWriter, r *http.Request) error 
 
 	// Create deposit transaction (positive amount = credit).
 	createdBy := reqUser.ID
+	targetID := id
 	txn := &model.Transaction{
-		UserID:          id,
+		UserID:          &targetID,
 		Amount:          amountCents,
 		Description:     &note,
 		Type:            "deposit",

@@ -59,8 +59,12 @@ func (h *Handler) KioskCancelModal(w http.ResponseWriter, r *http.Request) error
 		return &handler.ValidationError{Message: "Stornierungsfenster abgelaufen"}
 	}
 
+	if txn.UserID == nil {
+		return &handler.ValidationError{Message: "Transaktion ist anonymisiert"}
+	}
+
 	// We need the user name for the modal display - fetch it.
-	targetUser, err := store.GetUserWithBalance(ctx, db, txn.UserID)
+	targetUser, err := store.GetUserWithBalance(ctx, db, *txn.UserID)
 	if err != nil {
 		return fmt.Errorf("kiosk cancel modal: get target user: %w", err)
 	}

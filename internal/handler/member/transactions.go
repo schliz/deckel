@@ -77,7 +77,7 @@ func (h *Handler) CancelModal(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Verify transaction belongs to current user.
-	if txn.UserID != user.ID {
+	if txn.UserID == nil || *txn.UserID != user.ID {
 		return &handler.ForbiddenError{Message: "Zugriff verweigert"}
 	}
 
@@ -170,8 +170,9 @@ func (h *Handler) CreateCustomTransaction(w http.ResponseWriter, r *http.Request
 
 	// Create transaction (amount is negative = debit).
 	createdBy := user.ID
+	userID := user.ID
 	txn := &model.Transaction{
-		UserID:          user.ID,
+		UserID:          &userID,
 		Amount:          -amountCents,
 		Description:     &description,
 		Type:            "custom",
@@ -265,7 +266,7 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 	}
 
 	// Verify transaction belongs to current user.
-	if txn.UserID != user.ID {
+	if txn.UserID == nil || *txn.UserID != user.ID {
 		return &handler.ForbiddenError{Message: "Zugriff verweigert"}
 	}
 

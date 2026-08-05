@@ -93,6 +93,10 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 	if err != nil || paginationSize < 1 || paginationSize > 500 {
 		return &handler.ValidationError{Message: "Seitengröße muss zwischen 1 und 500 liegen"}
 	}
+	anonymizeAfterMonths, err := strconv.Atoi(r.FormValue("anonymize_after_months"))
+	if err != nil || anonymizeAfterMonths < 0 || anonymizeAfterMonths > 120 {
+		return &handler.ValidationError{Message: "Anonymisierungsfrist muss zwischen 0 und 120 Monaten liegen (0 = deaktiviert)"}
+	}
 
 	// Parse SMTP fields.
 	smtpPort, err := strconv.Atoi(r.FormValue("smtp_port"))
@@ -131,22 +135,23 @@ func (h *Handler) SaveSettings(w http.ResponseWriter, r *http.Request) error {
 
 	// Store limits as negative values (convention: limits are negative cents).
 	s := &model.Settings{
-		WarningLimit:        warningLimit,
-		HardSpendingLimit:   hardSpendingLimit,
-		HardLimitEnabled:    hardLimitEnabled,
-		CustomTxMin:         customTxMin,
-		CustomTxMax:         customTxMax,
-		MaxItemQuantity:     maxItemQuantity,
-		CancellationMinutes: cancellationMinutes,
-		PaginationSize:      paginationSize,
-		SMTPHost:            smtpHost,
-		SMTPPort:            smtpPort,
-		SMTPUser:            smtpUser,
-		SMTPPassword:        r.FormValue("smtp_password"),
-		SMTPFrom:            smtpFrom,
-		SMTPFromName:        smtpFromName,
-		EmailSubject:        emailSubject,
-		EmailTemplate:       emailTemplate,
+		WarningLimit:         warningLimit,
+		HardSpendingLimit:    hardSpendingLimit,
+		HardLimitEnabled:     hardLimitEnabled,
+		CustomTxMin:          customTxMin,
+		CustomTxMax:          customTxMax,
+		MaxItemQuantity:      maxItemQuantity,
+		CancellationMinutes:  cancellationMinutes,
+		PaginationSize:       paginationSize,
+		SMTPHost:             smtpHost,
+		SMTPPort:             smtpPort,
+		SMTPUser:             smtpUser,
+		SMTPPassword:         r.FormValue("smtp_password"),
+		SMTPFrom:             smtpFrom,
+		SMTPFromName:         smtpFromName,
+		EmailSubject:         emailSubject,
+		EmailTemplate:        emailTemplate,
+		AnonymizeAfterMonths: anonymizeAfterMonths,
 	}
 
 	ctx := r.Context()

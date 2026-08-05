@@ -85,8 +85,10 @@ func GetUserBalanceForUpdate(ctx context.Context, db DBTX, userID int64) (int64,
 
 	var balance int64
 	err = db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(amount), 0) FROM transactions
-		WHERE user_id = $1`, userID).Scan(&balance)
+		SELECT u.balance_carryover + COALESCE((
+			SELECT SUM(amount) FROM transactions WHERE user_id = u.id
+		), 0)
+		FROM users u WHERE u.id = $1`, userID).Scan(&balance)
 	if err != nil {
 		return 0, fmt.Errorf("get user balance for update: %w", err)
 	}
@@ -97,8 +99,10 @@ func GetUserBalanceForUpdate(ctx context.Context, db DBTX, userID int64) (int64,
 func GetUserBalance(ctx context.Context, db DBTX, userID int64) (int64, error) {
 	var balance int64
 	err := db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(amount), 0) FROM transactions
-		WHERE user_id = $1`, userID).Scan(&balance)
+		SELECT u.balance_carryover + COALESCE((
+			SELECT SUM(amount) FROM transactions WHERE user_id = u.id
+		), 0)
+		FROM users u WHERE u.id = $1`, userID).Scan(&balance)
 	if err != nil {
 		return 0, fmt.Errorf("get user balance: %w", err)
 	}
@@ -109,14 +113,17 @@ func GetUserBalance(ctx context.Context, db DBTX, userID int64) (int64, error) {
 func GetUserRank(ctx context.Context, db DBTX, userID int64) (rank int, total int, err error) {
 	err = db.QueryRow(ctx, `
 		SELECT COUNT(*) + 1 FROM (
-			SELECT u.id, COALESCE(SUM(t.amount), 0) as balance
+			SELECT u.id, u.balance_carryover + COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
 			LEFT JOIN transactions t ON t.user_id = u.id
 			WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
 			GROUP BY u.id
-			HAVING COALESCE(SUM(t.amount), 0) > (
-				SELECT COALESCE(SUM(amount), 0) FROM transactions
-				WHERE user_id = $1
+			HAVING u.balance_carryover + COALESCE(SUM(t.amount), 0) > (
+				SELECT u2.balance_carryover + COALESCE((
+					SELECT SUM(amount) FROM transactions WHERE user_id = u2.id
+				), 0)
+				FROM users u2
+				WHERE u2.id = $1
 			)
 		) as higher`, userID).Scan(&rank)
 	if err != nil {
@@ -137,7 +144,7 @@ func GetAllBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 	var sum int64
 	err := db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(sub.balance), 0) FROM (
-			SELECT COALESCE(SUM(t.amount), 0) as balance
+			SELECT u.balance_carryover + COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
 			LEFT JOIN transactions t ON t.user_id = u.id
 			WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
@@ -154,12 +161,12 @@ func GetNegativeBalancesSum(ctx context.Context, db DBTX) (int64, error) {
 	var sum int64
 	err := db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(sub.balance), 0) FROM (
-			SELECT COALESCE(SUM(t.amount), 0) as balance
+			SELECT u.balance_carryover + COALESCE(SUM(t.amount), 0) as balance
 			FROM users u
 			LEFT JOIN transactions t ON t.user_id = u.id
 			WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
 			GROUP BY u.id
-			HAVING COALESCE(SUM(t.amount), 0) < 0
+			HAVING u.balance_carryover + COALESCE(SUM(t.amount), 0) < 0
 		) sub`).Scan(&sum)
 	if err != nil {
 		return 0, fmt.Errorf("get negative balances sum: %w", err)
@@ -180,7 +187,7 @@ func ListUsersWithBalance(ctx context.Context, db DBTX, limit, offset int) ([]mo
 		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
 		       u.is_barteamer, u.is_admin, u.is_kiosk, u.is_active, u.spending_limit_disabled,
 		       u.created_at, u.updated_at,
-		       COALESCE(SUM(t.amount), 0) AS balance
+		       u.balance_carryover + COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
 		LEFT JOIN transactions t ON t.user_id = u.id
 		GROUP BY u.id
@@ -217,7 +224,7 @@ func ListActiveUsersWithBalance(ctx context.Context, db DBTX) ([]model.UserWithB
 		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
 		       u.is_barteamer, u.is_admin, u.is_kiosk, u.is_active, u.spending_limit_disabled,
 		       u.created_at, u.updated_at,
-		       COALESCE(SUM(t.amount), 0) AS balance
+		       u.balance_carryover + COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
 		LEFT JOIN transactions t ON t.user_id = u.id
 		WHERE u.is_active = TRUE AND u.is_kiosk = FALSE
@@ -300,7 +307,7 @@ func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWith
 		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
 		       u.is_barteamer, u.is_admin, u.is_kiosk, u.is_active, u.spending_limit_disabled,
 		       u.created_at, u.updated_at,
-		       COALESCE(SUM(t.amount), 0) AS balance
+		       u.balance_carryover + COALESCE(SUM(t.amount), 0) AS balance
 		FROM users u
 		LEFT JOIN transactions t ON t.user_id = u.id
 		WHERE u.id = $1
