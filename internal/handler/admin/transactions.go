@@ -87,11 +87,109 @@ func (h *Handler) AdminTransactionList(w http.ResponseWriter, r *http.Request) e
 	return nil
 }
 
+// AdminUserTransactionsPageData is the view model for the admin single-user
+// transaction list page, which also surfaces the synthetic "Anfangsbestand"
+// (initial balance) carried over from anonymized transactions.
+type AdminUserTransactionsPageData struct {
+	User              *auth.RequestUser
+	TargetUser        *model.UserWithBalance
+	Transactions      []model.Transaction
+	Settings          *model.Settings
+	CSRFToken         string
+	ActivePage        string
+	Page              int
+	TotalPages        int
+	LowBalanceWarning bool
+	ShowCarryover     bool
+}
+
+// AdminUserTransactionList renders the paginated transaction list for a single user.
+func (h *Handler) AdminUserTransactionList(w http.ResponseWriter, r *http.Request) error {
+	ctx := r.Context()
+	user := auth.UserFromContext(ctx)
+	db := h.Store.DB()
+
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
+	}
+
+	targetUser, err := store.GetUserWithBalance(ctx, db, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return &handler.NotFoundError{Message: "Benutzer nicht gefunden"}
+		}
+		return fmt.Errorf("admin user transaction list: get user with balance: %w", err)
+	}
+
+	// Fetch settings for pagination size.
+	settings, err := store.GetSettings(ctx, db)
+	if err != nil {
+		return fmt.Errorf("admin user transaction list: get settings: %w", err)
+	}
+
+	// Read page query param (default 1).
+	page := 1
+	if p := r.URL.Query().Get("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	limit := settings.PaginationSize
+	offset := (page - 1) * limit
+
+	// Fetch paginated transactions for the target user.
+	transactions, total, err := store.ListTransactionsByUser(ctx, db, id, limit, offset)
+	if err != nil {
+		return fmt.Errorf("admin user transaction list: list transactions: %w", err)
+	}
+
+	// Compute total pages.
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
+	// Clamp page to valid range.
+	if page > totalPages && totalPages > 0 {
+		page = totalPages
+	}
+
+	// The synthetic "Anfangsbestand" row only makes sense on the oldest page
+	// (transactions are newest-first), and only if there is a carryover to show.
+	showCarryover := targetUser.BalanceCarryover != 0 && (totalPages == 0 || page >= totalPages)
+
+	data := AdminUserTransactionsPageData{
+		User:              user,
+		TargetUser:        targetUser,
+		Transactions:      transactions,
+		Settings:          settings,
+		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
+		ActivePage:        "admin-users",
+		Page:              page,
+		TotalPages:        totalPages,
+		LowBalanceWarning: handler.IsLowBalance(user, settings),
+		ShowCarryover:     showCarryover,
+	}
+
+	if handler.IsHTMX(r) {
+		h.Renderer.Fragment(w, r, "admin-user-transaction-list", data)
+		return nil
+	}
+
+	h.Renderer.Page(w, r, "admin/user_transactions", data)
+	return nil
+}
+
 // AdminCancelModalData is the view model for the admin cancel confirmation modal.
 type AdminCancelModalData struct {
 	Transaction *model.Transaction
 	UserName    string
 	CSRFToken   string
+	ListTarget  string
+	PostURL     string
 }
 
 // AdminCancelModal renders the cancel confirmation modal for an admin cancelling any transaction.
@@ -141,10 +239,30 @@ func (h *Handler) AdminCancelModal(w http.ResponseWriter, r *http.Request) error
 		return fmt.Errorf("admin cancel modal: get user name: %w", err)
 	}
 
+	// Read page query param (default 1).
+	page := 1
+	if p := r.URL.Query().Get("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	// The cancel confirmation is used both from the global admin transaction
+	// list and from a single user's transaction list; the origin query param
+	// tells us which list to target and refresh on submit.
+	listTarget := "#admin-transaction-list"
+	postURL := fmt.Sprintf("/admin/transactions/%d/cancel", id)
+	if r.URL.Query().Get("origin") == "user" {
+		listTarget = "#admin-user-transaction-list"
+		postURL = fmt.Sprintf("/admin/transactions/%d/cancel?origin=user&page=%d", id, page)
+	}
+
 	data := AdminCancelModalData{
 		Transaction: txn,
 		UserName:    userName,
 		CSRFToken:   middleware.CSRFTokenFromContext(ctx),
+		ListTarget:  listTarget,
+		PostURL:     postURL,
 	}
 
 	h.Renderer.Fragment(w, r, "admin-cancel-modal", data)
@@ -222,7 +340,9 @@ func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request)
 		"OOB":                 true,
 	})
 
-	// Re-render the admin transaction list for the current page.
+	// Re-render the transaction list for the current page. The origin query
+	// param determines whether this was triggered from the global admin
+	// transaction list or from a single user's transaction list.
 	page := 1
 	if p := r.URL.Query().Get("page"); p != "" {
 		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
@@ -232,24 +352,56 @@ func (h *Handler) AdminCancelTransaction(w http.ResponseWriter, r *http.Request)
 	limit := settings.PaginationSize
 	offset := (page - 1) * limit
 
-	transactions, totalTxns, err := store.ListAllTransactions(ctx, db, limit, offset)
-	if err != nil {
-		return fmt.Errorf("admin cancel transaction: list transactions: %w", err)
-	}
-	totalPages := 0
-	if totalTxns > 0 {
-		totalPages = (totalTxns + limit - 1) / limit
-	}
+	if r.URL.Query().Get("origin") == "user" {
+		userID := *txn.UserID
 
-	h.Renderer.AppendOOB(w, "admin-transaction-list", AdminTransactionsPageData{
-		User:         user,
-		Transactions: transactions,
-		Settings:     settings,
-		CSRFToken:    middleware.CSRFTokenFromContext(ctx),
-		ActivePage:   "admin-transactions",
-		Page:         page,
-		TotalPages:   totalPages,
-	})
+		targetUser, err := store.GetUserWithBalance(ctx, db, userID)
+		if err != nil {
+			return fmt.Errorf("admin cancel transaction: get user with balance: %w", err)
+		}
+
+		transactions, totalTxns, err := store.ListTransactionsByUser(ctx, db, userID, limit, offset)
+		if err != nil {
+			return fmt.Errorf("admin cancel transaction: list transactions by user: %w", err)
+		}
+		totalPages := 0
+		if totalTxns > 0 {
+			totalPages = (totalTxns + limit - 1) / limit
+		}
+
+		showCarryover := targetUser.BalanceCarryover != 0 && (totalPages == 0 || page >= totalPages)
+
+		h.Renderer.AppendOOB(w, "admin-user-transaction-list", AdminUserTransactionsPageData{
+			User:          user,
+			TargetUser:    targetUser,
+			Transactions:  transactions,
+			Settings:      settings,
+			CSRFToken:     middleware.CSRFTokenFromContext(ctx),
+			ActivePage:    "admin-users",
+			Page:          page,
+			TotalPages:    totalPages,
+			ShowCarryover: showCarryover,
+		})
+	} else {
+		transactions, totalTxns, err := store.ListAllTransactions(ctx, db, limit, offset)
+		if err != nil {
+			return fmt.Errorf("admin cancel transaction: list transactions: %w", err)
+		}
+		totalPages := 0
+		if totalTxns > 0 {
+			totalPages = (totalTxns + limit - 1) / limit
+		}
+
+		h.Renderer.AppendOOB(w, "admin-transaction-list", AdminTransactionsPageData{
+			User:         user,
+			Transactions: transactions,
+			Settings:     settings,
+			CSRFToken:    middleware.CSRFTokenFromContext(ctx),
+			ActivePage:   "admin-transactions",
+			Page:         page,
+			TotalPages:   totalPages,
+		})
+	}
 
 	// Close modal.
 	w.Write([]byte(`<div id="modal" hx-swap-oob="innerHTML" style="display:none"></div>`))

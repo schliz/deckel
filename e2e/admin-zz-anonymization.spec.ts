@@ -105,6 +105,31 @@ test.describe('Admin Anonymisierung (DSGVO)', () => {
     await expect(balanceCell).toHaveText(/5,00 EUR/);
   });
 
+  test('Transaktionsansicht zeigt Anfangsbestand nach dem Lauf', async ({ page }) => {
+    await page.goto('/admin/users/901/transactions');
+
+    await expect(
+      page.getByRole('heading', { name: /Transaktionen: Old Anon User/ })
+    ).toBeVisible();
+    await expect(page.locator('p', { hasText: 'Guthaben:' })).toContainText('5,00');
+
+    const list = page.locator('#admin-user-transaction-list');
+    await expect(list).toBeVisible();
+
+    // The four anonymized rows are gone from this user's view...
+    await expect(list).not.toContainText('Einzahlung');
+    await expect(list).not.toContainText('Mate');
+
+    // ...only the fresh -2,00 EUR Bier purchase remains as a regular row.
+    await expect(list.locator('tr', { hasText: 'Bier' })).toHaveCount(1);
+
+    // ...plus the synthetic carryover row from the anonymized rows.
+    const anfangsbestandRow = list.locator('tr', { hasText: 'Anfangsbestand' });
+    await expect(anfangsbestandRow).toBeVisible();
+    await expect(anfangsbestandRow).toContainText('7,00');
+    await expect(anfangsbestandRow).toContainText('Anonymisiert');
+  });
+
   test('Protokoll-Tabelle zeigt den ausgeführten Lauf', async ({ page }) => {
     await page.goto('/admin/settings');
 

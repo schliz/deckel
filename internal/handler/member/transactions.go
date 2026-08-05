@@ -348,6 +348,14 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 		totalPages = (totalTxns + limit - 1) / limit
 	}
 
+	// Fetch the synthetic "Anfangsbestand" (initial balance) carried over
+	// from anonymized transactions; it only shows up on the oldest page.
+	carryover, err := store.GetUserBalanceCarryover(ctx, db, user.ID)
+	if err != nil {
+		return fmt.Errorf("cancel transaction: get balance carryover: %w", err)
+	}
+	showCarryover := carryover != 0 && (totalPages == 0 || page >= totalPages)
+
 	h.Renderer.AppendOOB(w, "transaction-list", TransactionHistoryData{
 		User:                user,
 		Transactions:        txns,
@@ -357,6 +365,8 @@ func (h *Handler) CancelTransaction(w http.ResponseWriter, r *http.Request) erro
 		CancellationMinutes: settings.CancellationMinutes,
 		Page:                page,
 		TotalPages:          totalPages,
+		BalanceCarryover:    carryover,
+		ShowCarryover:       showCarryover,
 	})
 
 	// Close modal.

@@ -38,6 +38,7 @@ func RegisterAdmin(mux *http.ServeMux, h *admin.Handler, withCSRF func(http.Hand
 	mux.Handle("POST /admin/users/{id}/deposit", adminOnly(h.Wrap(h.RegisterDeposit)))
 	mux.Handle("GET /admin/users/{id}/confirm-delete", adminOnly(h.Wrap(h.ConfirmDeleteUserModal)))
 	mux.Handle("POST /admin/users/{id}/delete", adminOnly(h.Wrap(h.DeleteUser)))
+	mux.Handle("GET /admin/users/{id}/transactions", adminOnly(h.Wrap(h.AdminUserTransactionList)))
 	mux.Handle("GET /admin/transactions", adminOnly(h.Wrap(h.AdminTransactionList)))
 	mux.Handle("GET /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelModal)))
 	mux.Handle("POST /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelTransaction)))

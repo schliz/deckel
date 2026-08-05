@@ -57,6 +57,7 @@
         <button class="btn btn-primary btn-xs"
             hx-get="/admin/users/{{$u.ID}}/deposit"
             hx-target="#modal">Einzahlung</button>
+        <a class="btn btn-ghost btn-xs" href="/admin/users/{{$u.ID}}/transactions">Buchungen</a>
         {{end}}
         {{if not $u.IsActive}}
         <button class="btn btn-error btn-xs"

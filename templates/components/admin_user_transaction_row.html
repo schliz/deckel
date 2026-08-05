@@ -1,0 +1,31 @@
+{{define "admin-user-transaction-row"}}
+{{$tx := index . "Tx"}}
+{{$cancelMin := index . "CancellationMinutes"}}
+<tr class="{{if $tx.CancelledAt}}opacity-50{{end}}">
+    <td class="{{if $tx.CancelledAt}}line-through{{end}}">{{formatTime $tx.CreatedAt}}</td>
+    <td class="{{if $tx.CancelledAt}}line-through{{end}}">
+        <span class="inline-flex items-center gap-1">
+        {{if eq $tx.Type "cancellation"}}{{if $tx.Description}}{{trimPrefix $tx.Description "Storno: "}}{{else}}—{{end}} <span class="badge badge-info badge-sm">Storno</span>
+        {{else}}{{if $tx.ItemTitle}}{{$tx.ItemTitle}}{{if $tx.Quantity}} × {{$tx.Quantity}}{{end}}{{else if $tx.Description}}{{$tx.Description}}{{else}}—{{end}}{{end}}
+        </span>
+    </td>
+    <td class="text-right font-mono {{if $tx.CancelledAt}}line-through{{end}} {{if lt $tx.Amount 0}}text-error{{else}}text-success{{end}}">
+        {{formatCents $tx.Amount}}
+    </td>
+    <td>
+        {{if eq $tx.Type "order"}}Bestellung{{else if eq $tx.Type "deposit"}}Einzahlung{{else if eq $tx.Type "custom"}}Benutzerdefiniert{{else if eq $tx.Type "cancellation"}}Stornierung{{else}}{{$tx.Type}}{{end}}
+    </td>
+    <td>
+        {{if $tx.CancelledAt}}<span class="badge badge-error badge-sm">Storniert</span>{{else}}<span class="badge badge-success badge-sm">Aktiv</span>{{end}}
+    </td>
+    <td>
+        {{if and (not $tx.CancelledAt) (ne $tx.Type "cancellation") (withinMinutes $tx.CreatedAt $cancelMin)}}
+        <button class="btn btn-error btn-xs"
+            hx-get="/admin/transactions/{{$tx.ID}}/cancel?origin=user&page={{index . "Page"}}"
+            hx-target="#modal">
+            Stornieren
+        </button>
+        {{end}}
+    </td>
+</tr>
+{{end}}

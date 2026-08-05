@@ -17,7 +17,18 @@
             {{range .Transactions}}
             {{template "transaction-row" (map "Tx" . "CancellationMinutes" $cancelMin "CSRFToken" $csrf "CurrentUserID" $currentUserID)}}
             {{end}}
-            {{if not .Transactions}}
+            {{if .ShowCarryover}}
+            <tr>
+                <td>—</td>
+                <td>Anfangsbestand</td>
+                <td class="text-right">—</td>
+                <td class="text-right font-mono {{if lt .BalanceCarryover 0}}text-error{{else}}text-success{{end}}">
+                    {{formatCents .BalanceCarryover}}
+                </td>
+                <td></td>
+            </tr>
+            {{end}}
+            {{if and (not .Transactions) (not .ShowCarryover)}}
             <tr>
                 <td colspan="5" class="text-center text-base-content/60 py-8">Keine Transaktionen vorhanden.</td>
             </tr>

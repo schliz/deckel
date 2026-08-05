@@ -339,7 +339,8 @@ func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWith
 		SELECT u.id, u.email, u.full_name, u.given_name, u.family_name,
 		       u.is_barteamer, u.is_admin, u.is_kiosk, u.is_active, u.spending_limit_disabled,
 		       u.created_at, u.updated_at,
-		       u.balance_carryover + COALESCE(SUM(t.amount), 0) AS balance
+		       u.balance_carryover + COALESCE(SUM(t.amount), 0) AS balance,
+		       u.balance_carryover
 		FROM users u
 		LEFT JOIN transactions t ON t.user_id = u.id
 		WHERE u.id = $1
@@ -348,6 +349,7 @@ func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWith
 		&ub.IsBarteamer, &ub.IsAdmin, &ub.IsKiosk, &ub.IsActive, &ub.SpendingLimitDisabled,
 		&ub.CreatedAt, &ub.UpdatedAt,
 		&ub.Balance,
+		&ub.BalanceCarryover,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -356,4 +358,17 @@ func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWith
 		return nil, fmt.Errorf("get user with balance: %w", err)
 	}
 	return &ub, nil
+}
+
+// GetUserBalanceCarryover returns the accumulated carryover from anonymized transactions.
+func GetUserBalanceCarryover(ctx context.Context, db DBTX, userID int64) (int64, error) {
+	var carryover int64
+	err := db.QueryRow(ctx, `SELECT balance_carryover FROM users WHERE id = $1`, userID).Scan(&carryover)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrNotFound
+		}
+		return 0, fmt.Errorf("get user balance carryover: %w", err)
+	}
+	return carryover, nil
 }

@@ -19,7 +19,8 @@ type User struct {
 
 type UserWithBalance struct {
 	User
-	Balance int64
+	Balance          int64
+	BalanceCarryover int64
 }
 
 type Category struct {

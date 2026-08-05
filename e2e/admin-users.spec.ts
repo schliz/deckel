@@ -159,4 +159,27 @@ test.describe('Admin User Management', () => {
     const adminActiveToggle = adminRow.locator('.toggle.toggle-success');
     await expect(adminActiveToggle).toBeDisabled();
   });
+
+  test('Transaktionen eines Benutzers ansehen', async ({ page }) => {
+    await page.goto('/admin/users');
+
+    const row = page.locator('#user-row-901');
+    await expect(row).toBeVisible();
+    await expect(row).toContainText('Old Anon User');
+
+    await row.getByRole('link', { name: 'Buchungen' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: /Transaktionen: Old Anon User/ })
+    ).toBeVisible();
+
+    const list = page.locator('#admin-user-transaction-list');
+    await expect(list).toBeVisible();
+    await expect(list).toContainText('Einzahlung');
+    await expect(list).toContainText('Bier');
+    await expect(list).not.toContainText('Anfangsbestand');
+
+    // Only 5 seeded rows for this user -> no pagination control.
+    await expect(list.locator('.join')).toHaveCount(0);
+  });
 });

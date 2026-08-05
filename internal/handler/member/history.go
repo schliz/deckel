@@ -28,6 +28,8 @@ type TransactionHistoryData struct {
 	TotalPages          int
 	LowBalanceWarning   bool
 	IsBlocked           bool
+	BalanceCarryover    int64
+	ShowCarryover       bool
 }
 
 // TransactionHistory renders the paginated transaction history for the current user.
@@ -70,6 +72,14 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 		page = totalPages
 	}
 
+	// Fetch the synthetic "Anfangsbestand" (initial balance) carried over
+	// from anonymized transactions; it only shows up on the oldest page.
+	carryover, err := store.GetUserBalanceCarryover(ctx, db, user.ID)
+	if err != nil {
+		return fmt.Errorf("transaction history: get balance carryover: %w", err)
+	}
+	showCarryover := carryover != 0 && (totalPages == 0 || page >= totalPages)
+
 	// Determine if user is blocked (at or below hard spending limit).
 	isBlocked := false
 	if settings.HardLimitEnabled && user != nil && !user.SpendingLimitDisabled {
@@ -87,6 +97,8 @@ func (h *Handler) TransactionHistory(w http.ResponseWriter, r *http.Request) err
 		TotalPages:          totalPages,
 		LowBalanceWarning:   handler.IsLowBalance(user, settings),
 		IsBlocked:           isBlocked,
+		BalanceCarryover:    carryover,
+		ShowCarryover:       showCarryover,
 	}
 
 	if handler.IsHTMX(r) {

@@ -32,6 +32,7 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 - [x] Transaktion stornieren: Ein Benutzer klickt auf den Stornieren-Button einer Transaktion innerhalb des Stornierungszeitraums, bestätigt im Modal. Die Transaktion wird als storniert markiert (durchgestrichen) und eine Gegenbuchung erstellt. Das Guthaben wird wiederhergestellt.
 - [ ] Stornierungsfenster abgelaufen: Ein Benutzer sieht bei älteren Transaktionen keinen Stornieren-Button, da das Zeitfenster (konfigurierbar in Minuten) abgelaufen ist.
 - [ ] Stornierung einer Stornierung: Stornierungstransaktionen selbst können nicht erneut storniert werden.
+- [ ] Anfangsbestand in eigener Historie: Ein Benutzer mit anonymisierten Buchungen öffnet seine Transaktionsseite. Auf der letzten Seite erscheint eine Zeile "Anfangsbestand" mit dem übertragenen Saldo.
 
 ## Profil
 
@@ -80,6 +81,8 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 - [ ] Alle Transaktionen ansehen: Ein Admin öffnet die Transaktionsverwaltung. Er sieht alle Transaktionen aller Benutzer paginiert mit Datum, Benutzer, Beschreibung, Betrag, Typ und Status.
 - [ ] Transaktion stornieren (Admin): Ein Admin klickt auf "Stornieren" bei einer Transaktion innerhalb des Zeitfensters und bestätigt. Die Transaktion wird storniert und eine Gegenbuchung erstellt.
 - [ ] Anonymisierte Transaktion anzeigen: Ein Admin öffnet die Transaktionsverwaltung. Bei anonymisierten Transaktionen steht statt Name und E-Mail des Benutzers das Abzeichen "Anonymisiert"; Betrag, Artikel, Menge und Datum bleiben unverändert sichtbar.
+- [ ] Transaktionen eines Benutzers ansehen: Ein Admin klickt in der Benutzerliste auf "Buchungen" bei einem Benutzer. Er sieht dessen Transaktionen paginiert mit Datum, Beschreibung, Betrag, Typ, Status und Storno-Aktion.
+- [ ] Anfangsbestand nach Anonymisierung: Ein Admin öffnet die Transaktionsansicht eines Benutzers mit anonymisierten Buchungen. Auf der letzten Seite erscheint eine Zeile "Anfangsbestand" mit dem übertragenen Saldo; ohne anonymisierte Buchungen fehlt die Zeile.
 
 ## Admin: Statistiken
 
