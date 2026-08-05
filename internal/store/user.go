@@ -300,6 +300,38 @@ func ToggleSpendingLimit(ctx context.Context, db DBTX, id int64) error {
 	return nil
 }
 
+// CountUserReferences returns how many transactions still reference the
+// given user, split by role: as the transacting party (user_id) and as the
+// creator of the transaction (created_by_user_id, e.g. an admin deposit or
+// a kiosk order entered on their behalf).
+func CountUserReferences(ctx context.Context, db DBTX, id int64) (asUser, asCreator int, err error) {
+	err = db.QueryRow(ctx, `
+		SELECT
+			COUNT(*) FILTER (WHERE user_id = $1),
+			COUNT(*) FILTER (WHERE created_by_user_id = $1)
+		FROM transactions
+		WHERE user_id = $1 OR created_by_user_id = $1`, id).Scan(&asUser, &asCreator)
+	if err != nil {
+		return 0, 0, fmt.Errorf("count user references: %w", err)
+	}
+	return asUser, asCreator, nil
+}
+
+// DeleteUser hard-deletes a user row. Callers are responsible for verifying
+// beforehand that the user is safe to delete (inactive, zero balance, no
+// remaining transaction references); FK constraints act as a DB-level
+// backstop.
+func DeleteUser(ctx context.Context, db DBTX, id int64) error {
+	ct, err := db.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // GetUserWithBalance returns a single user with their computed balance.
 func GetUserWithBalance(ctx context.Context, db DBTX, id int64) (*model.UserWithBalance, error) {
 	var ub model.UserWithBalance
