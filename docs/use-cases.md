@@ -72,11 +72,14 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 - [x] Barteamer-Status umschalten: Ein Admin klickt auf den Barteamer-Toggle und bestätigt. Der Benutzer wechselt zwischen Barteamer und Helfer, was seine Getränkepreise beeinflusst.
 - [ ] Ausgabelimit aufheben: Ein Admin klickt auf den Limit-Override-Toggle und bestätigt. Der Benutzer ist vom harten Ausgabelimit befreit und kann trotz negativem Guthaben bestellen.
 - [ ] Ausgabelimit wiederherstellen: Ein Admin klickt erneut auf den Limit-Override-Toggle und bestätigt. Das Ausgabelimit gilt wieder für den Benutzer.
+- [ ] Benutzer löschen: Ein Admin klickt auf "Löschen" bei einem deaktivierten Benutzer mit Saldo 0 und ohne zugeordnete Buchungen und bestätigt im Modal. Der Benutzer wird endgültig gelöscht und seine Zeile verschwindet aus der Liste.
+- [ ] Benutzer löschen blockiert: Ein Admin klickt auf "Löschen" bei einem deaktivierten Benutzer, dessen Saldo ungleich 0 ist oder dem noch Buchungen zugeordnet sind. Das Bestätigungs-Modal zeigt einen entsprechenden Hinweis statt eines Bestätigen-Buttons an.
 
 ## Admin: Transaktionsverwaltung
 
 - [ ] Alle Transaktionen ansehen: Ein Admin öffnet die Transaktionsverwaltung. Er sieht alle Transaktionen aller Benutzer paginiert mit Datum, Benutzer, Beschreibung, Betrag, Typ und Status.
 - [ ] Transaktion stornieren (Admin): Ein Admin klickt auf "Stornieren" bei einer Transaktion innerhalb des Zeitfensters und bestätigt. Die Transaktion wird storniert und eine Gegenbuchung erstellt.
+- [ ] Anonymisierte Transaktion anzeigen: Ein Admin öffnet die Transaktionsverwaltung. Bei anonymisierten Transaktionen steht statt Name und E-Mail des Benutzers das Abzeichen "Anonymisiert"; Betrag, Artikel, Menge und Datum bleiben unverändert sichtbar.
 
 ## Admin: Statistiken
 
@@ -88,6 +91,8 @@ Hier sind die Anwendungsfälle, die diese Software implementiert, niedergeschrie
 - [x] Einstellungen ansehen: Ein Admin öffnet die Einstellungsseite. Er sieht alle konfigurierbaren Werte in Gruppen: Limits, Buchungs- und Bestelloptionen, SMTP-Konfiguration und E-Mail-Vorlage.
 - [x] Einstellungen speichern: Ein Admin ändert einen oder mehrere Werte und klickt "Speichern". Die Einstellungen werden aktualisiert und wirken sich sofort auf das System aus.
 - [ ] Erinnerungs-E-Mails senden: Ein Admin klickt auf "Erinnerungen senden" und bestätigt. Das System sendet an alle aktiven Benutzer eine E-Mail mit ihrem aktuellen Guthaben gemäß der konfigurierten Vorlage.
+- [ ] Anonymisierung ausführen: Ein Admin klickt auf der Einstellungsseite auf "Anonymisierung ausführen" und bestätigt im Vorschau-Modal, das die Anzahl betroffener Transaktionen und Nutzer anzeigt. Die betroffenen Transaktionen werden anonymisiert, die Salden aller Benutzer bleiben unverändert, und der Lauf wird in einem Protokoll festgehalten.
+- [ ] Anonymisierungsfrist einstellen: Ein Admin ändert die Anonymisierungsfrist (in Monaten) in den Einstellungen und speichert. Nur Transaktionen, die älter als die Frist sind, werden bei einem Lauf berücksichtigt; bei Frist 0 ist die Anonymisierung deaktiviert und der Ausführen-Button ausgeblendet.
 
 ## Kiosk-Modus
 
