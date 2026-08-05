@@ -63,6 +63,15 @@ type TransactionWithUser struct {
 	UserEmail string
 }
 
+type AnonymizationRun struct {
+	ID               int64
+	ExecutedAt       time.Time
+	CutoffDate       time.Time
+	TransactionCount int
+	UserCount        int
+	ExecutedBy       string
+}
+
 type Settings struct {
 	ID                   int
 	WarningLimit         int64

@@ -36,6 +36,8 @@ func RegisterAdmin(mux *http.ServeMux, h *admin.Handler, withCSRF func(http.Hand
 	mux.Handle("POST /admin/users/{id}/toggle-spending-limit", adminOnly(h.Wrap(h.ToggleSpendingLimit)))
 	mux.Handle("GET /admin/users/{id}/deposit", adminOnly(h.Wrap(h.DepositModal)))
 	mux.Handle("POST /admin/users/{id}/deposit", adminOnly(h.Wrap(h.RegisterDeposit)))
+	mux.Handle("GET /admin/users/{id}/confirm-delete", adminOnly(h.Wrap(h.ConfirmDeleteUserModal)))
+	mux.Handle("POST /admin/users/{id}/delete", adminOnly(h.Wrap(h.DeleteUser)))
 	mux.Handle("GET /admin/transactions", adminOnly(h.Wrap(h.AdminTransactionList)))
 	mux.Handle("GET /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelModal)))
 	mux.Handle("POST /admin/transactions/{id}/cancel", adminOnly(h.Wrap(h.AdminCancelTransaction)))
@@ -44,4 +46,6 @@ func RegisterAdmin(mux *http.ServeMux, h *admin.Handler, withCSRF func(http.Hand
 	mux.Handle("POST /admin/settings", adminOnly(h.Wrap(h.SaveSettings)))
 	mux.Handle("GET /admin/settings/send-reminders", adminOnly(h.Wrap(h.SendRemindersModal)))
 	mux.Handle("POST /admin/settings/send-reminders", adminOnly(h.Wrap(h.SendReminders)))
+	mux.Handle("GET /admin/settings/anonymize", adminOnly(h.Wrap(h.AnonymizeModal)))
+	mux.Handle("POST /admin/settings/anonymize", adminOnly(h.Wrap(h.RunAnonymization)))
 }

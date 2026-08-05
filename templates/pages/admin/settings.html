@@ -174,5 +174,58 @@
             </div>
         </div>
     </div>
+
+    <!-- Anonymization (GDPR) -->
+    <div class="card bg-base-200 shadow-sm mt-4">
+        <div class="card-body p-4">
+            <h2 class="card-title text-lg">Anonymisierung (DSGVO)</h2>
+            <p class="text-sm text-base-content/60">
+                Entfernt den Personenbezug alter Transaktionen (älter als die eingestellte Frist). Buchungsdaten
+                bleiben für die GoBD-Aufbewahrung erhalten; Salden bleiben über einen aggregierten Übertrag unverändert.
+            </p>
+            <div class="card-actions mt-2 flex-wrap gap-2">
+                {{if gt .Settings.AnonymizeAfterMonths 0}}
+                <button class="btn btn-warning btn-sm"
+                    hx-get="/admin/settings/anonymize"
+                    hx-target="#modal">
+                    Jetzt anonymisieren
+                </button>
+                {{else}}
+                <p class="text-sm text-base-content/50">Anonymisierung ist deaktiviert (Frist = 0 Monate).</p>
+                {{end}}
+            </div>
+
+            <div class="overflow-x-auto mt-4">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Stichtag</th>
+                            <th>Transaktionen</th>
+                            <th>Nutzer</th>
+                            <th>Ausgeführt von</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{if .AnonymizationRuns}}
+                        {{range .AnonymizationRuns}}
+                        <tr>
+                            <td>{{formatTime .ExecutedAt}}</td>
+                            <td>{{formatDate .CutoffDate}}</td>
+                            <td>{{.TransactionCount}}</td>
+                            <td>{{.UserCount}}</td>
+                            <td>{{.ExecutedBy}}</td>
+                        </tr>
+                        {{end}}
+                        {{else}}
+                        <tr>
+                            <td colspan="5" class="text-center text-base-content/50">Noch keine Läufe protokolliert</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {{end}}

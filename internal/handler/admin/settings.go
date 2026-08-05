@@ -25,6 +25,7 @@ type AdminSettingsPageData struct {
 	CSRFToken         string
 	ActivePage        string
 	LowBalanceWarning bool
+	AnonymizationRuns []model.AnonymizationRun
 }
 
 // AdminSettingsPage renders the admin settings page.
@@ -38,12 +39,18 @@ func (h *Handler) AdminSettingsPage(w http.ResponseWriter, r *http.Request) erro
 		return fmt.Errorf("admin settings: get settings: %w", err)
 	}
 
+	anonymizationRuns, err := store.ListAnonymizationRuns(ctx, db, 10)
+	if err != nil {
+		return fmt.Errorf("admin settings: list anonymization runs: %w", err)
+	}
+
 	data := AdminSettingsPageData{
 		User:              user,
 		Settings:          settings,
 		CSRFToken:         middleware.CSRFTokenFromContext(ctx),
 		ActivePage:        "admin-settings",
 		LowBalanceWarning: handler.IsLowBalance(user, settings),
+		AnonymizationRuns: anonymizationRuns,
 	}
 
 	h.Renderer.Page(w, r, "admin/settings", data)
